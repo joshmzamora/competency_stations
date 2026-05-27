@@ -2,6 +2,7 @@ import { CheckCircle2, Radio, Send, ShieldAlert } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
+import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
 import { useRoomSocket } from "../hooks/useRoomSocket";
@@ -13,15 +14,26 @@ export function PlayerPage() {
   const [name, setName] = useState("Learner");
   const [answer, setAnswer] = useState("");
   const [promptStartedAt, setPromptStartedAt] = useState(Date.now());
+  const [effectVisible, setEffectVisible] = useState(false);
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
+  const isLive = room?.status === "in-progress";
+  const activePrompt = isLive ? prompt : undefined;
+  const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
 
   useEffect(() => {
-    if (prompt?.id) {
+    if (activePrompt?.id) {
       setAnswer("");
       setPromptStartedAt(Date.now());
     }
-  }, [prompt?.id]);
+  }, [activePrompt?.id]);
+
+  useEffect(() => {
+    if (!currentEvaluation?.evaluatedAt) return;
+    setEffectVisible(true);
+    const timeout = window.setTimeout(() => setEffectVisible(false), 1700);
+    return () => window.clearTimeout(timeout);
+  }, [currentEvaluation?.evaluatedAt]);
 
   function join(event: FormEvent) {
     event.preventDefault();
@@ -79,6 +91,7 @@ export function PlayerPage() {
             <div>
               <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">Active station</div>
               <div className="font-display text-3xl font-black uppercase text-white">{station?.title ?? "Waiting for station"}</div>
+              {station && !isLive && <p className="mt-1 text-sm text-amber">Station loaded. Waiting for host to start.</p>}
             </div>
             <AnimatedButton variant="secondary" onClick={() => send({ type: "player-ready", ready: true })}>
               <CheckCircle2 className="h-4 w-4" />
@@ -88,9 +101,9 @@ export function PlayerPage() {
 
           <CountdownTimer endsAt={room.timerEndsAt} />
 
-          {prompt ? (
+          {activePrompt ? (
             <>
-              <PromptCard prompt={prompt} playerMode />
+              <PromptCard prompt={activePrompt} playerMode />
               <form onSubmit={submit} className="rounded-md border border-white/10 bg-black/35 p-4">
                 <label className="grid gap-2">
                   <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-monitor">Optional learner note</span>
@@ -113,7 +126,9 @@ export function PlayerPage() {
             <div className="rounded-md border border-amber/25 bg-amber/10 p-8 text-amber">
               <ShieldAlert className="mb-3 h-8 w-8" />
               <div className="font-display text-3xl font-black uppercase text-white">Stand by</div>
-              <p className="mt-3 text-white/70">The host will select a competency station and advance prompts from the control room.</p>
+              <p className="mt-3 text-white/70">
+                {station ? "The host has loaded the station and will start when ready." : "The host will select a competency station and advance prompts from the control room."}
+              </p>
             </div>
           )}
         </div>
@@ -122,6 +137,7 @@ export function PlayerPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
+      <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
     </section>
   );
 }

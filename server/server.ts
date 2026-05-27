@@ -410,7 +410,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "open-station": {
       if (client.role !== "host") return;
-      room.status = "in-progress";
+      room.status = "lobby";
       room.selectedStation = message.station ?? null;
       room.activePromptIndex = 0;
       room.timerEndsAt = null;

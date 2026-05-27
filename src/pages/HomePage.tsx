@@ -55,7 +55,12 @@ export function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 + index * 0.04 }}
           >
-            <StationCard station={station} onSelect={() => { window.location.href = "/host"; }} />
+            <StationCard
+              station={station}
+              onSelect={(selectedStation) => {
+                window.location.href = `/host?station=${selectedStation.id}`;
+              }}
+            />
           </motion.div>
         ))}
       </div>

@@ -1,7 +1,8 @@
 import { Check, ChevronLeft, ChevronRight, Copy, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Timer, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
+import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
 import { ScoreBadge } from "../components/ScoreBadge";
@@ -14,12 +15,32 @@ export function HostPage() {
   const { status, room, error, send, clearError } = useRoomSocket();
   const [note, setNote] = useState("");
   const [flagged, setFlagged] = useState(false);
+  const [effectVisible, setEffectVisible] = useState(false);
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
+  const currentEvaluation = prompt ? evaluations[prompt.id] : undefined;
   const completed = Object.keys(evaluations).length;
   const progress = totalPrompts ? Math.round((completed / totalPrompts) * 100) : 0;
+  const preselectedStation = useMemo(() => {
+    const stationId = new URLSearchParams(window.location.search).get("station");
+    return stations.find((item) => item.id === stationId);
+  }, []);
+  const learnerUrl = `${window.location.origin}/player`;
+
+  useEffect(() => {
+    if (room && !station && preselectedStation) {
+      send({ type: "open-station", station: preselectedStation });
+    }
+  }, [preselectedStation, room, send, station]);
+
+  useEffect(() => {
+    if (!currentEvaluation?.evaluatedAt) return;
+    setEffectVisible(true);
+    const timeout = window.setTimeout(() => setEffectVisible(false), 1300);
+    return () => window.clearTimeout(timeout);
+  }, [currentEvaluation?.evaluatedAt]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt) return;
@@ -45,14 +66,26 @@ export function HostPage() {
       </div>
 
       {!room ? (
-        <div className="grid gap-4 rounded-md border border-white/10 bg-black/35 p-6 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="grid gap-5 rounded-md border border-white/10 bg-black/35 p-6 lg:grid-cols-[1fr_360px] lg:items-center">
           <div>
-            <h2 className="font-display text-2xl font-bold uppercase tracking-[0.1em] text-white">Create a local room</h2>
-            <p className="mt-2 max-w-2xl text-white/60">
-              Keep this screen on the host computer. The player computer connects to the local IP address and sees only learner-facing prompts.
+            <h2 className="font-display text-3xl font-bold uppercase tracking-[0.08em] text-white">Start a local simulation room</h2>
+            <p className="mt-3 max-w-2xl text-white/65">
+              Create the room first. Then the learner opens the player URL, enters the room code, and waits for you to start the selected station.
             </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                ["1", "Create room"],
+                ["2", preselectedStation ? `Station: ${preselectedStation.shortTitle}` : "Choose station"],
+                ["3", "Start simulation"]
+              ].map(([step, label]) => (
+                <div key={step} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
+                  <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-scrub">Step {step}</div>
+                  <div className="mt-1 font-display text-sm font-bold uppercase text-white">{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <AnimatedButton onClick={() => send({ type: "create-room" })} disabled={status !== "open"}>
+          <AnimatedButton className="min-h-16 text-base" onClick={() => send({ type: "create-room" })} disabled={status !== "open"}>
             <Radio className="h-4 w-4" />
             Create room
           </AnimatedButton>
@@ -63,20 +96,28 @@ export function HostPage() {
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="font-display text-xs uppercase tracking-[0.2em] text-white/45">Room code</div>
               <div className="font-display text-5xl font-black text-scrub">{room.code}</div>
+              <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
+                <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner URL</div>
+                <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
+              </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
                   <Copy className="h-4 w-4" />
                   Copy
                 </AnimatedButton>
-                <AnimatedButton variant="secondary" onClick={() => send({ type: "start-session" })}>
+                <AnimatedButton variant="secondary" onClick={() => send({ type: "start-session" })} disabled={!station}>
                   <Play className="h-4 w-4" />
-                  Start
+                  {room.status === "in-progress" ? "Started" : "Start"}
                 </AnimatedButton>
               </div>
+              {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
             </div>
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
+              <div className="mb-3 rounded-md border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-white/55">
+                Selecting a station loads it for the host. Press Start when the learner is ready.
+              </div>
               <div className="grid gap-2">
                 {stations.map((item) => {
                   const isActive = item.id === station?.id;
@@ -122,7 +163,9 @@ export function HostPage() {
                 <div className="rounded-md border border-white/10 bg-black/35 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">{station.competencyType}</div>
+                      <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">
+                        {room.status === "in-progress" ? "Live simulation" : "Loaded, not started"} · {station.competencyType}
+                      </div>
                       <h2 className="mt-1 font-display text-3xl font-black uppercase text-white">{station.title}</h2>
                     </div>
                     <div className="text-right">
@@ -235,6 +278,7 @@ export function HostPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
+      <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle />
     </section>
   );
 }
