@@ -51,10 +51,13 @@ export type PromptEvaluation = {
   evaluatedAt: string;
 };
 
+export type PlayerShape = "circle" | "triangle" | "square" | "star" | "umbrella";
+
 export type PlayerState = {
   id: string;
   name: string;
   connected: boolean;
+  shape?: PlayerShape;
 };
 
 export type GameStats = {
@@ -113,7 +116,7 @@ export type ResultRecord = {
 
 export type ClientMessage =
   | { type: "create-room" }
-  | { type: "join-room"; code: string; name: string }
+  | { type: "join-room"; code: string; names: string[] }
   | { type: "start-session" }
   | { type: "skip-intro" }
   | { type: "open-station"; station: CompetencyStation }

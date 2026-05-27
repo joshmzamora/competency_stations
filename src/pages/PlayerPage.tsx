@@ -1,5 +1,5 @@
-import { Radio, Send, ShieldAlert } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Circle as CircleIcon, Minus, Plus, Radio, Send, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
@@ -8,17 +8,48 @@ import { PromptCard } from "../components/PromptCard";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { PlayerStation } from "../types";
+import type { PlayerShape, PlayerStation } from "../types";
+
+function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
+  switch (shape) {
+    case "circle":
+      return <CircleIcon className={className} />;
+    case "triangle":
+      return <Triangle className={className} />;
+    case "square":
+      return <SquareIcon className={className} />;
+    case "star":
+      return <Star className={className} />;
+    case "umbrella":
+      return <Umbrella className={className} />;
+  }
+}
+
+function shapeColor(shape: PlayerShape) {
+  switch (shape) {
+    case "circle":
+      return "text-scrub";
+    case "triangle":
+      return "text-trauma";
+    case "square":
+      return "text-monitor";
+    case "star":
+      return "text-amber";
+    case "umbrella":
+      return "text-white";
+  }
+}
 
 export function PlayerPage() {
   const { status, room, error, send, clearError } = useRoomSocket();
   const { setNavHidden } = useAppChrome();
   const [code, setCode] = useState("");
-  const [name, setName] = useState("Learner");
+  const [names, setNames] = useState<string[]>(["Player 1", "Player 2"]);
   const [answer, setAnswer] = useState("");
   const [promptStartedAt, setPromptStartedAt] = useState(Date.now());
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
+  const [assignmentVisible, setAssignmentVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
@@ -53,17 +84,38 @@ export function PlayerPage() {
 
   useEffect(() => {
     if (room?.introStartedAt) return;
+    if (introVisible && !room?.introStartedAt && room?.status === "in-progress") {
+      setAssignmentVisible(true);
+    }
     setIntroVisible(false);
-  }, [room?.introStartedAt]);
+  }, [room?.introStartedAt, introVisible, room?.status]);
 
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
     setIntroVisible(false);
   }, [introKey]);
 
+  function updateName(index: number, value: string) {
+    const next = [...names];
+    next[index] = value;
+    setNames(next);
+  }
+
+  function addPlayer() {
+    if (names.length < 5) {
+      setNames([...names, `Player ${names.length + 1}`]);
+    }
+  }
+
+  function removePlayer(index: number) {
+    if (names.length > 2) {
+      setNames(names.filter((_, i) => i !== index));
+    }
+  }
+
   function join(event: FormEvent) {
     event.preventDefault();
-    send({ type: "join-room", code, name });
+    send({ type: "join-room", code, names });
   }
 
   function submit(event: FormEvent) {
@@ -87,7 +139,7 @@ export function PlayerPage() {
       </div>
 
       {!room ? (
-        <form onSubmit={join} className="grid gap-4 rounded-md border border-white/10 bg-black/35 p-6">
+        <form onSubmit={join} className="grid gap-6 rounded-md border border-white/10 bg-black/35 p-6">
           <label className="grid gap-2">
             <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Room code</span>
             <input
@@ -98,14 +150,42 @@ export function PlayerPage() {
               maxLength={6}
             />
           </label>
-          <label className="grid gap-2">
-            <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Learner name</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="rounded-md border border-white/10 bg-panel px-4 py-3 text-white outline-none focus:border-scrub"
-            />
-          </label>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between">
+              <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Simulation players (2-5)</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={addPlayer}
+                  disabled={names.length >= 5}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white disabled:opacity-30"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-3">
+              {names.map((name, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    value={name}
+                    onChange={(event) => updateName(index, event.target.value)}
+                    className="flex-1 rounded-md border border-white/10 bg-panel px-4 py-3 text-white outline-none focus:border-scrub"
+                    placeholder={`Player ${index + 1} name`}
+                  />
+                  {names.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removePlayer(index)}
+                      className="inline-flex h-12 w-12 items-center justify-center rounded-md border border-trauma/30 bg-trauma/10 text-trauma"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
           <AnimatedButton disabled={status !== "open"}>
             <Radio className="h-4 w-4" />
             Join simulation
@@ -170,6 +250,37 @@ export function PlayerPage() {
         serverTime={room?.serverTime}
         onClose={closeIntro}
       />
+
+      <Modal open={assignmentVisible} title="Shape Assignment" onClose={() => setAssignmentVisible(false)}>
+        <div className="grid gap-6 py-4">
+          <div className="text-center">
+            <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-amber">Squid Game Protocol</div>
+            <h3 className="mt-1 font-display text-2xl font-black uppercase text-white">Your assigned identities</h3>
+            <p className="mt-2 text-sm text-white/60">Memorize your shape. The host will call upon you during the simulation.</p>
+          </div>
+          <div className="grid gap-3">
+            {room?.players.map((player) => (
+              <div
+                key={player.id}
+                className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.04] p-4"
+              >
+                <div className="font-display text-xl font-bold text-white">{player.name}</div>
+                {player.shape && (
+                  <div className={`flex items-center gap-3 font-display text-lg font-black uppercase tracking-widest ${shapeColor(player.shape)}`}>
+                    <ShapeIcon shape={player.shape} className="h-6 w-6" />
+                    {player.shape}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-center">
+            <AnimatedButton onClick={() => setAssignmentVisible(false)}>
+              Understand
+            </AnimatedButton>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

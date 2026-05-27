@@ -18,6 +18,7 @@ type PlayerState = {
   id: string;
   name: string;
   connected: boolean;
+  shape?: string;
 };
 
 type PromptEvaluation = {
@@ -61,7 +62,7 @@ type WsClient = {
   buffer: Buffer;
   role?: ClientRole;
   roomCode?: string;
-  name?: string;
+  names?: string[];
   connected: boolean;
 };
 
@@ -170,13 +171,41 @@ function sanitizeStation(station: unknown) {
 }
 
 function connectedPlayers(roomCode: string): PlayerState[] {
-  return [...clients]
-    .filter((client) => client.roomCode === roomCode && client.role === "player")
-    .map((client) => ({
-      id: client.id,
-      name: client.name ?? "Player",
-      connected: client.connected
-    }));
+  const room = rooms.get(roomCode);
+  if (!room) return [];
+
+  const players: PlayerState[] = [];
+  for (const client of clients) {
+    if (client.roomCode === roomCode && client.role === "player") {
+      const names = client.names ?? ["Player"];
+      names.forEach((name, index) => {
+        const playerId = `${client.id}-${index}`;
+        players.push({
+          id: playerId,
+          name,
+          connected: client.connected,
+          shape: room.players.find((p) => p.id === playerId)?.shape
+        });
+      });
+    }
+  }
+  return players;
+}
+
+function assignShapesToRoom(room: RoomState) {
+  const shapes = ["circle", "triangle", "square", "star", "umbrella"];
+  const players = connectedPlayers(room.code);
+  
+  // Shuffle shapes
+  for (let i = shapes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shapes[i], shapes[j]] = [shapes[j], shapes[i]];
+  }
+
+  room.players = players.map((player, index) => ({
+    ...player,
+    shape: shapes[index % shapes.length]
+  }));
 }
 
 function publicRoom(room: RoomState, role: ClientRole | undefined): RoomState {
@@ -378,9 +407,21 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
+    const rawNames = Array.isArray(message.names) ? message.names : [String(message.name ?? "Player")];
+    const names = rawNames
+      .map((n) => String(n).trim().slice(0, 24))
+      .filter(Boolean)
+      .slice(0, 5);
+
+    if (names.length === 0) names.push("Player");
+
     client.role = "player";
     client.roomCode = code;
-    client.name = String(message.name ?? "Player").trim().slice(0, 24) || "Player";
+    client.names = names;
+    
+    // Update room players immediately so they show up for host
+    room.players = connectedPlayers(code);
+    
     sendState(client, room, "room-joined");
     broadcastState(code);
     return;
@@ -400,6 +441,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   switch (message.type) {
     case "start-session": {
       if (client.role !== "host") return;
+      assignShapesToRoom(room);
       room.status = "in-progress";
       room.introStartedAt = Date.now();
       broadcastState(room.code);
@@ -407,6 +449,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "skip-intro": {
       if (client.role !== "host") return;
+      if (!room.players.some(p => p.shape)) {
+        assignShapesToRoom(room);
+      }
       room.introStartedAt = null;
       broadcastState(room.code);
       break;

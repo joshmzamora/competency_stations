@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, Copy, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Timer, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Circle as CircleIcon, Copy, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Square as SquareIcon, Star, Timer, Triangle, Umbrella, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
@@ -11,7 +11,37 @@ import { StationCard } from "../components/StationCard";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { CompetencyPrompt, CompetencyStation, EvaluationStatus } from "../types";
+import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape } from "../types";
+
+function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
+  switch (shape) {
+    case "circle":
+      return <CircleIcon className={className} />;
+    case "triangle":
+      return <Triangle className={className} />;
+    case "square":
+      return <SquareIcon className={className} />;
+    case "star":
+      return <Star className={className} />;
+    case "umbrella":
+      return <Umbrella className={className} />;
+  }
+}
+
+function shapeColor(shape: PlayerShape) {
+  switch (shape) {
+    case "circle":
+      return "text-scrub";
+    case "triangle":
+      return "text-trauma";
+    case "square":
+      return "text-monitor";
+    case "star":
+      return "text-amber";
+    case "umbrella":
+      return "text-white";
+  }
+}
 
 export function HostPage() {
   const { status, room, error, send, clearError } = useRoomSocket();
@@ -181,8 +211,13 @@ export function HostPage() {
                 {room.players.length === 0 && <p className="text-white/45">No players connected yet.</p>}
                 {room.players.map((player) => (
                   <div key={player.id} className="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2">
-                    <span>{player.name}</span>
-                    <span className="text-scrub">Connected</span>
+                    <div className="flex items-center gap-3">
+                      {player.shape && (
+                        <ShapeIcon shape={player.shape as PlayerShape} className={`h-4 w-4 ${shapeColor(player.shape as PlayerShape)}`} />
+                      )}
+                      <span className="text-sm font-semibold">{player.name}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-scrub">Online</span>
                   </div>
                 ))}
               </div>
