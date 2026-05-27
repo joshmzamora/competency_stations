@@ -405,6 +405,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
+    case "skip-intro": {
+      if (client.role !== "host") return;
+      room.introStartedAt = null;
+      broadcastState(room.code);
+      break;
+    }
     case "open-station": {
       if (client.role !== "host") return;
       room.status = "lobby";

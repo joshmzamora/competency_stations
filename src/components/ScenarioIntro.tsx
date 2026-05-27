@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, HeartPulse, Monitor, Radio, Stethoscope, UserRound, Volume2 } from "lucide-react";
+import { Activity, AlertTriangle, ClipboardCheck, Gauge, HeartPulse, Monitor, Radio, Stethoscope, UserRound, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 
@@ -9,98 +9,144 @@ const fadeOutMs = 6000;
 const maxIntroVolume = 0.72;
 const introAudioSrc = "/audio/squid_game_intro.mp3";
 
-type VoiceCue = {
-  say: string;
-  do: string;
-  watch: string;
+type FacilitatorCue = {
+  readAloud: string;
+  pointOut: string;
+  note: string;
 };
 
-const slides: Array<{
+type DataPoint = {
+  label: string;
+  value: string;
+  tone?: "default" | "alert" | "stable";
+};
+
+type IntroSlide = {
   kicker: string;
   title: string;
-  body: string;
-  bullets: string[];
-  cue: VoiceCue;
+  subtitle: string;
+  image?: string;
+  imageAlt?: string;
   icon: typeof HeartPulse;
-  visual: "manikin" | "bedside" | "identity" | "history" | "report" | "launch";
-}> = [
+  cue: FacilitatorCue;
+  focus: string[];
+  data: DataPoint[];
+};
+
+const slides: IntroSlide[] = [
   {
-    kicker: "00:00 / Simulation boot",
-    title: "High Fidelity Environment",
-    body: "The manikin breathes, has a pulse, talks, and has heart sounds. This is a real ICU-style assessment, not a worksheet.",
-    bullets: ["Breathing manikin", "Palpable pulse", "Heart sounds", "Voice-enabled patient"],
-    cue: {
-      say: "Welcome to the high-fidelity simulation. Treat Emma exactly like a real ICU patient.",
-      do: "Point out the monitor, manikin, oxygen setup, and available assessment equipment.",
-      watch: "Learner should visually orient to the patient before touching equipment."
-    },
+    kicker: "Simulation Setup",
+    title: "High Fidelity Patient Encounter",
+    subtitle: "The manikin breathes, has a pulse, talks, and has heart sounds. Assess Emma like you would assess a real ICU patient.",
+    image: "/images/intro/simulation-manikin.jpg",
+    imageAlt: "Clinical staff using a high fidelity simulation manikin",
     icon: HeartPulse,
-    visual: "manikin"
+    cue: {
+      readAloud:
+        "Welcome to the high-fidelity simulation. Emma should be treated like a real ICU patient from the first assessment through the final handoff.",
+      pointOut: "Orient the learner to the manikin, monitor, oxygen setup, and bedside assessment tools.",
+      note: "Give them a few seconds to physically look around before the scenario begins."
+    },
+    focus: ["Breathing manikin", "Palpable pulses", "Heart and lung sounds", "Patient can speak"],
+    data: [
+      { label: "Environment", value: "High fidelity simulation", tone: "stable" },
+      { label: "Learner expectation", value: "Assess first, then act" },
+      { label: "Scenario style", value: "Real-time ICU checkoff" }
+    ]
   },
   {
-    kicker: "00:10 / Bedside familiarization",
-    title: "Assess Before You Act",
-    body: "Before we proceed, familiarize yourself with the manikin. Feel the pulse, auscultate heart and lung sounds, and remember that she can talk.",
-    bullets: ["Feel pulse", "Auscultate heart", "Auscultate lungs", "Listen to patient speech"],
-    cue: {
-      say: "Take a moment to assess the patient. Feel a pulse and listen before the scenario accelerates.",
-      do: "Give the learner time to physically assess the manikin.",
-      watch: "Learner should use hands-on assessment, not only monitor data."
-    },
+    kicker: "Bedside Orientation",
+    title: "Start With The Patient",
+    subtitle: "Before the clinical problem accelerates, the learner should feel a pulse, auscultate heart and lung sounds, and speak to Emma.",
+    image: "/images/intro/simulation-manikin.jpg",
+    imageAlt: "Simulation manikin being assessed with a stethoscope",
     icon: Stethoscope,
-    visual: "bedside"
+    cue: {
+      readAloud:
+        "Before we begin, take a moment to treat Emma like a real ICU patient. Feel for a pulse, listen to heart and lung sounds, and orient yourself to the monitor.",
+      pointOut: "Invite the learner to touch the patient and listen, not just read the screen.",
+      note: "This is a useful pause for calm, realistic setup before the questions begin."
+    },
+    focus: ["Feel pulse", "Auscultate heart", "Auscultate lungs", "Ask patient questions"],
+    data: [
+      { label: "General", value: "Awake, alert, oriented x4", tone: "stable" },
+      { label: "Neuro", value: "Normal" },
+      { label: "Respiratory", value: "Crackles bilaterally", tone: "alert" }
+    ]
   },
   {
-    kicker: "00:20 / Patient identification",
+    kicker: "Patient Identity",
     title: "Emma Gonnadye",
-    body: "67-year-old female, 90 kg, admitted with acute exacerbation of congestive heart failure, EF 20%, COPD, and chronic atrial fibrillation.",
-    bullets: ["Age 67", "Weight 90 kg", "EF 20%", "COPD and chronic AFib"],
-    cue: {
-      say: "Your patient is Emma Gonnadye. Confirm the identity and hold the diagnosis in mind.",
-      do: "Emphasize EF 20%, COPD, chronic atrial fibrillation, and anticoagulation risk.",
-      watch: "Learner should connect diagnosis to perfusion, respiratory status, and rhythm risk."
-    },
+    subtitle: "67-year-old female, 90 kg, admitted with acute exacerbation of congestive heart failure, COPD, and chronic atrial fibrillation.",
     icon: UserRound,
-    visual: "identity"
+    cue: {
+      readAloud:
+        "Your patient is Emma Gonnadye. Keep her heart failure, COPD, chronic atrial fibrillation, and anticoagulation risk in mind as you assess her.",
+      pointOut: "Call attention to EF 20 percent and the rhythm history.",
+      note: "The goal is to connect the patient story to perfusion, breathing, and escalation decisions."
+    },
+    focus: ["Age 67", "Female", "90 kg", "EF 20 percent"],
+    data: [
+      { label: "Diagnosis", value: "CHF exacerbation, EF 20 percent", tone: "alert" },
+      { label: "Comorbidities", value: "COPD, chronic AFib" },
+      { label: "Chief complaint", value: "Worsening shortness of breath and cough" }
+    ]
   },
   {
-    kicker: "00:30 / Present illness",
-    title: "Shortness of Breath at Rest",
-    body: "Emma came to the emergency department with several days of worsening shortness of breath and cough. She started with exertional symptoms and now has dyspnea at rest.",
-    bullets: ["Symptoms worsening", "Cough for several days", "SOB now at rest", "High-risk cardiac history"],
-    cue: {
-      say: "This is a worsening presentation. She is not stable just because she is awake and talking.",
-      do: "Call attention to the change from exertional SOB to SOB at rest.",
-      watch: "Learner should anticipate rapid deterioration and reassess frequently."
-    },
+    kicker: "History Of Present Illness",
+    title: "Shortness Of Breath At Rest",
+    subtitle: "Emma had several days of worsening shortness of breath and cough. Symptoms began with exertion and are now present at rest.",
     icon: Activity,
-    visual: "history"
+    cue: {
+      readAloud:
+        "Emma was brought to the emergency department after shortness of breath and cough worsened over several days. She is now short of breath at rest.",
+      pointOut: "Emphasize that worsening from exertional symptoms to rest symptoms is a deterioration clue.",
+      note: "Learners should anticipate frequent reassessment, not one-and-done vital signs."
+    },
+    focus: ["Symptoms worsening", "Cough for days", "SOB at rest", "Rapid change risk"],
+    data: [
+      { label: "Cardiac history", value: "Hypertension, CAD with stent, chronic AFib" },
+      { label: "Metabolic history", value: "Diabetes, CKD stage III" },
+      { label: "Current risk", value: "Can deteriorate quickly", tone: "alert" }
+    ]
   },
   {
-    kicker: "00:40 / From report",
-    title: "The Clues Are Already There",
-    body: "Awake and oriented, atrial fibrillation on monitor, crackles bilaterally, 3+ pitting edema BLE, and blood glucose 460 mg/dL.",
-    bullets: ["AFib on EKG", "Bilateral crackles", "3+ BLE edema", "Glucose 460"],
-    cue: {
-      say: "Report gives you the pattern: rhythm issue, fluid overload, respiratory compromise, and severe hyperglycemia.",
-      do: "Let the learner scan the monitor and report data.",
-      watch: "Learner should notice both cardiac and respiratory concerns."
-    },
+    kicker: "Report Snapshot",
+    title: "Read The Pattern",
+    subtitle: "Atrial fibrillation, bilateral crackles, 3+ pitting edema, and glucose 460 mg/dL point toward a complex cardiac and respiratory presentation.",
+    image: "/images/intro/code-blue-control.jpg",
+    imageAlt: "Simulation control laptop beside a mannequin during a mock code drill",
     icon: Monitor,
-    visual: "report"
+    cue: {
+      readAloud:
+        "Report is already giving you the pattern: rhythm issue, fluid overload, respiratory compromise, and severe hyperglycemia.",
+      pointOut: "Let the learner scan the monitor and report data before moving forward.",
+      note: "Listen for them to name both cardiac and respiratory priorities."
+    },
+    focus: ["AFib on EKG", "Crackles", "3+ BLE edema", "Glucose 460"],
+    data: [
+      { label: "Cardiovascular", value: "Atrial fibrillation", tone: "alert" },
+      { label: "Peripheral vascular", value: "3+ pitting edema BLE", tone: "alert" },
+      { label: "Blood glucose", value: "460 mg/dL", tone: "alert" }
+    ]
   },
   {
-    kicker: "00:50 / Scenario start",
+    kicker: "Scenario Launch",
     title: "Monitor Closely",
-    body: "Vital signs and EKG are on the monitor. Pay attention because, like a real ICU patient, they can change fast. Let us get started.",
-    bullets: ["Vitals may change", "EKG visible", "Use team communication", "Begin station flow"],
-    cue: {
-      say: "The monitor is live. Communicate clearly, reassess often, and begin the first station.",
-      do: "Pause for the learner to look at the monitor, then transition into the active station.",
-      watch: "Learner should verbalize assessment priorities before the first intervention."
-    },
+    subtitle: "Vital signs and EKG are on the monitor. They can change quickly, just like a real ICU patient. Begin when the learner is ready.",
     icon: Radio,
-    visual: "launch"
+    cue: {
+      readAloud:
+        "The monitor is live. Communicate clearly, reassess often, and use the information in front of you as the scenario changes.",
+      pointOut: "Transition from briefing into the active station flow.",
+      note: "This is the handoff moment. Pause briefly, then start the first prompt."
+    },
+    focus: ["Vitals on monitor", "EKG visible", "Team communication", "Begin station"],
+    data: [
+      { label: "Monitor", value: "Vitals and EKG visible", tone: "stable" },
+      { label: "Expectation", value: "Reassess with changes" },
+      { label: "Next step", value: "Start station flow", tone: "stable" }
+    ]
   }
 ];
 
@@ -109,200 +155,112 @@ const profile = [
   ["Age", "67"],
   ["Gender", "Female"],
   ["Weight", "90 kg"],
-  ["Diagnosis", "CHF exacerbation, EF 20%, COPD, chronic atrial fibrillation"],
+  ["Diagnosis", "Acute CHF exacerbation, EF 20 percent, COPD, chronic atrial fibrillation"],
   ["Chief complaint", "Worsening shortness of breath and cough"]
 ];
 
 const medications = ["Insulin glargine 20 units HS", "Furosemide 40 mg daily", "Aspirin 81 mg daily", "Eliquis 5 mg BID", "Carvedilol 25 mg BID"];
 
 const report = [
-  ["General", "A&O x4"],
+  ["General", "Awake, alert, oriented x4"],
   ["Vital signs", "On monitor"],
-  ["Neuro", "Normal"],
-  ["Cardiac", "Atrial fibrillation"],
-  ["Resp", "Crackles bilaterally"],
-  ["PV", "3+ pitting edema BLE"],
+  ["Neurological", "Normal"],
+  ["Cardiovascular", "Atrial fibrillation"],
+  ["Respiratory", "Crackles bilaterally"],
+  ["Peripheral vascular", "3+ pitting edema BLE"],
   ["Abdomen", "Soft, non-tender"],
   ["EKG", "Atrial fibrillation"],
-  ["Glucose", "460 mg/dL"]
+  ["Blood glucose", "460 mg/dL"]
 ];
 
 function MonitorWave({ color = "#24f5c7" }: { color?: string }) {
   return (
-    <svg viewBox="0 0 520 170" className="h-full w-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="waveGlow" x1="0" x2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.15" />
-          <stop offset="50%" stopColor={color} stopOpacity="1" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.2" />
-        </linearGradient>
-      </defs>
-      <rect width="520" height="170" rx="14" fill="#06100f" stroke="rgba(36,245,199,.28)" />
-      {Array.from({ length: 11 }).map((_, index) => (
-        <line key={`v-${index}`} x1={index * 52} x2={index * 52} y1="0" y2="170" stroke="rgba(110,247,255,.08)" />
+    <svg viewBox="0 0 720 160" className="h-full w-full" aria-hidden="true">
+      <rect width="720" height="160" rx="16" fill="#07100f" stroke="rgba(36,245,199,.22)" />
+      {Array.from({ length: 13 }).map((_, index) => (
+        <line key={`v-${index}`} x1={index * 60} x2={index * 60} y1="0" y2="160" stroke="rgba(110,247,255,.06)" />
       ))}
-      {Array.from({ length: 6 }).map((_, index) => (
-        <line key={`h-${index}`} x1="0" x2="520" y1={index * 34} y2={index * 34} stroke="rgba(110,247,255,.08)" />
+      {Array.from({ length: 5 }).map((_, index) => (
+        <line key={`h-${index}`} x1="0" x2="720" y1={index * 40} y2={index * 40} stroke="rgba(110,247,255,.06)" />
       ))}
       <motion.polyline
-        initial={{ pathLength: 0, opacity: 0.35 }}
+        initial={{ pathLength: 0, opacity: 0.5 }}
         animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 2.8, repeat: Infinity, repeatType: "loop", ease: "linear" }}
+        transition={{ duration: 3.4, repeat: Infinity, repeatType: "loop", ease: "linear" }}
         fill="none"
-        stroke="url(#waveGlow)"
-        strokeWidth="6"
+        stroke={color}
+        strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        points="0,86 45,86 58,42 75,128 90,86 135,86 150,62 168,104 188,86 250,86 266,28 286,142 306,86 360,86 374,68 392,100 410,86 520,86"
+        points="0,82 60,82 74,46 92,122 112,82 172,82 190,66 210,100 232,82 315,82 333,26 355,136 378,82 455,82 474,64 496,101 520,82 720,82"
       />
     </svg>
   );
 }
 
-function VisualScene({ type }: { type: (typeof slides)[number]["visual"] }) {
-  if (type === "manikin") {
+function ClinicalImage({ slide }: { slide: IntroSlide }) {
+  if (slide.image) {
     return (
-      <div className="relative h-full min-h-[320px] overflow-hidden rounded-md bg-[#071013] p-5">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(36,245,199,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(36,245,199,.06)_1px,transparent_1px)] bg-[size:32px_32px]" />
-        <motion.div
-          animate={{ scale: [1, 1.015, 1] }}
-          transition={{ duration: 2.4, repeat: Infinity }}
-          className="absolute bottom-8 left-1/2 h-64 w-44 -translate-x-1/2 rounded-t-full border border-monitor/30 bg-[#111b20] shadow-scrub"
-        >
-          <div className="absolute left-1/2 top-8 h-20 w-20 -translate-x-1/2 rounded-full border border-white/15 bg-[#202b31]" />
-          <div className="absolute left-1/2 top-32 h-24 w-28 -translate-x-1/2 rounded-[40%] border border-scrub/25 bg-[#18252a]" />
-          <motion.div
-            animate={{ opacity: [0.25, 1, 0.25], scale: [0.98, 1.06, 0.98] }}
-            transition={{ duration: 1.1, repeat: Infinity }}
-            className="absolute left-1/2 top-40 h-8 w-8 -translate-x-1/2 rounded-full bg-trauma/80 shadow-alert"
-          />
-        </motion.div>
-        <div className="absolute right-5 top-5 h-28 w-56">
-          <MonitorWave />
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "bedside") {
-    return (
-      <div className="grid h-full min-h-[320px] gap-4 rounded-md bg-[#081014] p-5">
-        <div className="grid grid-cols-3 gap-3">
-          {["Pulse", "Heart", "Lungs"].map((label, index) => (
-            <motion.div
-              key={label}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: index * 0.18 }}
-              className="rounded-md border border-scrub/25 bg-scrub/10 p-4 text-center"
-            >
-              <Stethoscope className="mx-auto h-8 w-8 text-scrub" />
-              <div className="mt-3 font-display text-xl font-black uppercase">{label}</div>
-              <div className="text-xs uppercase tracking-[0.16em] text-white/45">Assess</div>
-            </motion.div>
-          ))}
-        </div>
-        <div className="rounded-md border border-monitor/20 bg-monitor/10 p-5">
-          <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">Hands-on orientation</div>
-          <div className="mt-3 text-3xl font-black uppercase leading-tight">Do not skip the patient because the monitor is loud.</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "identity") {
-    return (
-      <div className="grid h-full min-h-[320px] content-center gap-4 rounded-md bg-[#0b1016] p-6">
-        <div className="rounded-md border border-white/15 bg-white/[0.06] p-5">
-          <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/45">Patient wristband</div>
-          <div className="mt-4 font-display text-5xl font-black uppercase">Emma Gonnadye</div>
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            {["67 years", "Female", "90 kg"].map((item) => (
-              <div key={item} className="rounded-md bg-scrub/10 p-3 text-center font-display text-xl font-bold text-scrub">
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-md border border-trauma/30 bg-trauma/10 p-4 font-display text-2xl font-black uppercase text-white">
-          EF 20% + COPD + Chronic AFib
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "history") {
-    return (
-      <div className="grid h-full min-h-[320px] rounded-md bg-[#080d13] p-5">
-        <div className="relative overflow-hidden rounded-md border border-white/10 bg-[#111820] p-5">
-          <div className="absolute bottom-0 left-8 top-0 w-1 bg-gradient-to-b from-scrub via-monitor to-trauma" />
-          {["SOB with exertion", "Cough for days", "SOB at rest", "ICU deterioration risk"].map((item, index) => (
-            <motion.div
-              key={item}
-              initial={{ x: 40, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.16 }}
-              className="ml-10 mt-4 rounded-md border border-white/10 bg-white/[0.045] p-4 first:mt-0"
-            >
-              <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">Phase {index + 1}</div>
-              <div className="mt-1 text-2xl font-black uppercase">{item}</div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (type === "report") {
-    return (
-      <div className="grid h-full min-h-[320px] gap-4 rounded-md bg-[#07100f] p-5">
-        <div className="h-36">
-          <MonitorWave color="#ff304d" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {["AFib", "Crackles", "3+ edema", "BG 460"].map((item, index) => (
-            <motion.div
-              key={item}
-              animate={{ borderColor: index === 3 ? ["rgba(255,48,77,.3)", "rgba(255,48,77,1)", "rgba(255,48,77,.3)"] : undefined }}
-              transition={{ duration: 1.4, repeat: Infinity }}
-              className="rounded-md border border-white/10 bg-white/[0.05] p-4 text-center font-display text-3xl font-black uppercase"
-            >
-              {item}
-            </motion.div>
-          ))}
+      <div className="relative min-h-[310px] overflow-hidden rounded-md border border-white/10 bg-[#0c1218]">
+        <motion.img
+          key={slide.image}
+          src={slide.image}
+          alt={slide.imageAlt ?? ""}
+          className="h-full min-h-[310px] w-full object-cover"
+          initial={{ scale: 1.04, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.75, ease: "easeOut" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#05070a]/70 via-transparent to-transparent" />
+        <div className="absolute bottom-4 left-4 right-4 rounded-md border border-white/10 bg-[#05070a]/82 p-3 backdrop-blur-md">
+          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-scrub">Simulation lab visual</div>
+          <div className="mt-1 text-sm text-white/72">High fidelity patient environment with real-time assessment cues.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative grid h-full min-h-[320px] place-items-center overflow-hidden rounded-md bg-[#080b0f] p-6">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 16, repeat: Infinity, ease: "linear" }}
-        className="absolute h-72 w-72 rounded-full border border-dashed border-scrub/45"
-      />
-      <motion.div
-        animate={{ scale: [0.92, 1.08, 0.92], opacity: [0.45, 1, 0.45] }}
-        transition={{ duration: 2.2, repeat: Infinity }}
-        className="grid h-48 w-48 place-items-center rounded-full border border-trauma/50 bg-trauma/10 shadow-alert"
-      >
-        <Radio className="h-20 w-20 text-trauma" />
-      </motion.div>
-      <div className="absolute bottom-8 font-display text-4xl font-black uppercase tracking-[0.18em]">Begin</div>
+    <div className="grid min-h-[310px] gap-4 rounded-md border border-white/10 bg-[#0b1118] p-4">
+      <div className="h-40">
+        <MonitorWave color="#6ef7ff" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          ["HR", "AFib"],
+          ["Lungs", "Crackles"],
+          ["Edema", "3+ BLE"],
+          ["BG", "460"]
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-md border border-white/10 bg-white/[0.045] p-4">
+            <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{label}</div>
+            <div className="mt-1 font-display text-2xl font-black uppercase text-white">{value}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
+}
+
+function toneClass(tone: DataPoint["tone"]) {
+  if (tone === "alert") return "border-trauma/35 bg-trauma/10 text-white";
+  if (tone === "stable") return "border-scrub/30 bg-scrub/10 text-white";
+  return "border-white/10 bg-white/[0.045] text-white";
 }
 
 export function ScenarioIntro({
   open,
   onClose,
+  onSkip,
+  canSkip = false,
   role,
   startedAt,
   serverTime
 }: {
   open: boolean;
   onClose: () => void;
+  onSkip?: () => void;
+  canSkip?: boolean;
   role: "host" | "player";
   startedAt?: number | null;
   serverTime?: number;
@@ -355,9 +313,7 @@ export function ScenarioIntro({
     syncAudio();
     const playPromise = audio.play();
     if (playPromise) {
-      playPromise
-        .then(() => setAudioBlocked(false))
-        .catch(() => setAudioBlocked(true));
+      playPromise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
     }
 
     const interval = window.setInterval(syncAudio, 250);
@@ -373,10 +329,13 @@ export function ScenarioIntro({
     if (!audio) return;
     const targetTime = Math.min(durationMs, startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : elapsed) / 1000;
     audio.currentTime = targetTime;
-    audio
-      .play()
-      .then(() => setAudioBlocked(false))
-      .catch(() => setAudioBlocked(true));
+    audio.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
+  }
+
+  function skipIntro() {
+    if (canSkip) {
+      onSkip?.();
+    }
   }
 
   return (
@@ -388,122 +347,160 @@ export function ScenarioIntro({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[60] overflow-hidden bg-[#05070a] text-white"
         >
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(36,245,199,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,48,77,0.06)_1px,transparent_1px)] bg-[size:38px_38px]" />
-            <div className="absolute inset-x-0 top-0 h-2/3 animate-scan bg-gradient-to-b from-transparent via-monitor/10 to-transparent" />
-          </div>
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:44px_44px]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#10202a] to-transparent" />
 
           <div className="relative grid h-screen grid-rows-[auto_1fr_auto] p-4 md:p-6">
             <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 bg-[#05070a] pb-4">
               <div>
-                <div className="font-display text-xs font-bold uppercase tracking-[0.24em] text-trauma">45 second simulation launch</div>
-                <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none md:text-6xl">Emma Gonnadye Briefing</h2>
+                <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-scrub">45 second simulation briefing</div>
+                <h2 className="mt-2 font-display text-3xl font-black uppercase leading-none md:text-5xl">Emma Gonnadye Scenario</h2>
               </div>
-              <div className="rounded-md border border-scrub/30 bg-[#071713] px-4 py-3 text-right">
-                <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">Auto start in</div>
-                <div className="font-display text-3xl font-black text-scrub">{secondsLeft}s</div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="rounded-md border border-white/10 bg-white/[0.045] px-4 py-3 text-right">
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Briefing ends in</div>
+                  <div className="font-display text-3xl font-black text-scrub">{secondsLeft}s</div>
+                </div>
+                {audioBlocked && (
+                  <AnimatedButton variant="secondary" onClick={enableAudio}>
+                    <Volume2 className="h-4 w-4" />
+                    Enable audio
+                  </AnimatedButton>
+                )}
               </div>
-              {audioBlocked && (
-                <AnimatedButton variant="secondary" onClick={enableAudio}>
-                  <Volume2 className="h-4 w-4" />
-                  Enable audio
-                </AnimatedButton>
-              )}
             </header>
 
-            <main className="grid min-h-0 gap-5 py-5 xl:grid-cols-[1fr_430px]">
-              <section className="relative grid min-h-0 gap-4 overflow-hidden rounded-md border border-scrub/25 bg-[#081014] p-5 shadow-scrub lg:grid-cols-[1.05fr_0.95fr]">
+            <main className="grid min-h-0 gap-5 py-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <section className="grid min-h-0 gap-5 overflow-hidden rounded-md border border-white/10 bg-[#080d12] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.42)] lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]">
                 <motion.div
                   key={slide.title}
-                  initial={{ opacity: 0, x: 40, filter: "blur(10px)" }}
-                  animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, x: -30, filter: "blur(10px)" }}
-                  transition={{ duration: 0.55, ease: "easeOut" }}
-                  className="grid h-full content-between gap-5"
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.48, ease: "easeOut" }}
+                  className="grid content-between gap-5"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="font-display text-sm font-bold uppercase tracking-[0.2em] text-monitor">{slide.kicker}</div>
-                      <div className="grid h-16 w-16 place-items-center rounded-md border border-trauma/45 bg-[#1d0b10] shadow-alert">
-                        <Icon className="h-8 w-8 text-trauma" />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2">
+                        <span className="grid h-9 w-9 place-items-center rounded-full bg-scrub/10 text-scrub">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <span className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/58">{slide.kicker}</span>
+                      </div>
+                      <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/40">
+                        Step {slideIndex + 1} / {slides.length}
                       </div>
                     </div>
-                    <h3 className="mt-7 max-w-5xl font-display text-5xl font-black uppercase leading-[0.92] md:text-7xl">{slide.title}</h3>
-                    <p className="mt-6 max-w-4xl text-2xl leading-10 text-white/82">{slide.body}</p>
+
+                    <h3 className="mt-6 max-w-4xl font-display text-4xl font-black uppercase leading-[0.98] md:text-6xl">{slide.title}</h3>
+                    <p className="mt-5 max-w-4xl text-xl leading-8 text-white/78">{slide.subtitle}</p>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {slide.bullets.map((item, index) => (
-                      <motion.div
-                        key={item}
-                        initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.12 + index * 0.08 }}
-                        className="rounded-md border border-white/10 bg-[#101820] p-4"
-                      >
-                        <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-scrub">Data point {index + 1}</div>
-                        <div className="mt-2 text-lg font-semibold text-white">{item}</div>
-                      </motion.div>
-                    ))}
+                  <div className="grid gap-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {slide.focus.map((item, index) => (
+                        <motion.div
+                          key={item}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.08 + index * 0.05 }}
+                          className="rounded-md border border-white/10 bg-white/[0.045] p-3"
+                        >
+                          <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Assessment cue</div>
+                          <div className="mt-1 text-base font-semibold text-white">{item}</div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {slide.data.map((item) => (
+                        <div key={`${item.label}-${item.value}`} className={`rounded-md border p-3 ${toneClass(item.tone)}`}>
+                          <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
+                          <div className="mt-1 text-sm font-semibold leading-5 text-white/88">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
 
-                <VisualScene type={slide.visual} />
-                <div className="absolute bottom-0 left-0 h-1 bg-scrub shadow-scrub" style={{ width: `${slideProgress}%` }} />
+                <div className="grid gap-4">
+                  <ClinicalImage slide={slide} />
+                  <div className="overflow-hidden rounded-md border border-white/10 bg-[#091112] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="inline-flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-monitor">
+                        <Gauge className="h-4 w-4" />
+                        Live monitor reference
+                      </div>
+                      <div className="text-xs text-white/42">EKG and VS can change quickly</div>
+                    </div>
+                    <div className="h-24">
+                      <MonitorWave />
+                    </div>
+                  </div>
+                </div>
               </section>
 
               <aside className="grid min-h-0 content-start gap-4 overflow-y-auto">
                 {role === "host" && (
-                  <div className="rounded-md border border-amber/40 bg-[#1a1304] p-4">
-                    <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-amber">Host voiceover script</div>
-                    <div className="mt-4 grid gap-3">
+                  <div className="rounded-md border border-amber/25 bg-[#151107] p-4">
+                    <div className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-amber">
+                      <ClipboardCheck className="h-4 w-4" />
+                      Host cue
+                    </div>
+                    <div className="mt-4 grid gap-4">
                       <div>
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Say</div>
-                        <p className="mt-1 text-base leading-6 text-white/86">{slide.cue.say}</p>
+                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Read aloud</div>
+                        <p className="mt-1 text-base leading-6 text-white/88">{slide.cue.readAloud}</p>
                       </div>
                       <div>
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Do</div>
-                        <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.do}</p>
+                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Point out</div>
+                        <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.pointOut}</p>
                       </div>
                       <div>
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Watch for</div>
-                        <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.watch}</p>
+                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Optional facilitator note</div>
+                        <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.note}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
-                  <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Patient card</div>
+                  <div className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
+                    <UserRound className="h-4 w-4" />
+                    Patient card
+                  </div>
                   <div className="mt-3 grid gap-2">
                     {profile.map(([label, value]) => (
-                      <div key={label} className="rounded-md border border-white/10 bg-[#111a22] p-3">
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">{label}</div>
-                        <div className="mt-1 text-sm font-semibold text-white">{value}</div>
+                      <div key={label} className="grid grid-cols-[120px_1fr] gap-3 border-b border-white/10 pb-2 last:border-b-0">
+                        <span className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</span>
+                        <span className="text-sm font-semibold leading-5 text-white/82">{value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
-                  <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Report snapshot</div>
+                  <div className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
+                    <AlertTriangle className="h-4 w-4" />
+                    Report snapshot
+                  </div>
                   <div className="mt-3 grid gap-2">
                     {report.map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-3 border-b border-white/10 pb-2 last:border-b-0">
-                        <span className="font-display text-xs font-bold uppercase tracking-[0.12em] text-white/45">{label}</span>
+                      <div key={label} className="flex items-start justify-between gap-4 border-b border-white/10 pb-2 last:border-b-0">
+                        <span className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{label}</span>
                         <span className="text-right text-sm text-white/78">{value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-md border border-trauma/25 bg-[#19090d] p-4">
-                  <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Medication flags</div>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
+                  <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">Medication review</div>
+                  <div className="mt-3 grid gap-2">
                     {medications.map((med) => (
-                      <span key={med} className="rounded-sm border border-white/10 bg-white/[0.05] px-2 py-1 text-xs text-white/75">
+                      <div key={med} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/74">
                         {med}
-                      </span>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -515,12 +512,18 @@ export function ScenarioIntro({
                 <div className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub" style={{ width: `${progress}%` }} />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Slide {slideIndex + 1} of {slides.length} - synced local audio and visual playback
+                <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/45">
+                  Slide progress {Math.round(slideProgress)} percent - briefing synced to the room clock
                 </div>
-                <AnimatedButton variant="ghost" onClick={onClose}>
-                  Skip intro
-                </AnimatedButton>
+                {canSkip ? (
+                  <AnimatedButton variant="ghost" onClick={skipIntro}>
+                    Skip intro
+                  </AnimatedButton>
+                ) : (
+                  <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/42">
+                    Intro controlled by host
+                  </div>
+                )}
               </div>
             </footer>
           </div>

@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, Copy, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Timer, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
@@ -8,12 +8,14 @@ import { PromptCard } from "../components/PromptCard";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { ScoreBadge } from "../components/ScoreBadge";
 import { StationCard } from "../components/StationCard";
+import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus } from "../types";
 
 export function HostPage() {
   const { status, room, error, send, clearError } = useRoomSocket();
+  const { setNavHidden } = useAppChrome();
   const [note, setNote] = useState("");
   const [flagged, setFlagged] = useState(false);
   const [effectVisible, setEffectVisible] = useState(false);
@@ -52,6 +54,26 @@ export function HostPage() {
     if (!introKey || introKeySeen === introKey) return;
     setIntroVisible(true);
   }, [introKey, introKeySeen]);
+
+  useEffect(() => {
+    setNavHidden(introVisible);
+    return () => setNavHidden(false);
+  }, [introVisible, setNavHidden]);
+
+  useEffect(() => {
+    if (room?.introStartedAt) return;
+    setIntroVisible(false);
+  }, [room?.introStartedAt]);
+
+  const closeIntro = useCallback(() => {
+    setIntroKeySeen(introKey);
+    setIntroVisible(false);
+  }, [introKey]);
+
+  const skipIntro = useCallback(() => {
+    send({ type: "skip-intro" });
+    closeIntro();
+  }, [closeIntro, send]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt) return;
@@ -300,10 +322,9 @@ export function HostPage() {
         role="host"
         startedAt={room?.introStartedAt}
         serverTime={room?.serverTime}
-        onClose={() => {
-          setIntroKeySeen(introKey);
-          setIntroVisible(false);
-        }}
+        canSkip
+        onClose={closeIntro}
+        onSkip={skipIntro}
       />
     </section>
   );

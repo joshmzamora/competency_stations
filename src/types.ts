@@ -115,6 +115,7 @@ export type ClientMessage =
   | { type: "create-room" }
   | { type: "join-room"; code: string; name: string }
   | { type: "start-session" }
+  | { type: "skip-intro" }
   | { type: "open-station"; station: CompetencyStation }
   | { type: "set-prompt-index"; index: number }
   | { type: "next-prompt" }

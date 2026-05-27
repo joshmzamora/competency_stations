@@ -1,0 +1,11 @@
+Intro image assets
+
+simulation-manikin.jpg
+Source: Wikimedia Commons
+Page: https://commons.wikimedia.org/wiki/File:US_Navy_081212-N-5086M-078_Cmdr._Ramona_Domen,_assistant_director_of_the_Naval_Medical_Center_San_Diego_Medical_and_Surgical_Simulation_Center_checks_the_heart_and_lungs_of_the_Mobile_Adult_Trainer_mannequin.jpg
+License/status: Public domain, U.S. Navy work
+
+code-blue-control.jpg
+Source: Wikimedia Commons
+Page: https://commons.wikimedia.org/wiki/File:US_Navy_101013-N-7214P-036_A_laptop_is_used_to_control_a_training_mannequin%27s_vital_signs_during_a_mock_code_blue_drill_at_the_pain_management_clin.jpg
+License/status: Public domain, U.S. Navy work

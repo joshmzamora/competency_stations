@@ -1,16 +1,18 @@
 import { Radio, Send, ShieldAlert } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
 import { ScenarioIntro } from "../components/ScenarioIntro";
+import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { PlayerStation } from "../types";
 
 export function PlayerPage() {
   const { status, room, error, send, clearError } = useRoomSocket();
+  const { setNavHidden } = useAppChrome();
   const [code, setCode] = useState("");
   const [name, setName] = useState("Learner");
   const [answer, setAnswer] = useState("");
@@ -43,6 +45,21 @@ export function PlayerPage() {
     if (!introKey || introKeySeen === introKey) return;
     setIntroVisible(true);
   }, [introKey, introKeySeen]);
+
+  useEffect(() => {
+    setNavHidden(Boolean(room));
+    return () => setNavHidden(false);
+  }, [room, setNavHidden]);
+
+  useEffect(() => {
+    if (room?.introStartedAt) return;
+    setIntroVisible(false);
+  }, [room?.introStartedAt]);
+
+  const closeIntro = useCallback(() => {
+    setIntroKeySeen(introKey);
+    setIntroVisible(false);
+  }, [introKey]);
 
   function join(event: FormEvent) {
     event.preventDefault();
@@ -151,10 +168,7 @@ export function PlayerPage() {
         role="player"
         startedAt={room?.introStartedAt}
         serverTime={room?.serverTime}
-        onClose={() => {
-          setIntroKeySeen(introKey);
-          setIntroVisible(false);
-        }}
+        onClose={closeIntro}
       />
     </section>
   );
