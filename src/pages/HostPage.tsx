@@ -23,6 +23,8 @@ export function HostPage() {
   const currentEvaluation = prompt ? evaluations[prompt.id] : undefined;
   const completed = Object.keys(evaluations).length;
   const progress = totalPrompts ? Math.round((completed / totalPrompts) * 100) : 0;
+  const connectionLabel =
+    status === "open" ? "Connected" : status === "connecting" ? "Connecting" : status === "closed" ? "Disconnected" : "Connection issue";
   const preselectedStation = useMemo(() => {
     const stationId = new URLSearchParams(window.location.search).get("station");
     return stations.find((item) => item.id === stationId);
@@ -59,8 +61,8 @@ export function HostPage() {
         <div className="flex flex-wrap items-center gap-3">
           <ScoreBadge score={room?.score ?? 0} label="Competency score" />
           <div className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-3">
-            <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Socket</div>
-            <div className="font-display text-xl font-bold uppercase text-scrub">{status}</div>
+            <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Host connection</div>
+            <div className={`font-display text-xl font-bold uppercase ${status === "open" ? "text-scrub" : "text-amber"}`}>{connectionLabel}</div>
           </div>
         </div>
       </div>
@@ -116,7 +118,7 @@ export function HostPage() {
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
               <div className="mb-3 rounded-md border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-white/55">
-                Selecting a station loads it for the host. Press Start when the learner is ready.
+                Selecting a station loads it for the host. Press Start when the learner screen is connected.
               </div>
               <div className="grid gap-2">
                 {stations.map((item) => {
@@ -144,7 +146,7 @@ export function HostPage() {
                 {room.players.map((player) => (
                   <div key={player.id} className="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2">
                     <span>{player.name}</span>
-                    <span className={player.ready ? "text-scrub" : "text-white/40"}>{player.ready ? "Ready" : "Waiting"}</span>
+                    <span className="text-scrub">Connected</span>
                   </div>
                 ))}
               </div>

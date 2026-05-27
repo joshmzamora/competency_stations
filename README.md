@@ -166,8 +166,8 @@ Then:
 
 1. Click `Create room`.
 2. Tell the learner the room code.
-3. Click `Start`.
-4. Choose a competency station.
+3. Choose a competency station.
+4. Click `Start`.
 5. Advance through prompts.
 6. Evaluate the learner using Correct, Partial Credit, or Incorrect.
 7. Flag prompts that need review.
@@ -188,9 +188,8 @@ Then:
 1. Enter the room code shown on the host screen.
 2. Enter a learner name.
 3. Click `Join simulation`.
-4. Click `Ready`.
-5. Follow the prompt monitor.
-6. Respond verbally or perform the skill in person.
+4. Follow the prompt monitor after the host starts the station.
+5. Respond verbally or perform the skill in person.
 
 ## How To Find The Host Computer's Local IP Address
 
@@ -268,7 +267,7 @@ The host computer stores saved session results in:
 data/results.json
 ```
 
-The browser also stores study progress using localStorage.
+The browser may also store temporary local result history using localStorage.
 
 The Results page can show:
 

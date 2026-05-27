@@ -17,7 +17,6 @@ type WireMessage = {
 type PlayerState = {
   id: string;
   name: string;
-  ready: boolean;
   connected: boolean;
 };
 
@@ -61,7 +60,6 @@ type WsClient = {
   role?: ClientRole;
   roomCode?: string;
   name?: string;
-  ready?: boolean;
   connected: boolean;
 };
 
@@ -173,7 +171,6 @@ function connectedPlayers(roomCode: string): PlayerState[] {
     .map((client) => ({
       id: client.id,
       name: client.name ?? "Player",
-      ready: Boolean(client.ready),
       connected: client.connected
     }));
 }
@@ -379,7 +376,6 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.role = "player";
     client.roomCode = code;
     client.name = String(message.name ?? "Player").trim().slice(0, 24) || "Player";
-    client.ready = false;
     sendState(client, room, "room-joined");
     broadcastState(code);
     return;
@@ -397,11 +393,6 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   }
 
   switch (message.type) {
-    case "player-ready": {
-      client.ready = Boolean(message.ready);
-      broadcastState(room.code);
-      break;
-    }
     case "start-session": {
       if (client.role !== "host") return;
       room.status = "in-progress";

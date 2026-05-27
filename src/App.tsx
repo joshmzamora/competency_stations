@@ -4,7 +4,6 @@ import { HomePage } from "./pages/HomePage";
 import { HostPage } from "./pages/HostPage";
 import { PlayerPage } from "./pages/PlayerPage";
 import { ResultsPage } from "./pages/ResultsPage";
-import { StudyPage } from "./pages/StudyPage";
 
 const router = createBrowserRouter([
   {
@@ -14,7 +13,6 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "host", element: <HostPage /> },
       { path: "player", element: <PlayerPage /> },
-      { path: "study", element: <StudyPage /> },
       { path: "results", element: <ResultsPage /> }
     ]
   }

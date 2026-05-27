@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BookOpen, ClipboardCheck, MonitorPlay, Radio, Trophy } from "lucide-react";
+import { ClipboardCheck, MonitorPlay, Radio, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
@@ -7,7 +7,6 @@ import { stations } from "../data/stations";
 const actions = [
   { to: "/host", label: "Start Host Mode", icon: MonitorPlay, accent: "text-trauma" },
   { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" },
-  { to: "/study", label: "Study Station Prompts", icon: BookOpen, accent: "text-monitor" },
   { to: "/results", label: "View Results", icon: Trophy, accent: "text-amber" }
 ];
 

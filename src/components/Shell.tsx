@@ -1,11 +1,10 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Activity, ClipboardList, Home, MonitorPlay, Radio, Trophy } from "lucide-react";
+import { Activity, Home, MonitorPlay, Radio, Trophy } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home },
   { to: "/host", label: "Host", icon: MonitorPlay },
   { to: "/player", label: "Player", icon: Radio },
-  { to: "/study", label: "Study", icon: ClipboardList },
   { to: "/results", label: "Results", icon: Trophy }
 ];
 

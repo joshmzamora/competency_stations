@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { ResultsChart } from "../components/ResultsChart";
 import type { ResultRecord } from "../types";
-import { clearLocalResults, clearStudyProgress, downloadFile, getLocalResults, getServerResults, resetServerResults, resultsToCsv } from "../utils/results";
+import { clearLocalResults, downloadFile, getLocalResults, getServerResults, resetServerResults, resultsToCsv } from "../utils/results";
 
 export function ResultsPage() {
   const [results, setResults] = useState<ResultRecord[]>([]);
@@ -21,7 +21,6 @@ export function ResultsPage() {
 
   async function resetAll() {
     clearLocalResults();
-    clearStudyProgress();
     await resetServerResults();
     setResults([]);
   }

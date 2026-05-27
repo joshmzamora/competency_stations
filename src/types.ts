@@ -54,7 +54,6 @@ export type PromptEvaluation = {
 export type PlayerState = {
   id: string;
   name: string;
-  ready: boolean;
   connected: boolean;
 };
 
@@ -95,7 +94,7 @@ export type ResultRecord = {
   roomCode?: string;
   createdAt: string;
   endedAt?: string;
-  mode: "host-competency" | "quick-quiz" | "study";
+  mode: "host-competency";
   score: number;
   answered: number;
   correct: number;
@@ -113,7 +112,6 @@ export type ResultRecord = {
 export type ClientMessage =
   | { type: "create-room" }
   | { type: "join-room"; code: string; name: string }
-  | { type: "player-ready"; ready: boolean }
   | { type: "start-session" }
   | { type: "open-station"; station: CompetencyStation }
   | { type: "set-prompt-index"; index: number }

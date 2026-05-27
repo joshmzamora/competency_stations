@@ -1,31 +1,6 @@
 import type { CompetencyPrompt, ResultRecord } from "../types";
 
 const localResultsKey = "competency-stations-local-results";
-const studyProgressKey = "competency-stations-study-progress";
-
-export type StudyProgress = {
-  gotIt: string[];
-  missed: string[];
-  review: string[];
-};
-
-export function getStudyProgress(): StudyProgress {
-  const fallback: StudyProgress = { gotIt: [], missed: [], review: [] };
-  try {
-    const saved = localStorage.getItem(studyProgressKey);
-    return saved ? { ...fallback, ...JSON.parse(saved) } : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function saveStudyProgress(progress: StudyProgress) {
-  localStorage.setItem(studyProgressKey, JSON.stringify(progress));
-}
-
-export function clearStudyProgress() {
-  localStorage.removeItem(studyProgressKey);
-}
 
 export function getLocalResults(): ResultRecord[] {
   try {

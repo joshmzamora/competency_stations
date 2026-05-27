@@ -1,4 +1,4 @@
-import { CheckCircle2, Radio, Send, ShieldAlert } from "lucide-react";
+import { Radio, Send, ShieldAlert } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
@@ -93,10 +93,9 @@ export function PlayerPage() {
               <div className="font-display text-3xl font-black uppercase text-white">{station?.title ?? "Waiting for station"}</div>
               {station && !isLive && <p className="mt-1 text-sm text-amber">Station loaded. Waiting for host to start.</p>}
             </div>
-            <AnimatedButton variant="secondary" onClick={() => send({ type: "player-ready", ready: true })}>
-              <CheckCircle2 className="h-4 w-4" />
-              Ready
-            </AnimatedButton>
+            <div className="rounded-md border border-scrub/25 bg-scrub/10 px-3 py-2 font-display text-xs font-bold uppercase tracking-[0.14em] text-scrub">
+              Connected
+            </div>
           </div>
 
           <CountdownTimer endsAt={room.timerEndsAt} />
@@ -127,7 +126,7 @@ export function PlayerPage() {
               <ShieldAlert className="mb-3 h-8 w-8" />
               <div className="font-display text-3xl font-black uppercase text-white">Stand by</div>
               <p className="mt-3 text-white/70">
-                {station ? "The host has loaded the station and will start when ready." : "The host will select a competency station and advance prompts from the control room."}
+                {station ? "The host has loaded the station and will start once the learner screen is connected." : "The host will select a competency station and advance prompts from the control room."}
               </p>
             </div>
           )}
