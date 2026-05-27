@@ -38,14 +38,16 @@ The learner/player screen is a clean simulation prompt monitor:
 
 The homepage and host page include these station cards:
 
-- Chest Tube Competency
-- Tracheostomy Station
-- Foley Catheter Station
-- Central Line Station
-- Wound Vac Station
-- Emergency Response Station
+- Code Blue
+- Hemodynamics
+- Pacemaker
+- Chest tube
+- Code BERT
+- Stroke
+- CAUTI/CLABSI prevention
+- Pressure Injury Station
 
-The Chest Tube Competency station is fully built. The other stations are scaffolded and ready for real competency content.
+These stations are based on the 2026 RN Competency scenario document. Chest tube has the most detailed competency content so far; the other stations have been started from the scenario's expected interventions and can be expanded as you refine the checkoff.
 
 Station content lives in:
 
