@@ -1,56 +1,69 @@
-import { Check, ChevronLeft, ChevronRight, Circle as CircleIcon, Copy, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Square as SquareIcon, Star, Timer, Triangle, Umbrella, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Circle as CircleIcon, Copy, Dices, Flag, Minus, PauseCircle, Play, Plus, Power, Radio, Square as SquareIcon, Star, Timer, Triangle, Umbrella, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
+import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
+import { SelectionRoulette } from "../components/SelectionRoulette";
 import { ScoreBadge } from "../components/ScoreBadge";
 import { StationCard } from "../components/StationCard";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape } from "../types";
+import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState } from "../types";
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
-    case "circle":
-      return <CircleIcon className={className} />;
-    case "triangle":
-      return <Triangle className={className} />;
-    case "square":
-      return <SquareIcon className={className} />;
-    case "star":
-      return <Star className={className} />;
-    case "umbrella":
-      return <Umbrella className={className} />;
+    case "circle": return <CircleIcon className={className} />;
+    case "triangle": return <Triangle className={className} />;
+    case "square": return <SquareIcon className={className} />;
+    case "star": return <Star className={className} />;
+    case "umbrella": return <Umbrella className={className} />;
   }
 }
 
 function shapeColor(shape: PlayerShape) {
   switch (shape) {
-    case "circle":
-      return "text-scrub";
-    case "triangle":
-      return "text-trauma";
-    case "square":
-      return "text-monitor";
-    case "star":
-      return "text-amber";
-    case "umbrella":
-      return "text-white";
+    case "circle": return "text-scrub";
+    case "triangle": return "text-trauma";
+    case "square": return "text-monitor";
+    case "star": return "text-amber";
+    case "umbrella": return "text-white";
   }
 }
 
+function ParticipantRoster({ players }: { players: PlayerState[] }) {
+  if (players.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-3 rounded-md border border-white/5 bg-white/5 p-3 shadow-inner">
+      <div className="flex items-center gap-2 border-r border-white/10 pr-3 mr-1">
+        <div className="h-1.5 w-1.5 rounded-full bg-trauma animate-pulse" />
+        <span className="font-display text-[9px] font-bold uppercase tracking-[0.15em] text-white/30">Active Trial Group</span>
+      </div>
+      {players.map((p) => (
+        <div key={p.id} className="flex items-center gap-2 rounded-md border border-white/5 bg-black/20 px-2 py-1">
+          {p.shape && <ShapeIcon shape={p.shape as PlayerShape} className={`h-3 w-3 ${shapeColor(p.shape as PlayerShape)}`} />}
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">{p.name.split(" (")[0]}</span>
+          <div className={`h-1 w-1 rounded-full ${p.connected ? "bg-scrub" : "bg-white/10"}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function HostPage() {
-  const { status, room, error, send, clearError } = useRoomSocket();
+  const { status, room, error, clientId, send, clearError } = useRoomSocket();
   const { setNavHidden } = useAppChrome();
   const [note, setNote] = useState("");
   const [flagged, setFlagged] = useState(false);
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
+  // Track which protocolIntroStartedAt timestamp we have already shown
+  const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
   const totalPrompts = station?.prompts.length ?? 0;
@@ -96,14 +109,25 @@ export function HostPage() {
   }, [room?.introStartedAt]);
 
   const closeIntro = useCallback(() => {
-    setIntroKeySeen(introKey);
     setIntroVisible(false);
-  }, [introKey]);
+    // After clinical briefing, start the protocol assignment automatically
+    send({ type: "start-protocol-assignment" });
+  }, [send]);
 
   const skipIntro = useCallback(() => {
     send({ type: "skip-intro" });
-    closeIntro();
-  }, [closeIntro, send]);
+    setIntroVisible(false);
+    // Explicitly clear any stale protocol state tracking if skip happens
+    setProtocolIntroSeenAt(null);
+    // Even if skipped, start protocol assignment
+    send({ type: "start-protocol-assignment" });
+  }, [send]);
+
+  // Show protocol intro whenever a new startedAt arrives that we haven't seen yet
+  const protocolIntroVisible = Boolean(
+    room?.protocolIntroStartedAt &&
+    room.protocolIntroStartedAt !== protocolIntroSeenAt
+  );
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt) return;
@@ -120,9 +144,9 @@ export function HostPage() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monitor">Host evaluator</div>
-          <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Competency control room</h1>
+        <div className="flex-1 min-w-[300px]">
+          <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monitor">Evaluator control room</div>
+          <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Competency Panel</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ScoreBadge score={room?.score ?? 0} label="Competency score" />
@@ -132,6 +156,12 @@ export function HostPage() {
           </div>
         </div>
       </div>
+
+      {room && (
+        <div className="mb-8">
+          <ParticipantRoster players={room.players} />
+        </div>
+      )}
 
       {!room ? (
         <div className="grid gap-5 rounded-md border border-white/10 bg-black/35 p-6 lg:grid-cols-[1fr_360px] lg:items-center">
@@ -175,10 +205,33 @@ export function HostPage() {
                 </AnimatedButton>
                 <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!station}>
                   <Play className="h-4 w-4" />
-                  {room.status === "in-progress" ? "Started" : "Start"}
+                  {room.status === "in-progress" ? "Resync Intro" : "Start Intro"}
                 </AnimatedButton>
               </div>
               {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
+            </div>
+
+            <div className="rounded-md border border-trauma/20 bg-black/35 p-4">
+              <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Trial Protocol</div>
+              <div className="mt-3 grid gap-2">
+                 <AnimatedButton 
+                   variant="ghost" 
+                   onClick={() => send({ type: "start-protocol-assignment" })}
+                   disabled={room.status !== "in-progress"}
+                 >
+                    <UserPlus className="h-4 w-4" />
+                    Assign Identities
+                 </AnimatedButton>
+                 <AnimatedButton 
+                    variant="secondary" 
+                    onClick={() => send({ type: "start-selection" })}
+                    disabled={room.status !== "in-progress" || room.players.length === 0}
+                 >
+                    <Dices className="h-4 w-4" />
+                    Select Participant
+                 </AnimatedButton>
+              </div>
+              <div className="mt-2 text-[10px] text-white/30 uppercase text-center tracking-widest">Balanced Weighted Random</div>
             </div>
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
@@ -210,14 +263,21 @@ export function HostPage() {
               <div className="mt-3 grid gap-2">
                 {room.players.length === 0 && <p className="text-white/45">No players connected yet.</p>}
                 {room.players.map((player) => (
-                  <div key={player.id} className="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2">
+                  <div 
+                    key={player.id} 
+                    className="flex items-center justify-between rounded-md bg-white/[0.04] px-3 py-2 cursor-pointer hover:bg-white/10"
+                    onClick={() => send({ type: "override-selection", playerId: player.id })}
+                  >
                     <div className="flex items-center gap-3">
                       {player.shape && (
                         <ShapeIcon shape={player.shape as PlayerShape} className={`h-4 w-4 ${shapeColor(player.shape as PlayerShape)}`} />
                       )}
-                      <span className="text-sm font-semibold">{player.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">{player.name}</span>
+                        <span className="text-[9px] text-white/40 uppercase">Turns: {player.turnCount}</span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-scrub">Online</span>
+                    <span className={`h-2 w-2 rounded-full ${player.connected ? "bg-scrub" : "bg-white/10"}`} title={player.connected ? "Connected" : "Disconnected"} />
                   </div>
                 ))}
               </div>
@@ -361,6 +421,18 @@ export function HostPage() {
         onClose={closeIntro}
         onSkip={skipIntro}
       />
+      <ProtocolIntro
+        open={protocolIntroVisible}
+        startedAt={room?.protocolIntroStartedAt ?? null}
+        players={room?.players ?? []}
+        onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
+      />
+      <SelectionRoulette
+        selection={room?.selection ?? null}
+        players={room?.players ?? []}
+        clientId={clientId}
+      />
+
     </section>
   );
 }

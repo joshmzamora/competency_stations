@@ -19,6 +19,7 @@ type PlayerState = {
   name: string;
   connected: boolean;
   shape?: string;
+  turnCount: number;
 };
 
 type PromptEvaluation = {
@@ -44,6 +45,8 @@ type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  protocolIntroStartedAt: number | null;
+  selection: { playerId: string; startedAt: number; durationMs: number } | null;
   score: number;
   selectedStation: unknown | null;
   activePromptIndex: number;
@@ -92,6 +95,8 @@ function createInitialRoom(code: string): RoomState {
     status: "lobby",
     serverTime: Date.now(),
     introStartedAt: null,
+    protocolIntroStartedAt: null,
+    selection: null,
     score: 0,
     selectedStation: null,
     activePromptIndex: 0,
@@ -174,27 +179,39 @@ function connectedPlayers(roomCode: string): PlayerState[] {
   const room = rooms.get(roomCode);
   if (!room) return [];
 
-  const players: PlayerState[] = [];
+  const connectedIds = new Set<string>();
   for (const client of clients) {
     if (client.roomCode === roomCode && client.role === "player") {
-      const names = client.names ?? ["Player"];
-      names.forEach((name, index) => {
-        const playerId = `${client.id}-${index}`;
-        players.push({
-          id: playerId,
-          name,
-          connected: client.connected,
-          shape: room.players.find((p) => p.id === playerId)?.shape
-        });
+      const names = client.names ?? [];
+      names.forEach((_, index) => {
+        connectedIds.add(`${client.id}-${index}`);
       });
     }
   }
-  return players;
+
+  return room.players.map(player => ({
+    ...player,
+    connected: connectedIds.has(player.id)
+  }));
+}
+
+function pickBalancedPlayer(room: RoomState): string | null {
+  const players = room.players.filter(p => connectedPlayers(room.code).find(cp => cp.id === p.id && cp.connected));
+  if (players.length === 0) return null;
+
+  // Find minimum turn count
+  const minTurns = Math.min(...players.map(p => p.turnCount));
+  
+  // Players who haven't had a turn or have the lowest turns
+  const candidates = players.filter(p => p.turnCount === minTurns);
+  
+  // Randomly pick from the fairest candidates
+  const selected = candidates[Math.floor(Math.random() * candidates.length)];
+  return selected.id;
 }
 
 function assignShapesToRoom(room: RoomState) {
   const shapes = ["circle", "triangle", "square", "star", "umbrella"];
-  const players = connectedPlayers(room.code);
   
   // Shuffle shapes
   for (let i = shapes.length - 1; i > 0; i--) {
@@ -202,9 +219,10 @@ function assignShapesToRoom(room: RoomState) {
     [shapes[i], shapes[j]] = [shapes[j], shapes[i]];
   }
 
-  room.players = players.map((player, index) => ({
+  room.players = room.players.map((player, index) => ({
     ...player,
-    shape: shapes[index % shapes.length]
+    shape: shapes[index % shapes.length],
+    turnCount: 0 // Reset counts when new assignments happen
   }));
 }
 
@@ -419,8 +437,13 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.roomCode = code;
     client.names = names;
     
-    // Update room players immediately so they show up for host
-    room.players = connectedPlayers(code);
+    // Create player states with formatted names
+    room.players = names.map((n, i) => ({
+      id: `${client.id}-${i}`,
+      name: `Player ${i + 1} (${n})`,
+      connected: true,
+      turnCount: 0
+    }));
     
     sendState(client, room, "room-joined");
     broadcastState(code);
@@ -441,19 +464,63 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   switch (message.type) {
     case "start-session": {
       if (client.role !== "host") return;
-      assignShapesToRoom(room);
       room.status = "in-progress";
       room.introStartedAt = Date.now();
+      room.protocolIntroStartedAt = null;
+      room.selection = null;
       broadcastState(room.code);
       break;
     }
     case "skip-intro": {
       if (client.role !== "host") return;
-      if (!room.players.some(p => p.shape)) {
-        assignShapesToRoom(room);
-      }
       room.introStartedAt = null;
       broadcastState(room.code);
+      break;
+    }
+    case "start-protocol-assignment": {
+      if (client.role !== "host") return;
+      assignShapesToRoom(room);
+      room.protocolIntroStartedAt = Date.now();
+      broadcastState(room.code);
+      // Clear after 25s so re-broadcasts don't re-trigger the intro
+      setTimeout(() => {
+        if (room.protocolIntroStartedAt) {
+          room.protocolIntroStartedAt = null;
+          broadcastState(room.code);
+        }
+      }, 25000);
+      break;
+    }
+    case "start-selection": {
+      if (client.role !== "host") return;
+      const playerId = pickBalancedPlayer(room);
+      if (playerId) {
+        room.selection = {
+          playerId,
+          startedAt: Date.now(),
+          durationMs: 4000 // Dramatic 4 second spin
+        };
+        // Increment turn count for the selected player
+        const player = room.players.find(p => p.id === playerId);
+        if (player) player.turnCount++;
+        
+        broadcastState(room.code);
+      }
+      break;
+    }
+    case "override-selection": {
+      if (client.role !== "host") return;
+      const playerId = String(message.playerId);
+      const player = room.players.find(p => p.id === playerId);
+      if (player) {
+        room.selection = {
+          playerId,
+          startedAt: Date.now(),
+          durationMs: 2000 // Fast override spin
+        };
+        player.turnCount++;
+        broadcastState(room.code);
+      }
       break;
     }
     case "open-station": {

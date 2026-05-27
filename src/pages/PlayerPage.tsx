@@ -1,14 +1,26 @@
 import { Circle as CircleIcon, Minus, Plus, Radio, Send, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
+import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
+import { SelectionRoulette } from "../components/SelectionRoulette";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { PlayerShape, PlayerStation } from "../types";
+import type { PlayerShape, PlayerState, PlayerStation } from "../types";
+
+function shapeColor(shape: PlayerShape) {
+  switch (shape) {
+    case "circle": return "text-scrub";
+    case "triangle": return "text-trauma";
+    case "square": return "text-monitor";
+    case "star": return "text-amber";
+    case "umbrella": return "text-white";
+  }
+}
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -25,32 +37,70 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
   }
 }
 
-function shapeColor(shape: PlayerShape) {
-  switch (shape) {
-    case "circle":
-      return "text-scrub";
-    case "triangle":
-      return "text-trauma";
-    case "square":
-      return "text-monitor";
-    case "star":
-      return "text-amber";
-    case "umbrella":
-      return "text-white";
-  }
+function AssignedPlayerRow({ name, shape }: { name: string; shape: PlayerShape }) {
+  const [displayShape, setDisplayShape] = useState<PlayerShape>("circle");
+  const [isRevealed, setIsRevealed] = useState(false);
+  const shapes: PlayerShape[] = ["circle", "triangle", "square", "star", "umbrella"];
+
+  useEffect(() => {
+    let count = 0;
+    const max = 15 + Math.floor(Math.random() * 10);
+    const interval = window.setInterval(() => {
+      setDisplayShape(shapes[Math.floor(Math.random() * shapes.length)]);
+      count++;
+      if (count >= max) {
+        window.clearInterval(interval);
+        setDisplayShape(shape);
+        setIsRevealed(true);
+      }
+    }, 100);
+    return () => window.clearInterval(interval);
+  }, [shape]);
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.04] p-4">
+      <div className="font-display text-xl font-bold text-white">{name}</div>
+      <div className={`flex items-center gap-3 font-display text-lg font-black uppercase tracking-widest transition-all duration-500 ${isRevealed ? shapeColor(shape) : "text-white/20"} ${isRevealed ? "scale-110" : "scale-100"}`}>
+        <ShapeIcon shape={displayShape} className="h-6 w-6" />
+        {isRevealed ? shape : "???"}
+      </div>
+    </div>
+  );
+}
+
+function ParticipantRoster({ players }: { players: PlayerState[] }) {
+  if (players.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-3 rounded-md border border-white/10 bg-black/40 p-4 shadow-xl backdrop-blur-md">
+      <div className="flex items-center gap-2 border-r border-white/10 pr-4 mr-1">
+        <div className="h-2 w-2 rounded-full bg-monitor animate-pulse" />
+        <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Participants</span>
+      </div>
+      {players.map((p) => (
+        <div key={p.id} className="flex items-center gap-3 rounded-md border border-white/5 bg-white/5 px-3 py-2 transition-all hover:bg-white/10">
+          <div className="flex items-center gap-2">
+             {p.shape && <ShapeIcon shape={p.shape as PlayerShape} className={`h-4 w-4 ${shapeColor(p.shape as PlayerShape)}`} />}
+             <span className="font-display text-xs font-bold uppercase tracking-widest text-white/90">{p.name}</span>
+          </div>
+          <div className={`h-2 w-2 rounded-full ${p.connected ? "bg-scrub shadow-[0_0_10px_rgba(34,245,199,0.8)]" : "bg-white/10"}`} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function PlayerPage() {
-  const { status, room, error, send, clearError } = useRoomSocket();
+  const { status, room, error, clientId, send, clearError } = useRoomSocket();
   const { setNavHidden } = useAppChrome();
   const [code, setCode] = useState("");
-  const [names, setNames] = useState<string[]>(["Player 1", "Player 2"]);
+  const [names, setNames] = useState<string[]>(["", ""]);
   const [answer, setAnswer] = useState("");
   const [promptStartedAt, setPromptStartedAt] = useState(Date.now());
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
-  const [assignmentVisible, setAssignmentVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
+  // Track which protocolIntroStartedAt timestamp we have already shown
+  const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
   const isLive = room?.status === "in-progress";
@@ -84,11 +134,14 @@ export function PlayerPage() {
 
   useEffect(() => {
     if (room?.introStartedAt) return;
-    if (introVisible && !room?.introStartedAt && room?.status === "in-progress") {
-      setAssignmentVisible(true);
-    }
     setIntroVisible(false);
-  }, [room?.introStartedAt, introVisible, room?.status]);
+  }, [room?.introStartedAt]);
+
+  // Show protocol intro whenever a new startedAt arrives that we haven't seen yet
+  const protocolIntroVisible = Boolean(
+    room?.protocolIntroStartedAt &&
+    room.protocolIntroStartedAt !== protocolIntroSeenAt
+  );
 
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
@@ -103,7 +156,7 @@ export function PlayerPage() {
 
   function addPlayer() {
     if (names.length < 5) {
-      setNames([...names, `Player ${names.length + 1}`]);
+      setNames([...names, ""]);
     }
   }
 
@@ -132,11 +185,17 @@ export function PlayerPage() {
         </div>
         {room && (
           <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3">
-            <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
+            <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room code</div>
             <div className="font-display text-3xl font-black text-scrub">{room.code}</div>
           </div>
         )}
       </div>
+
+      {room && (
+        <div className="mb-8">
+          <ParticipantRoster players={room.players} />
+        </div>
+      )}
 
       {!room ? (
         <form onSubmit={join} className="grid gap-6 rounded-md border border-white/10 bg-black/35 p-6">
@@ -230,9 +289,9 @@ export function PlayerPage() {
           ) : (
             <div className="rounded-md border border-amber/25 bg-amber/10 p-8 text-amber">
               <ShieldAlert className="mb-3 h-8 w-8" />
-              <div className="font-display text-3xl font-black uppercase text-white">Stand by</div>
+              <div className="font-display text-3xl font-black uppercase text-white">Trial Stand By</div>
               <p className="mt-3 text-white/70">
-                {station ? "The host has loaded the station and will start once the learner screen is connected." : "The host will select a competency station and advance prompts from the control room."}
+                {station ? "The trial environment is active. Awaiting participant selection." : "The host will select a competency station and initialize the trial protocol."}
               </p>
             </div>
           )}
@@ -251,36 +310,19 @@ export function PlayerPage() {
         onClose={closeIntro}
       />
 
-      <Modal open={assignmentVisible} title="Shape Assignment" onClose={() => setAssignmentVisible(false)}>
-        <div className="grid gap-6 py-4">
-          <div className="text-center">
-            <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-amber">Squid Game Protocol</div>
-            <h3 className="mt-1 font-display text-2xl font-black uppercase text-white">Your assigned identities</h3>
-            <p className="mt-2 text-sm text-white/60">Memorize your shape. The host will call upon you during the simulation.</p>
-          </div>
-          <div className="grid gap-3">
-            {room?.players.map((player) => (
-              <div
-                key={player.id}
-                className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.04] p-4"
-              >
-                <div className="font-display text-xl font-bold text-white">{player.name}</div>
-                {player.shape && (
-                  <div className={`flex items-center gap-3 font-display text-lg font-black uppercase tracking-widest ${shapeColor(player.shape)}`}>
-                    <ShapeIcon shape={player.shape} className="h-6 w-6" />
-                    {player.shape}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 text-center">
-            <AnimatedButton onClick={() => setAssignmentVisible(false)}>
-              Understand
-            </AnimatedButton>
-          </div>
-        </div>
-      </Modal>
+      <ProtocolIntro
+        open={protocolIntroVisible}
+        startedAt={room?.protocolIntroStartedAt ?? null}
+        players={room?.players ?? []}
+        onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
+      />
+
+      <SelectionRoulette
+        selection={room?.selection ?? null}
+        players={room?.players ?? []}
+        clientId={clientId}
+      />
+
     </section>
   );
 }

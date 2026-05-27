@@ -51,6 +51,20 @@ export type PromptEvaluation = {
   evaluatedAt: string;
 };
 
+export type ProtocolAnnouncement = {
+  type: "assignment" | "selection" | "warning";
+  title: string;
+  subtitle: string;
+  startedAt: number;
+  durationMs: number;
+};
+
+export type SelectionState = {
+  playerId: string;
+  startedAt: number;
+  durationMs: number;
+};
+
 export type PlayerShape = "circle" | "triangle" | "square" | "star" | "umbrella";
 
 export type PlayerState = {
@@ -58,6 +72,7 @@ export type PlayerState = {
   name: string;
   connected: boolean;
   shape?: PlayerShape;
+  turnCount: number;
 };
 
 export type GameStats = {
@@ -82,6 +97,8 @@ export type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  protocolIntroStartedAt: number | null;
+  selection: SelectionState | null;
   score: number;
   selectedStation: CompetencyStation | PlayerStation | null;
   activePromptIndex: number;
@@ -119,6 +136,9 @@ export type ClientMessage =
   | { type: "join-room"; code: string; names: string[] }
   | { type: "start-session" }
   | { type: "skip-intro" }
+  | { type: "start-protocol-assignment" }
+  | { type: "start-selection" }
+  | { type: "override-selection"; playerId: string }
   | { type: "open-station"; station: CompetencyStation }
   | { type: "set-prompt-index"; index: number }
   | { type: "next-prompt" }
