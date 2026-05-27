@@ -9,3 +9,28 @@ code-blue-control.jpg
 Source: Wikimedia Commons
 Page: https://commons.wikimedia.org/wiki/File:US_Navy_101013-N-7214P-036_A_laptop_is_used_to_control_a_training_mannequin%27s_vital_signs_during_a_mock_code_blue_drill_at_the_pain_management_clin.jpg
 License/status: Public domain, U.S. Navy work
+
+vital-signs-monitor.jpg
+Source: Wikimedia Commons
+Page: https://commons.wikimedia.org/wiki/File:Vital_signs_monitor_display.jpg
+License/status: Public domain, U.S. Navy work
+
+checking-vital-signs.jpg
+Source: User-provided local file / CDN image
+Page: https://cdn.prod.website-files.com/688a2489680c7f0d6f7c7d7a/688a2664c3b531255e902dab_4eeSgrmgGllL5k1svP3EpmAYeB0.jpeg
+License/status: User-provided project asset
+
+medical-mannequin.webp
+Source: User-provided local file / HealthySimulation image
+Page: https://www.healthysimulation.com/wp-content/uploads/2025/09/medical-mannequin.jpeg
+License/status: User-provided project asset
+
+human-patient-simulation.jpg
+Source: Wikimedia Commons
+Page: https://commons.wikimedia.org/wiki/File:Human_Patient_Simulation.jpg
+License/status: Public domain, U.S. Navy work
+
+icu-monitor-front.jpg
+Source: Wikimedia Commons
+Page: https://commons.wikimedia.org/wiki/File:ICU_Monitor_(front).jpg
+License/status: CC BY-SA 2.0, Quinn Dombrowski

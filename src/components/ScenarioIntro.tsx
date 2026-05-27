@@ -27,6 +27,7 @@ type IntroSlide = {
   subtitle: string;
   image?: string;
   imageAlt?: string;
+  visualLabel: string;
   icon: typeof HeartPulse;
   cue: FacilitatorCue;
   focus: string[];
@@ -38,8 +39,9 @@ const slides: IntroSlide[] = [
     kicker: "Simulation Setup",
     title: "High Fidelity Patient Encounter",
     subtitle: "The manikin breathes, has a pulse, talks, and has heart sounds. Assess Emma like you would assess a real ICU patient.",
-    image: "/images/intro/simulation-manikin.jpg",
-    imageAlt: "Clinical staff using a high fidelity simulation manikin",
+    image: "/images/intro/medical-mannequin.webp",
+    imageAlt: "Clinical team training with a medical simulation manikin",
+    visualLabel: "High fidelity simulation manikin",
     icon: HeartPulse,
     cue: {
       readAloud:
@@ -58,8 +60,9 @@ const slides: IntroSlide[] = [
     kicker: "Bedside Orientation",
     title: "Start With The Patient",
     subtitle: "Before the clinical problem accelerates, the learner should feel a pulse, auscultate heart and lung sounds, and speak to Emma.",
-    image: "/images/intro/simulation-manikin.jpg",
-    imageAlt: "Simulation manikin being assessed with a stethoscope",
+    image: "/images/intro/checking-vital-signs.jpg",
+    imageAlt: "Clinical team assessing a simulated patient",
+    visualLabel: "Hands-on patient assessment",
     icon: Stethoscope,
     cue: {
       readAloud:
@@ -78,6 +81,9 @@ const slides: IntroSlide[] = [
     kicker: "Patient Identity",
     title: "Emma Gonnadye",
     subtitle: "67-year-old female, 90 kg, admitted with acute exacerbation of congestive heart failure, COPD, and chronic atrial fibrillation.",
+    image: "/images/intro/human-patient-simulation.jpg",
+    imageAlt: "Human patient simulation manikin in a clinical simulation environment",
+    visualLabel: "Patient simulation environment",
     icon: UserRound,
     cue: {
       readAloud:
@@ -96,6 +102,9 @@ const slides: IntroSlide[] = [
     kicker: "History Of Present Illness",
     title: "Shortness Of Breath At Rest",
     subtitle: "Emma had several days of worsening shortness of breath and cough. Symptoms began with exertion and are now present at rest.",
+    image: "/images/intro/icu-monitor-front.jpg",
+    imageAlt: "ICU monitor front view",
+    visualLabel: "Monitor-first deterioration cues",
     icon: Activity,
     cue: {
       readAloud:
@@ -116,6 +125,7 @@ const slides: IntroSlide[] = [
     subtitle: "Atrial fibrillation, bilateral crackles, 3+ pitting edema, and glucose 460 mg/dL point toward a complex cardiac and respiratory presentation.",
     image: "/images/intro/code-blue-control.jpg",
     imageAlt: "Simulation control laptop beside a mannequin during a mock code drill",
+    visualLabel: "Real-time sim control",
     icon: Monitor,
     cue: {
       readAloud:
@@ -134,6 +144,9 @@ const slides: IntroSlide[] = [
     kicker: "Scenario Launch",
     title: "Monitor Closely",
     subtitle: "Vital signs and EKG are on the monitor. They can change quickly, just like a real ICU patient. Begin when the learner is ready.",
+    image: "/images/intro/vital-signs-monitor.jpg",
+    imageAlt: "Vital signs monitor display on a simulated patient",
+    visualLabel: "Live vital signs reference",
     icon: Radio,
     cue: {
       readAloud:

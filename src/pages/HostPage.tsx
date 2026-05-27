@@ -79,6 +79,8 @@ export function HostPage() {
   }, []);
   const learnerUrl = `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
+  const connectedParticipants = room?.players.filter((player) => player.connected).length ?? 0;
+  const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
 
   useEffect(() => {
     if (room && !station && preselectedStation) {
@@ -141,7 +143,7 @@ export function HostPage() {
   }
 
   function startSimulation() {
-    if (!station) return;
+    if (!station || !canStartSession) return;
     send({ type: "start-session" });
   }
 
@@ -207,12 +209,18 @@ export function HostPage() {
                   <Copy className="h-4 w-4" />
                   Copy
                 </AnimatedButton>
-                <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!station}>
+                <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
                   <Play className="h-4 w-4" />
-                  {room.status === "in-progress" ? "Resync Intro" : "Start Intro"}
+                  {room.status === "in-progress" ? "Session Live" : "Start Intro"}
                 </AnimatedButton>
               </div>
               {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
+              {station && connectedParticipants < 2 && (
+                <p className="mt-3 text-xs text-amber">Connect one learner screen with 2-5 participant names before starting.</p>
+              )}
+              {station && connectedParticipants >= 2 && room.status !== "in-progress" && (
+                <p className="mt-3 text-xs text-scrub">Learner screen connected. Intro will play once for this room.</p>
+              )}
             </div>
 
             <div className="rounded-md border border-trauma/20 bg-black/35 p-4">

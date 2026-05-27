@@ -45,6 +45,7 @@ type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   selection: { playerId: string; startedAt: number; durationMs: number } | null;
   score: number;
@@ -95,6 +96,7 @@ function createInitialRoom(code: string): RoomState {
     status: "lobby",
     serverTime: Date.now(),
     introStartedAt: null,
+    introCompletedAt: null,
     protocolIntroStartedAt: null,
     selection: null,
     score: 0,
@@ -193,6 +195,10 @@ function connectedPlayers(roomCode: string): PlayerState[] {
     ...player,
     connected: connectedIds.has(player.id)
   }));
+}
+
+function connectedPlayerClients(roomCode: string) {
+  return [...clients].filter((client) => client.roomCode === roomCode && client.role === "player" && client.connected);
 }
 
 function pickBalancedPlayer(room: RoomState): string | null {
@@ -454,13 +460,22 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
+    const existingPlayerClients = connectedPlayerClients(code);
+    if (existingPlayerClients.length >= 1 && !existingPlayerClients.some((existingClient) => existingClient.id === client.id)) {
+      sendError(client, "A learner screen is already connected. This simulation supports one player computer with 2-5 participants.");
+      return;
+    }
+
     const rawNames = Array.isArray(message.names) ? message.names : [String(message.name ?? "Player")];
     const names = rawNames
       .map((n) => String(n).trim().slice(0, 24))
       .filter(Boolean)
       .slice(0, 5);
 
-    if (names.length === 0) names.push("Player");
+    if (names.length < 2) {
+      sendError(client, "Enter at least 2 participant names on the learner screen before joining.");
+      return;
+    }
 
     client.role = "player";
     client.roomCode = code;
@@ -493,8 +508,14 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   switch (message.type) {
     case "start-session": {
       if (client.role !== "host") return;
+      const playerConnections = connectedPlayerClients(room.code);
+      const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
+      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
+        sendError(client, "Connect exactly one learner screen with 2-5 participants before starting the session.");
+        return;
+      }
       room.status = "in-progress";
-      room.introStartedAt = Date.now();
+      room.introStartedAt = room.introCompletedAt ? null : Date.now();
       room.protocolIntroStartedAt = null;
       room.selection = null;
       broadcastState(room.code);
@@ -503,13 +524,21 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "skip-intro": {
       if (client.role !== "host") return;
       room.introStartedAt = null;
+      room.introCompletedAt = room.introCompletedAt ?? Date.now();
       broadcastState(room.code);
       break;
     }
     case "start-protocol-assignment": {
       if (client.role !== "host") return;
+      const playerConnections = connectedPlayerClients(room.code);
+      const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
+      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
+        sendError(client, "Connect exactly one learner screen with 2-5 participants before assigning identities.");
+        return;
+      }
       assignShapesToRoom(room);
       room.introStartedAt = null;
+      room.introCompletedAt = room.introCompletedAt ?? Date.now();
       room.protocolIntroStartedAt = Date.now();
       room.selection = null;
       const assignmentStartedAt = room.protocolIntroStartedAt;
@@ -554,7 +583,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "open-station": {
       if (client.role !== "host") return;
-      room.status = "lobby";
+      room.status = room.introCompletedAt ? "in-progress" : "lobby";
       room.introStartedAt = null;
       room.selectedStation = message.station ?? null;
       room.activePromptIndex = 0;
@@ -563,6 +592,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.evaluations = {};
       recalculateStats(room);
       room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
+      if (room.status === "in-progress") startSelection(room);
       broadcastState(room.code);
       break;
     }
@@ -730,6 +760,8 @@ function contentType(filePath: string) {
     ".svg": "image/svg+xml",
     ".png": "image/png",
     ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
     ".ico": "image/x-icon"
   };
   return types[extension] ?? "application/octet-stream";

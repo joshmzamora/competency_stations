@@ -97,6 +97,7 @@ export type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   selection: SelectionState | null;
   score: number;

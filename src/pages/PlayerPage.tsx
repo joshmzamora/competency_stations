@@ -107,6 +107,7 @@ export function PlayerPage() {
   const activePrompt = isLive ? prompt : undefined;
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
+  const validNames = names.map((name) => name.trim()).filter(Boolean);
 
   useEffect(() => {
     if (activePrompt?.id) {
@@ -170,6 +171,7 @@ export function PlayerPage() {
 
   function join(event: FormEvent) {
     event.preventDefault();
+    if (validNames.length < 2 || validNames.length > 5) return;
     send({ type: "join-room", code, names });
   }
 
@@ -247,7 +249,8 @@ export function PlayerPage() {
               ))}
             </div>
           </div>
-          <AnimatedButton disabled={status !== "open"}>
+          {validNames.length < 2 && <p className="text-sm text-amber">Enter at least 2 participant names. Use one learner computer for the room.</p>}
+          <AnimatedButton disabled={status !== "open" || code.trim().length < 4 || validNames.length < 2 || validNames.length > 5}>
             <Radio className="h-4 w-4" />
             Join simulation
           </AnimatedButton>
