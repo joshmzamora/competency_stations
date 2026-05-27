@@ -5,6 +5,7 @@ import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
+import { ScenarioIntro } from "../components/ScenarioIntro";
 import { ScoreBadge } from "../components/ScoreBadge";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
@@ -16,6 +17,8 @@ export function HostPage() {
   const [note, setNote] = useState("");
   const [flagged, setFlagged] = useState(false);
   const [effectVisible, setEffectVisible] = useState(false);
+  const [introVisible, setIntroVisible] = useState(false);
+  const [introKeySeen, setIntroKeySeen] = useState("");
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
   const totalPrompts = station?.prompts.length ?? 0;
@@ -30,6 +33,7 @@ export function HostPage() {
     return stations.find((item) => item.id === stationId);
   }, []);
   const learnerUrl = `${window.location.origin}/player`;
+  const introKey = room?.status === "in-progress" && station ? `${room.code}-${room.createdAt}` : "";
 
   useEffect(() => {
     if (room && !station && preselectedStation) {
@@ -43,6 +47,11 @@ export function HostPage() {
     const timeout = window.setTimeout(() => setEffectVisible(false), 1300);
     return () => window.clearTimeout(timeout);
   }, [currentEvaluation?.evaluatedAt]);
+
+  useEffect(() => {
+    if (!introKey || introKeySeen === introKey) return;
+    setIntroVisible(true);
+  }, [introKey, introKeySeen]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt) return;
@@ -166,7 +175,7 @@ export function HostPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">
-                        {room.status === "in-progress" ? "Live simulation" : "Loaded, not started"} · {station.competencyType}
+                        {room.status === "in-progress" ? "Live simulation" : "Loaded, not started"} - {station.competencyType}
                       </div>
                       <h2 className="mt-1 font-display text-3xl font-black uppercase text-white">{station.title}</h2>
                     </div>
@@ -281,6 +290,14 @@ export function HostPage() {
         <p className="text-white/75">{error}</p>
       </Modal>
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle />
+      <ScenarioIntro
+        open={introVisible}
+        role="host"
+        onClose={() => {
+          setIntroKeySeen(introKey);
+          setIntroVisible(false);
+        }}
+      />
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
 import { Modal } from "../components/Modal";
 import { PromptCard } from "../components/PromptCard";
+import { ScenarioIntro } from "../components/ScenarioIntro";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { PlayerStation } from "../types";
 
@@ -15,11 +16,14 @@ export function PlayerPage() {
   const [answer, setAnswer] = useState("");
   const [promptStartedAt, setPromptStartedAt] = useState(Date.now());
   const [effectVisible, setEffectVisible] = useState(false);
+  const [introVisible, setIntroVisible] = useState(false);
+  const [introKeySeen, setIntroKeySeen] = useState("");
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
+  const introKey = room?.status === "in-progress" && station ? `${room.code}-${room.createdAt}` : "";
 
   useEffect(() => {
     if (activePrompt?.id) {
@@ -34,6 +38,11 @@ export function PlayerPage() {
     const timeout = window.setTimeout(() => setEffectVisible(false), 1700);
     return () => window.clearTimeout(timeout);
   }, [currentEvaluation?.evaluatedAt]);
+
+  useEffect(() => {
+    if (!introKey || introKeySeen === introKey) return;
+    setIntroVisible(true);
+  }, [introKey, introKeySeen]);
 
   function join(event: FormEvent) {
     event.preventDefault();
@@ -137,6 +146,14 @@ export function PlayerPage() {
         <p className="text-white/75">{error}</p>
       </Modal>
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
+      <ScenarioIntro
+        open={introVisible}
+        role="player"
+        onClose={() => {
+          setIntroKeySeen(introKey);
+          setIntroVisible(false);
+        }}
+      />
     </section>
   );
 }
