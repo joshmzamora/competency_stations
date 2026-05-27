@@ -1,7 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
+
+const cardWidth = 188;
+const cardGap = 16;
+const cardStride = cardWidth + cardGap;
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -62,27 +66,36 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
 }
 
-function RouletteBar({ players, highlightIndex }: { players: PlayerState[]; highlightIndex: number }) {
+function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPosition: number }) {
   if (players.length === 0) return null;
-  const repeated = [...players, ...players, ...players, ...players, ...players];
-  const centerIndex = players.length * 2 + (highlightIndex % players.length);
+  const repeatCount = 11;
+  const repeated = Array.from({ length: repeatCount }, () => players).flat();
+  const baseIndex = players.length * 2;
+  const centerPosition = baseIndex + reelPosition;
+  const activeIndex = Math.round(centerPosition);
+  const translateX = `calc(50% - ${centerPosition * cardStride + cardWidth / 2}px)`;
 
   return (
     <div className="relative h-32 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a]">
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[180px] -translate-x-1/2 border-x border-trauma/70 bg-trauma/10 shadow-[0_0_34px_rgba(255,48,77,0.22)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[184px] -translate-x-1/2 border-x border-trauma/70 bg-trauma/10 shadow-[0_0_34px_rgba(255,48,77,0.22)]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#05070a] via-transparent to-[#05070a]" />
 
-      <motion.div
+      <div
         className="flex h-full items-center gap-4 px-8"
-        animate={{ x: `calc(50% - ${centerIndex * 188 + 94}px)` }}
-        transition={{ type: "spring", stiffness: 170, damping: 24, mass: 0.85 }}
+        style={{ transform: `translateX(${translateX})`, willChange: "transform" }}
       >
         {repeated.map((player, index) => {
-          const active = index === centerIndex;
+          const distance = Math.min(1.8, Math.abs(index - centerPosition));
+          const focus = Math.max(0, 1 - distance / 1.8);
+          const active = index === activeIndex;
           return (
-            <motion.div
+            <div
               key={`${player.id}-${index}`}
-              animate={{ scale: active ? 1.08 : 0.9, opacity: active ? 1 : 0.32 }}
+              style={{
+                opacity: 0.26 + focus * 0.74,
+                transform: `scale(${0.88 + focus * 0.16})`,
+                willChange: "opacity, transform"
+              }}
               className={`grid h-24 min-w-[188px] flex-shrink-0 place-items-center rounded-md border bg-white/[0.035] px-4 ${
                 active ? shapeBorder(player.shape) : "border-white/10"
               }`}
@@ -94,10 +107,10 @@ function RouletteBar({ players, highlightIndex }: { players: PlayerState[]; high
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Turns {player.turnCount}</div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -135,12 +148,12 @@ export function SelectionRoulette({
   const resultVisible = progress >= 1;
   const amISelected = Boolean(clientId && selection?.playerId.startsWith(clientId));
 
-  const highlightIndex = useMemo(() => {
+  const reelPosition = (() => {
     if (!selection || players.length === 0) return 0;
-    if (resultVisible && targetIndex >= 0) return targetIndex;
-    const rounds = players.length * 6 + Math.max(0, targetIndex);
-    return Math.round(easeOutCubic(progress) * rounds) % players.length;
-  }, [players.length, progress, resultVisible, selection, targetIndex]);
+    const targetOffset = Math.max(0, targetIndex);
+    const totalDistance = players.length * 6 + targetOffset;
+    return resultVisible ? totalDistance : easeOutCubic(progress) * totalDistance;
+  })();
 
   if (!selection) return null;
 
@@ -180,7 +193,7 @@ export function SelectionRoulette({
                   <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none md:text-6xl">Selecting</h2>
                 </div>
 
-                <RouletteBar players={players} highlightIndex={highlightIndex} />
+                <RouletteBar players={players} reelPosition={reelPosition} />
 
                 <div className="h-2 w-full max-w-3xl overflow-hidden rounded-full bg-white/10">
                   <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-amber to-scrub" style={{ width: `${Math.round(progress * 100)}%` }} />
