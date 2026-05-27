@@ -77,6 +77,8 @@ export type LiveAnswer = {
 export type RoomState = {
   code: string;
   status: "lobby" | "in-progress" | "ended";
+  serverTime: number;
+  introStartedAt: number | null;
   score: number;
   selectedStation: CompetencyStation | PlayerStation | null;
   activePromptIndex: number;

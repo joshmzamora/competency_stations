@@ -41,6 +41,8 @@ type GameStats = {
 type RoomState = {
   code: string;
   status: "lobby" | "in-progress" | "ended";
+  serverTime: number;
+  introStartedAt: number | null;
   score: number;
   selectedStation: unknown | null;
   activePromptIndex: number;
@@ -87,6 +89,8 @@ function createInitialRoom(code: string): RoomState {
   return {
     code,
     status: "lobby",
+    serverTime: Date.now(),
+    introStartedAt: null,
     score: 0,
     selectedStation: null,
     activePromptIndex: 0,
@@ -178,6 +182,7 @@ function connectedPlayers(roomCode: string): PlayerState[] {
 function publicRoom(room: RoomState, role: ClientRole | undefined): RoomState {
   return {
     ...room,
+    serverTime: Date.now(),
     players: connectedPlayers(room.code),
     selectedStation: role === "player" ? sanitizeStation(room.selectedStation) : room.selectedStation
   };
@@ -396,12 +401,14 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "start-session": {
       if (client.role !== "host") return;
       room.status = "in-progress";
+      room.introStartedAt = Date.now();
       broadcastState(room.code);
       break;
     }
     case "open-station": {
       if (client.role !== "host") return;
       room.status = "lobby";
+      room.introStartedAt = null;
       room.selectedStation = message.station ?? null;
       room.activePromptIndex = 0;
       room.timerEndsAt = null;

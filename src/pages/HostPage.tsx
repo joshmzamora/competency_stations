@@ -33,7 +33,7 @@ export function HostPage() {
     return stations.find((item) => item.id === stationId);
   }, []);
   const learnerUrl = `${window.location.origin}/player`;
-  const introKey = room?.status === "in-progress" && station ? `${room.code}-${room.createdAt}` : "";
+  const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
 
   useEffect(() => {
     if (room && !station && preselectedStation) {
@@ -58,6 +58,11 @@ export function HostPage() {
     send({ type: "evaluate-prompt", promptId: prompt.id, status: statusValue, note, flagged });
     setNote("");
     setFlagged(false);
+  }
+
+  function startSimulation() {
+    if (!station) return;
+    send({ type: "start-session" });
   }
 
   return (
@@ -116,7 +121,7 @@ export function HostPage() {
                   <Copy className="h-4 w-4" />
                   Copy
                 </AnimatedButton>
-                <AnimatedButton variant="secondary" onClick={() => send({ type: "start-session" })} disabled={!station}>
+                <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!station}>
                   <Play className="h-4 w-4" />
                   {room.status === "in-progress" ? "Started" : "Start"}
                 </AnimatedButton>
@@ -293,6 +298,8 @@ export function HostPage() {
       <ScenarioIntro
         open={introVisible}
         role="host"
+        startedAt={room?.introStartedAt}
+        serverTime={room?.serverTime}
         onClose={() => {
           setIntroKeySeen(introKey);
           setIntroVisible(false);

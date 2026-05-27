@@ -23,7 +23,7 @@ export function PlayerPage() {
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
-  const introKey = room?.status === "in-progress" && station ? `${room.code}-${room.createdAt}` : "";
+  const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
 
   useEffect(() => {
     if (activePrompt?.id) {
@@ -149,6 +149,8 @@ export function PlayerPage() {
       <ScenarioIntro
         open={introVisible}
         role="player"
+        startedAt={room?.introStartedAt}
+        serverTime={room?.serverTime}
         onClose={() => {
           setIntroKeySeen(introKey);
           setIntroVisible(false);
