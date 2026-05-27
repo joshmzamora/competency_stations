@@ -140,7 +140,9 @@ export function PlayerPage() {
   // Show protocol intro whenever a new startedAt arrives that we haven't seen yet
   const protocolIntroVisible = Boolean(
     room?.protocolIntroStartedAt &&
-    room.protocolIntroStartedAt !== protocolIntroSeenAt
+    room.protocolIntroStartedAt !== protocolIntroSeenAt &&
+    !introVisible &&
+    !room.introStartedAt
   );
 
   const closeIntro = useCallback(() => {

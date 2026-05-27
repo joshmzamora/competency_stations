@@ -210,6 +210,33 @@ function pickBalancedPlayer(room: RoomState): string | null {
   return selected.id;
 }
 
+function startSelection(room: RoomState, durationMs = 2200, holdMs = 2600) {
+  if (room.status !== "in-progress") return false;
+  if (!room.players.some((player) => player.shape)) return false;
+
+  const playerId = pickBalancedPlayer(room);
+  if (!playerId) return false;
+
+  const selectionStartedAt = Math.max(Date.now(), (room.selection?.startedAt ?? 0) + 1);
+  room.selection = {
+    playerId,
+    startedAt: selectionStartedAt,
+    durationMs
+  };
+
+  const player = room.players.find(p => p.id === playerId);
+  if (player) player.turnCount++;
+
+  setTimeout(() => {
+    if (room.selection?.startedAt === selectionStartedAt) {
+      room.selection = null;
+      broadcastState(room.code);
+    }
+  }, durationMs + holdMs);
+
+  return true;
+}
+
 function assignShapesToRoom(room: RoomState) {
   const shapes = ["circle", "triangle", "square", "star", "umbrella"];
   
@@ -384,10 +411,12 @@ function parseFrames(client: WsClient, chunk: Buffer) {
 
 function movePrompt(room: RoomState, nextIndex: number) {
   const prompts = stationPrompts(room.selectedStation);
-  if (!prompts.length) return;
+  if (!prompts.length) return false;
+  const previousIndex = room.activePromptIndex;
   room.activePromptIndex = Math.max(0, Math.min(prompts.length - 1, nextIndex));
   room.liveAnswer = null;
   room.timerEndsAt = null;
+  return previousIndex !== room.activePromptIndex;
 }
 
 function evaluatePrompt(room: RoomState, message: WireMessage) {
@@ -480,11 +509,14 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "start-protocol-assignment": {
       if (client.role !== "host") return;
       assignShapesToRoom(room);
+      room.introStartedAt = null;
       room.protocolIntroStartedAt = Date.now();
+      room.selection = null;
+      const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
       // Clear after 25s so re-broadcasts don't re-trigger the intro
       setTimeout(() => {
-        if (room.protocolIntroStartedAt) {
+        if (room.protocolIntroStartedAt === assignmentStartedAt) {
           room.protocolIntroStartedAt = null;
           broadcastState(room.code);
         }
@@ -493,17 +525,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "start-selection": {
       if (client.role !== "host") return;
-      const playerId = pickBalancedPlayer(room);
-      if (playerId) {
-        room.selection = {
-          playerId,
-          startedAt: Date.now(),
-          durationMs: 4000 // Dramatic 4 second spin
-        };
-        // Increment turn count for the selected player
-        const player = room.players.find(p => p.id === playerId);
-        if (player) player.turnCount++;
-        
+      if (startSelection(room)) {
         broadcastState(room.code);
       }
       break;
@@ -513,13 +535,20 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       const playerId = String(message.playerId);
       const player = room.players.find(p => p.id === playerId);
       if (player) {
+        const selectionStartedAt = Math.max(Date.now(), (room.selection?.startedAt ?? 0) + 1);
         room.selection = {
           playerId,
-          startedAt: Date.now(),
-          durationMs: 2000 // Fast override spin
+          startedAt: selectionStartedAt,
+          durationMs: 1400
         };
         player.turnCount++;
         broadcastState(room.code);
+        setTimeout(() => {
+          if (room.selection?.startedAt === selectionStartedAt) {
+            room.selection = null;
+            broadcastState(room.code);
+          }
+        }, 3800);
       }
       break;
     }
@@ -539,19 +568,22 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "set-prompt-index": {
       if (client.role !== "host") return;
-      movePrompt(room, Number(message.index ?? 0));
+      const moved = movePrompt(room, Number(message.index ?? 0));
+      if (moved) startSelection(room);
       broadcastState(room.code);
       break;
     }
     case "next-prompt": {
       if (client.role !== "host") return;
-      movePrompt(room, room.activePromptIndex + 1);
+      const moved = movePrompt(room, room.activePromptIndex + 1);
+      if (moved) startSelection(room);
       broadcastState(room.code);
       break;
     }
     case "previous-prompt": {
       if (client.role !== "host") return;
-      movePrompt(room, room.activePromptIndex - 1);
+      const moved = movePrompt(room, room.activePromptIndex - 1);
+      if (moved) startSelection(room);
       broadcastState(room.code);
       break;
     }

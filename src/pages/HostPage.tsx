@@ -109,24 +109,28 @@ export function HostPage() {
   }, [room?.introStartedAt]);
 
   const closeIntro = useCallback(() => {
+    setIntroKeySeen(introKey);
     setIntroVisible(false);
     // After clinical briefing, start the protocol assignment automatically
     send({ type: "start-protocol-assignment" });
-  }, [send]);
+  }, [introKey, send]);
 
   const skipIntro = useCallback(() => {
     send({ type: "skip-intro" });
+    setIntroKeySeen(introKey);
     setIntroVisible(false);
     // Explicitly clear any stale protocol state tracking if skip happens
     setProtocolIntroSeenAt(null);
     // Even if skipped, start protocol assignment
     send({ type: "start-protocol-assignment" });
-  }, [send]);
+  }, [introKey, send]);
 
   // Show protocol intro whenever a new startedAt arrives that we haven't seen yet
   const protocolIntroVisible = Boolean(
     room?.protocolIntroStartedAt &&
-    room.protocolIntroStartedAt !== protocolIntroSeenAt
+    room.protocolIntroStartedAt !== protocolIntroSeenAt &&
+    !introVisible &&
+    !room.introStartedAt
   );
 
   function evaluate(statusValue: EvaluationStatus) {
@@ -425,7 +429,10 @@ export function HostPage() {
         open={protocolIntroVisible}
         startedAt={room?.protocolIntroStartedAt ?? null}
         players={room?.players ?? []}
-        onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
+        onComplete={() => {
+          setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
+          send({ type: "start-selection" });
+        }}
       />
       <SelectionRoulette
         selection={room?.selection ?? null}
