@@ -29,21 +29,25 @@ export function ResultsPage() {
   const stats = useMemo(() => {
     const answered = results.reduce((sum, result) => sum + result.answered, 0);
     const correct = results.reduce((sum, result) => sum + result.correct, 0);
-    const missed = results.flatMap((result) => result.missedQuestionIds);
+    const partial = results.reduce((sum, result) => sum + (result.partial ?? 0), 0);
+    const missed = results.flatMap((result) => result.missedPromptIds ?? []);
+    const flagged = results.flatMap((result) => result.flaggedPromptIds ?? []);
     return {
       answered,
       correct,
-      accuracy: answered ? Math.round((correct / answered) * 100) : 0,
-      missed
+      partial,
+      accuracy: answered ? Math.round(((correct * 100 + partial * 50) / (answered * 100)) * 100) : 0,
+      missed,
+      flagged
     };
   }, [results]);
 
   const weakest = useMemo(() => {
     const categories = results.reduce<Record<string, { answered: number; missed: number }>>((acc, result) => {
-      Object.entries(result.categoryBreakdown ?? {}).forEach(([category, item]) => {
+      Object.entries(result.stationBreakdown ?? {}).forEach(([category, item]) => {
         const current = acc[category] ?? { answered: 0, missed: 0 };
         current.answered += item.answered;
-        current.missed += item.missed;
+        current.missed += item.incorrect + item.partial;
         acc[category] = current;
       });
       return acc;
@@ -86,7 +90,8 @@ export function ResultsPage() {
           ["Answered", stats.answered],
           ["Accuracy", `${stats.accuracy}%`],
           ["Correct", stats.correct],
-          ["Missed", stats.missed.length]
+          ["Partial", stats.partial],
+          ["Flagged", stats.flagged.length]
         ].map(([label, value]) => (
           <div key={label} className="rounded-md border border-white/10 bg-black/35 p-5">
             <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/45">{label}</div>
@@ -100,7 +105,7 @@ export function ResultsPage() {
         <div className="rounded-md border border-white/10 bg-black/35 p-5">
           <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Weakest categories</div>
           <div className="mt-4 grid gap-3">
-            {weakest.length === 0 && <p className="text-white/45">Quick quiz category data appears here after saved quiz attempts.</p>}
+            {weakest.length === 0 && <p className="text-white/45">Station performance data appears here after saved competency attempts.</p>}
             {weakest.map((item) => (
               <div key={item.category} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -124,7 +129,9 @@ export function ResultsPage() {
               <th className="p-3">Room</th>
               <th className="p-3">Score</th>
               <th className="p-3">Answered</th>
+              <th className="p-3">Partial</th>
               <th className="p-3">Accuracy</th>
+              <th className="p-3">Flags</th>
               <th className="p-3">Date</th>
             </tr>
           </thead>
@@ -135,7 +142,9 @@ export function ResultsPage() {
                 <td className="p-3">{result.roomCode ?? "-"}</td>
                 <td className="p-3">{result.score}</td>
                 <td className="p-3">{result.answered}</td>
+                <td className="p-3">{result.partial ?? 0}</td>
                 <td className="p-3">{result.accuracy}%</td>
+                <td className="p-3">{(result.flaggedPromptIds ?? []).length}</td>
                 <td className="p-3">{new Date(result.createdAt).toLocaleString()}</td>
               </tr>
             ))}

@@ -1,14 +1,54 @@
-export type QuestionType = "multiple-choice" | "flashcard" | "short-answer";
+export type PromptType =
+  | "verbal-response"
+  | "scenario-walkthrough"
+  | "troubleshooting"
+  | "practical-assessment"
+  | "multiple-choice"
+  | "timed-emergency";
 
-export type Question = {
+export type CompetencyPrompt = {
   id: string;
-  category: string;
-  points: number;
-  type: QuestionType;
-  prompt: string;
-  choices?: string[];
-  answer: string;
+  stationId: string;
+  type: PromptType;
+  title: string;
+  scenario: string;
+  instructions: string[];
+  expectedResponse: string;
   explanation: string;
+  evaluationCriteria: string[];
+  criticalActions?: string[];
+  notifyProviderWhen?: string[];
+  timerSeconds?: number;
+  choices?: string[];
+};
+
+export type PlayerPrompt = Omit<CompetencyPrompt, "expectedResponse" | "explanation" | "evaluationCriteria" | "criticalActions" | "notifyProviderWhen" | "choices"> & {
+  choices?: string[];
+};
+
+export type CompetencyStation = {
+  id: string;
+  title: string;
+  shortTitle: string;
+  description: string;
+  estimatedMinutes: number;
+  competencyType: string;
+  accent: "trauma" | "scrub" | "monitor" | "amber";
+  prompts: CompetencyPrompt[];
+};
+
+export type PlayerStation = Omit<CompetencyStation, "prompts"> & {
+  prompts: PlayerPrompt[];
+};
+
+export type EvaluationStatus = "correct" | "partial" | "incorrect";
+
+export type PromptEvaluation = {
+  promptId: string;
+  status: EvaluationStatus;
+  note?: string;
+  flagged: boolean;
+  evaluatedAt: string;
 };
 
 export type PlayerState = {
@@ -21,16 +61,11 @@ export type PlayerState = {
 export type GameStats = {
   answered: number;
   correct: number;
+  partial: number;
   incorrect: number;
   scoreHistory: Array<{ at: string; score: number }>;
-  missedQuestionIds: string[];
-};
-
-export type FeedbackState = {
-  questionId: string;
-  correct: boolean;
-  answer: string;
-  explanation: string;
+  missedPromptIds: string[];
+  flaggedPromptIds: string[];
 };
 
 export type LiveAnswer = {
@@ -42,15 +77,14 @@ export type LiveAnswer = {
 
 export type RoomState = {
   code: string;
-  status: "lobby" | "playing" | "ended";
+  status: "lobby" | "in-progress" | "ended";
   score: number;
-  selectedQuestion: Question | null;
-  revealed: boolean;
+  selectedStation: CompetencyStation | PlayerStation | null;
+  activePromptIndex: number;
   timerEndsAt: number | null;
-  usedQuestionIds: string[];
   liveAnswer: LiveAnswer | null;
-  feedback: FeedbackState | null;
   players: PlayerState[];
+  evaluations: Record<string, PromptEvaluation>;
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -61,15 +95,18 @@ export type ResultRecord = {
   roomCode?: string;
   createdAt: string;
   endedAt?: string;
-  mode: "host-game" | "quick-quiz" | "study";
+  mode: "host-competency" | "quick-quiz" | "study";
   score: number;
   answered: number;
   correct: number;
+  partial: number;
   incorrect: number;
   accuracy: number;
+  completionSeconds?: number;
   averageResponseMs?: number;
-  categoryBreakdown?: Record<string, { answered: number; correct: number; missed: number }>;
-  missedQuestionIds: string[];
+  stationBreakdown?: Record<string, { answered: number; correct: number; partial: number; incorrect: number; flagged: number }>;
+  missedPromptIds: string[];
+  flaggedPromptIds: string[];
   scoreHistory: Array<{ at: string; score: number }>;
 };
 
@@ -78,11 +115,14 @@ export type ClientMessage =
   | { type: "join-room"; code: string; name: string }
   | { type: "player-ready"; ready: boolean }
   | { type: "start-session" }
-  | { type: "select-question"; question: Question }
-  | { type: "reveal-answer" }
+  | { type: "open-station"; station: CompetencyStation }
+  | { type: "set-prompt-index"; index: number }
+  | { type: "next-prompt" }
+  | { type: "previous-prompt" }
   | { type: "start-timer"; seconds: number }
+  | { type: "reset-timer" }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
-  | { type: "mark-answer"; correct: boolean }
+  | { type: "evaluate-prompt"; promptId: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }
   | { type: "end-game" };
 

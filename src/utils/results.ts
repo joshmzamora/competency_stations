@@ -1,4 +1,4 @@
-import type { Question, ResultRecord } from "../types";
+import type { CompetencyPrompt, ResultRecord } from "../types";
 
 const localResultsKey = "competency-stations-local-results";
 const studyProgressKey = "competency-stations-study-progress";
@@ -87,7 +87,7 @@ export function downloadFile(filename: string, content: string, type: string) {
 
 export function resultsToCsv(results: ResultRecord[]) {
   const rows = [
-    ["id", "mode", "roomCode", "createdAt", "endedAt", "score", "answered", "correct", "incorrect", "accuracy", "missedQuestionIds"],
+    ["id", "mode", "roomCode", "createdAt", "endedAt", "score", "answered", "correct", "partial", "incorrect", "accuracy", "missedPromptIds", "flaggedPromptIds"],
     ...results.map((result) => [
       result.id,
       result.mode,
@@ -97,22 +97,24 @@ export function resultsToCsv(results: ResultRecord[]) {
       String(result.score),
       String(result.answered),
       String(result.correct),
+      String(result.partial),
       String(result.incorrect),
       String(result.accuracy),
-      result.missedQuestionIds.join("|")
+      result.missedPromptIds.join("|"),
+      result.flaggedPromptIds.join("|")
     ])
   ];
 
   return rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 
-export function buildCategoryBreakdown(attempts: Array<{ question: Question; correct: boolean }>) {
-  return attempts.reduce<Record<string, { answered: number; correct: number; missed: number }>>((acc, attempt) => {
-    const item = acc[attempt.question.category] ?? { answered: 0, correct: 0, missed: 0 };
+export function buildStationBreakdown(attempts: Array<{ prompt: CompetencyPrompt; correct: boolean }>) {
+  return attempts.reduce<Record<string, { answered: number; correct: number; partial: number; incorrect: number; flagged: number }>>((acc, attempt) => {
+    const item = acc[attempt.prompt.stationId] ?? { answered: 0, correct: 0, partial: 0, incorrect: 0, flagged: 0 };
     item.answered += 1;
     if (attempt.correct) item.correct += 1;
-    else item.missed += 1;
-    acc[attempt.question.category] = item;
+    else item.incorrect += 1;
+    acc[attempt.prompt.stationId] = item;
     return acc;
   }, {});
 }

@@ -4,10 +4,10 @@ import http from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ViteDevServer } from "vite";
 
 type ClientRole = "host" | "player";
+type EvaluationStatus = "correct" | "partial" | "incorrect";
 
 type WireMessage = {
   type: string;
@@ -21,25 +21,34 @@ type PlayerState = {
   connected: boolean;
 };
 
+type PromptEvaluation = {
+  promptId: string;
+  status: EvaluationStatus;
+  note?: string;
+  flagged: boolean;
+  evaluatedAt: string;
+};
+
 type GameStats = {
   answered: number;
   correct: number;
+  partial: number;
   incorrect: number;
   scoreHistory: Array<{ at: string; score: number }>;
-  missedQuestionIds: string[];
+  missedPromptIds: string[];
+  flaggedPromptIds: string[];
 };
 
 type RoomState = {
   code: string;
-  status: "lobby" | "playing" | "ended";
+  status: "lobby" | "in-progress" | "ended";
   score: number;
-  selectedQuestion: unknown | null;
-  revealed: boolean;
+  selectedStation: unknown | null;
+  activePromptIndex: number;
   timerEndsAt: number | null;
-  usedQuestionIds: string[];
   liveAnswer: { playerId: string; answer: string; submittedAt: string; responseTimeMs?: number } | null;
-  feedback: { questionId: string; correct: boolean; answer: string; explanation: string } | null;
   players: PlayerState[];
+  evaluations: Record<string, PromptEvaluation>;
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -56,7 +65,6 @@ type WsClient = {
   connected: boolean;
 };
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = process.cwd();
 const distDir = path.join(rootDir, "dist");
 const dataDir = path.join(rootDir, "data");
@@ -77,40 +85,105 @@ function createRoomCode() {
 }
 
 function createInitialRoom(code: string): RoomState {
+  const now = new Date().toISOString();
   return {
     code,
     status: "lobby",
     score: 0,
-    selectedQuestion: null,
-    revealed: false,
+    selectedStation: null,
+    activePromptIndex: 0,
     timerEndsAt: null,
-    usedQuestionIds: [],
     liveAnswer: null,
-    feedback: null,
     players: [],
-    createdAt: new Date().toISOString(),
+    evaluations: {},
+    createdAt: now,
     stats: {
       answered: 0,
       correct: 0,
+      partial: 0,
       incorrect: 0,
-      scoreHistory: [{ at: new Date().toISOString(), score: 0 }],
-      missedQuestionIds: []
+      scoreHistory: [{ at: now, score: 0 }],
+      missedPromptIds: [],
+      flaggedPromptIds: []
     }
   };
 }
 
-function publicRoom(room: RoomState): RoomState {
-  const connectedPlayers = [...clients]
-    .filter((client) => client.roomCode === room.code && client.role === "player")
+function objectField(value: unknown, field: string) {
+  if (value && typeof value === "object" && field in value) {
+    return (value as Record<string, unknown>)[field];
+  }
+  return undefined;
+}
+
+function stationPrompts(station: unknown): unknown[] {
+  const prompts = objectField(station, "prompts");
+  return Array.isArray(prompts) ? prompts : [];
+}
+
+function activePrompt(room: RoomState) {
+  return stationPrompts(room.selectedStation)[room.activePromptIndex] ?? null;
+}
+
+function promptId(prompt: unknown) {
+  return String(objectField(prompt, "id") ?? "");
+}
+
+function statusPoints(status: EvaluationStatus) {
+  if (status === "correct") return 100;
+  if (status === "partial") return 50;
+  return 0;
+}
+
+function recalculateStats(room: RoomState) {
+  const evaluations = Object.values(room.evaluations);
+  room.stats.answered = evaluations.length;
+  room.stats.correct = evaluations.filter((item) => item.status === "correct").length;
+  room.stats.partial = evaluations.filter((item) => item.status === "partial").length;
+  room.stats.incorrect = evaluations.filter((item) => item.status === "incorrect").length;
+  room.stats.missedPromptIds = evaluations.filter((item) => item.status !== "correct").map((item) => item.promptId);
+  room.stats.flaggedPromptIds = evaluations.filter((item) => item.flagged).map((item) => item.promptId);
+  room.score = evaluations.reduce((sum, item) => sum + statusPoints(item.status), 0);
+}
+
+function sanitizePrompt(prompt: unknown) {
+  if (!prompt || typeof prompt !== "object") return prompt;
+  const {
+    expectedResponse: _expectedResponse,
+    explanation: _explanation,
+    evaluationCriteria: _evaluationCriteria,
+    criticalActions: _criticalActions,
+    notifyProviderWhen: _notifyProviderWhen,
+    ...safePrompt
+  } = prompt as Record<string, unknown>;
+  return safePrompt;
+}
+
+function sanitizeStation(station: unknown) {
+  if (!station || typeof station !== "object") return station;
+  return {
+    ...(station as Record<string, unknown>),
+    prompts: stationPrompts(station).map(sanitizePrompt)
+  };
+}
+
+function connectedPlayers(roomCode: string): PlayerState[] {
+  return [...clients]
+    .filter((client) => client.roomCode === roomCode && client.role === "player")
     .map((client) => ({
       id: client.id,
       name: client.name ?? "Player",
       ready: Boolean(client.ready),
       connected: client.connected
     }));
+}
 
-  room.players = connectedPlayers;
-  return room;
+function publicRoom(room: RoomState, role: ClientRole | undefined): RoomState {
+  return {
+    ...room,
+    players: connectedPlayers(room.code),
+    selectedStation: role === "player" ? sanitizeStation(room.selectedStation) : room.selectedStation
+  };
 }
 
 function send(client: WsClient, message: WireMessage) {
@@ -139,16 +212,16 @@ function sendError(client: WsClient, message: string) {
   send(client, { type: "error", message });
 }
 
-function broadcastRoom(roomCode: string, message: WireMessage) {
-  for (const client of clients) {
-    if (client.roomCode === roomCode) send(client, message);
-  }
+function sendState(client: WsClient, room: RoomState, type: "state" | "room-created" | "room-joined" = "state") {
+  send(client, { type, room: publicRoom(room, client.role) });
 }
 
 function broadcastState(roomCode: string) {
   const room = rooms.get(roomCode);
   if (!room) return;
-  broadcastRoom(roomCode, { type: "state", room: publicRoom(room) });
+  for (const client of clients) {
+    if (client.roomCode === roomCode) sendState(client, room);
+  }
 }
 
 async function ensureResultsFile() {
@@ -177,18 +250,25 @@ async function appendResult(result: unknown) {
 }
 
 async function saveRoomResult(room: RoomState) {
+  const prompts = stationPrompts(room.selectedStation);
+  const stationTitle = String(objectField(room.selectedStation, "title") ?? "Competency Station");
+  const completionSeconds = Math.max(0, Math.round((Date.parse(room.endedAt ?? new Date().toISOString()) - Date.parse(room.createdAt)) / 1000));
   await appendResult({
     id: crypto.randomUUID(),
     roomCode: room.code,
-    mode: "host-game",
+    mode: "host-competency",
+    stationTitle,
     createdAt: room.createdAt,
     endedAt: room.endedAt ?? new Date().toISOString(),
     score: room.score,
     answered: room.stats.answered,
     correct: room.stats.correct,
+    partial: room.stats.partial,
     incorrect: room.stats.incorrect,
-    accuracy: room.stats.answered ? Math.round((room.stats.correct / room.stats.answered) * 100) : 0,
-    missedQuestionIds: room.stats.missedQuestionIds,
+    accuracy: prompts.length ? Math.round((room.score / (prompts.length * 100)) * 100) : 0,
+    completionSeconds,
+    missedPromptIds: room.stats.missedPromptIds,
+    flaggedPromptIds: room.stats.flaggedPromptIds,
     scoreHistory: room.stats.scoreHistory
   });
 }
@@ -253,11 +333,28 @@ function parseFrames(client: WsClient, chunk: Buffer) {
   }
 }
 
-function questionField(question: unknown, field: string) {
-  if (question && typeof question === "object" && field in question) {
-    return (question as Record<string, unknown>)[field];
-  }
-  return undefined;
+function movePrompt(room: RoomState, nextIndex: number) {
+  const prompts = stationPrompts(room.selectedStation);
+  if (!prompts.length) return;
+  room.activePromptIndex = Math.max(0, Math.min(prompts.length - 1, nextIndex));
+  room.liveAnswer = null;
+  room.timerEndsAt = null;
+}
+
+function evaluatePrompt(room: RoomState, message: WireMessage) {
+  const id = String(message.promptId ?? promptId(activePrompt(room)));
+  if (!id) return;
+
+  const status = message.status === "correct" || message.status === "partial" || message.status === "incorrect" ? message.status : "incorrect";
+  room.evaluations[id] = {
+    promptId: id,
+    status,
+    note: typeof message.note === "string" ? message.note.slice(0, 500) : undefined,
+    flagged: Boolean(message.flagged),
+    evaluatedAt: new Date().toISOString()
+  };
+  recalculateStats(room);
+  room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
 }
 
 function handleSocketMessage(client: WsClient, message: WireMessage) {
@@ -267,7 +364,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     rooms.set(code, room);
     client.role = "host";
     client.roomCode = code;
-    send(client, { type: "room-created", room: publicRoom(room) });
+    sendState(client, room, "room-created");
     return;
   }
 
@@ -283,7 +380,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.roomCode = code;
     client.name = String(message.name ?? "Player").trim().slice(0, 24) || "Player";
     client.ready = false;
-    send(client, { type: "room-joined", room: publicRoom(room) });
+    sendState(client, room, "room-joined");
     broadcastState(code);
     return;
   }
@@ -307,37 +404,53 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "start-session": {
       if (client.role !== "host") return;
-      room.status = "playing";
-      room.feedback = null;
+      room.status = "in-progress";
       broadcastState(room.code);
       break;
     }
-    case "select-question": {
+    case "open-station": {
       if (client.role !== "host") return;
-      const question = message.question ?? null;
-      const questionId = String(questionField(question, "id") ?? "");
-      room.status = "playing";
-      room.selectedQuestion = question;
-      room.revealed = false;
-      room.feedback = null;
-      room.liveAnswer = null;
+      room.status = "in-progress";
+      room.selectedStation = message.station ?? null;
+      room.activePromptIndex = 0;
       room.timerEndsAt = null;
-      if (questionId && !room.usedQuestionIds.includes(questionId)) {
-        room.usedQuestionIds.push(questionId);
-      }
+      room.liveAnswer = null;
+      room.evaluations = {};
+      recalculateStats(room);
+      room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
       broadcastState(room.code);
       break;
     }
-    case "reveal-answer": {
+    case "set-prompt-index": {
       if (client.role !== "host") return;
-      room.revealed = true;
+      movePrompt(room, Number(message.index ?? 0));
+      broadcastState(room.code);
+      break;
+    }
+    case "next-prompt": {
+      if (client.role !== "host") return;
+      movePrompt(room, room.activePromptIndex + 1);
+      broadcastState(room.code);
+      break;
+    }
+    case "previous-prompt": {
+      if (client.role !== "host") return;
+      movePrompt(room, room.activePromptIndex - 1);
       broadcastState(room.code);
       break;
     }
     case "start-timer": {
       if (client.role !== "host") return;
-      const seconds = Math.max(5, Math.min(180, Number(message.seconds ?? 30)));
+      const prompt = activePrompt(room);
+      const defaultSeconds = Number(objectField(prompt, "timerSeconds") ?? 60);
+      const seconds = Math.max(5, Math.min(600, Number(message.seconds ?? defaultSeconds)));
       room.timerEndsAt = Date.now() + seconds * 1000;
+      broadcastState(room.code);
+      break;
+    }
+    case "reset-timer": {
+      if (client.role !== "host") return;
+      room.timerEndsAt = null;
       broadcastState(room.code);
       break;
     }
@@ -352,28 +465,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
-    case "mark-answer": {
-      if (client.role !== "host" || !room.selectedQuestion) return;
-      const correct = Boolean(message.correct);
-      const points = Number(questionField(room.selectedQuestion, "points") ?? 0);
-      const questionId = String(questionField(room.selectedQuestion, "id") ?? "");
-      room.score += correct ? points : -Math.floor(points / 2);
-      room.stats.answered += 1;
-      if (correct) {
-        room.stats.correct += 1;
-      } else {
-        room.stats.incorrect += 1;
-        if (questionId) room.stats.missedQuestionIds.push(questionId);
-      }
-      room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
-      room.feedback = {
-        questionId,
-        correct,
-        answer: String(questionField(room.selectedQuestion, "answer") ?? ""),
-        explanation: String(questionField(room.selectedQuestion, "explanation") ?? "")
-      };
-      room.revealed = true;
-      room.timerEndsAt = null;
+    case "evaluate-prompt": {
+      if (client.role !== "host") return;
+      evaluatePrompt(room, message);
       broadcastState(room.code);
       break;
     }
@@ -389,6 +483,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.status = "ended";
       room.endedAt = new Date().toISOString();
       room.timerEndsAt = null;
+      recalculateStats(room);
       saveRoomResult(room).catch((error) => {
         console.error("Could not save room result", error);
       });

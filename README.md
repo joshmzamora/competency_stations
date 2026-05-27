@@ -1,46 +1,81 @@
 # Competency Stations
 
-Competency Stations is a local-network medical review game website. It is designed for two computers on the same Wi-Fi network:
+Competency Stations is a local-network medical competency simulation website.
 
-- The host computer runs the server and opens `http://localhost:3000/host`.
-- The player computer opens the host computer's Wi-Fi address, like `http://192.168.1.45:3000/player`.
+It is built for two computers on the same Wi-Fi network:
 
-No Supabase, Firebase, Socket.IO, accounts, cloud database, or external syncing service is required.
+- The host computer runs the Node.js server and opens `http://localhost:3000/host`.
+- The learner/player computer opens the host computer's Wi-Fi address, like `http://192.168.1.45:3000/player`.
 
-## What This App Includes
+No Supabase, Firebase, Socket.IO, accounts, cloud database, or outside syncing service is required.
 
-- Cinematic home page
-- Host mode with room code, Jeopardy-style station board, timer, answer reveal, live answer view, and score controls
-- Player mode with room join, ready button, live synced prompt, answer submit, feedback, and live score
-- Flashcard study mode
-- Quick quiz mode
-- Results dashboard
-- CSV and JSON export
-- Local reset controls
-- Node.js native WebSocket server
-- JSON file persistence on the host computer
-- Browser localStorage progress for study and quiz backup
+## What This App Does
 
-## The Current Stations
+This app is not a trivia board. It is a guided competency checkoff system for simulation-style nursing stations.
 
-The station categories are ready for your real questions:
+The host controls the session:
 
-- Code Blue
-- Hemodynamics
-- Pacemaker
-- Chest tube
-- Code BERT
-- Stroke
-- CAUTI/CLABSI prevention
-- Pressure Injury Station
+- creates a room code
+- chooses a competency station
+- advances through scenario prompts
+- sees expected responses and explanations
+- sees rubric/evaluation criteria
+- starts and resets timers
+- marks Correct, Partial Credit, or Incorrect
+- flags prompts for review
+- ends the session and saves results
 
-Starter sample questions live in:
+The learner/player screen is a clean simulation prompt monitor:
+
+- shows the active station
+- shows only the scenario and learner instructions
+- does not show answers
+- does not show explanations
+- does not show rubric criteria
+- supports optional typed notes, but the intended workflow is verbal or hands-on performance
+
+## Current Stations
+
+The homepage and host page include these station cards:
+
+- Chest Tube Competency
+- Tracheostomy Station
+- Foley Catheter Station
+- Central Line Station
+- Wound Vac Station
+- Emergency Response Station
+
+The Chest Tube Competency station is fully built. The other stations are scaffolded and ready for real competency content.
+
+Station content lives in:
 
 ```txt
-src/data/questions.ts
+src/data/stations.ts
 ```
 
-You can replace those with the real questions later.
+## Chest Tube Competency Content
+
+The Chest Tube station includes guided prompts for:
+
+- safe clamping rules
+- subcutaneous emphysema assessment
+- STAT CT transport with continuous suction
+- adequate suction verification
+- output escalation thresholds
+- air leak identification and localization
+- insertion-site assessment
+- dislodgement emergency response
+
+Each prompt can include:
+
+- learner scenario
+- step-by-step instructions
+- expected response
+- explanation
+- evaluation criteria
+- critical actions
+- provider notification thresholds
+- optional timer
 
 ## What Is Node.js?
 
@@ -49,21 +84,21 @@ Node.js lets your computer run JavaScript outside the browser.
 For this project, Node.js does two jobs:
 
 1. It serves the website pages.
-2. It runs the WebSocket server that lets the host screen and player screen talk instantly.
+2. It runs the WebSocket server that keeps the host and learner screens synced.
 
-The player computer does not need Node.js because it only opens the website in a browser.
+The learner computer does not need Node.js because it only opens the website in a browser.
 
 ## Why Only The Host Computer Needs Node.js
 
-Think of the host computer as the mini local server for the game.
+Think of the host computer as the small local server for the simulation.
 
 The host computer says:
 
 ```txt
-I am running the game. Other computers on this Wi-Fi can connect to me.
+I am running the competency session. Other computers on this Wi-Fi can connect to me.
 ```
 
-The player computer only says:
+The learner computer only says:
 
 ```txt
 I will open the host computer's address in my browser.
@@ -117,7 +152,7 @@ Competency Stations is running on http://localhost:3000
 Player/other device URL: http://192.168.1.45:3000
 ```
 
-Keep this terminal open while using the game.
+Keep this terminal open while using the simulation.
 
 ## Host Computer Instructions
 
@@ -130,14 +165,17 @@ http://localhost:3000/host
 Then:
 
 1. Click `Create room`.
-2. Tell the player the room code.
-3. Start the session.
-4. Select station questions.
-5. Start timers, reveal answers, and mark correct or incorrect.
+2. Tell the learner the room code.
+3. Click `Start`.
+4. Choose a competency station.
+5. Advance through prompts.
+6. Evaluate the learner using Correct, Partial Credit, or Incorrect.
+7. Flag prompts that need review.
+8. End the session when finished.
 
-## Player Computer Instructions
+## Learner Computer Instructions
 
-On the player computer, open the host computer's Wi-Fi address.
+On the learner computer, open the host computer's Wi-Fi address.
 
 Example:
 
@@ -148,10 +186,11 @@ http://192.168.1.45:3000/player
 Then:
 
 1. Enter the room code shown on the host screen.
-2. Enter a player name.
-3. Click `Join room`.
+2. Enter a learner name.
+3. Click `Join simulation`.
 4. Click `Ready`.
-5. Answer questions when the host selects them.
+5. Follow the prompt monitor.
+6. Respond verbally or perform the skill in person.
 
 ## How To Find The Host Computer's Local IP Address
 
@@ -189,7 +228,7 @@ http://192.168.1.45:3000/player
 
 ## How WebSockets Work In Simple Terms
 
-A normal website request is like asking one question:
+A normal website request is like asking once:
 
 ```txt
 Browser: Give me the page.
@@ -199,13 +238,15 @@ Server: Here is the page.
 A WebSocket is like keeping a phone call open:
 
 ```txt
-Host screen: I selected a question.
-Server: I will instantly tell the player screen.
-Player screen: I submitted an answer.
-Server: I will instantly tell the host screen.
+Host screen: I opened the Chest Tube station.
+Server: I will instantly tell the learner screen.
+Host screen: I advanced to the dislodgement scenario.
+Server: I will instantly update the learner prompt monitor.
+Learner screen: I sent an optional note.
+Server: I will instantly show it to the host.
 ```
 
-That open connection is why actions update quickly on both computers.
+That open connection is why both screens update quickly.
 
 ## How Two Computers Communicate Over Wi-Fi
 
@@ -217,24 +258,29 @@ The host computer has an address like:
 192.168.1.45
 ```
 
-The player computer opens that address in the browser. The browser connects to the Node.js server running on the host computer.
+The learner computer opens that address in the browser. The browser connects to the Node.js server running on the host computer.
 
 ## Results And Saved Data
 
-The host computer stores game results in:
+The host computer stores saved session results in:
 
 ```txt
 data/results.json
 ```
 
-The browser also stores study and quick quiz progress using localStorage.
+The browser also stores study progress using localStorage.
 
-The Results page can:
+The Results page can show:
 
-- show total questions answered
-- show accuracy
-- show score history
-- show weakest categories from quiz attempts
+- completion time
+- competency score
+- prompts evaluated
+- correct, partial, and incorrect counts
+- flagged review items
+- saved score history
+
+The Results page can also:
+
 - export CSV
 - export JSON
 - reset saved data
@@ -263,7 +309,7 @@ npm run dev
 
 ## Firewall Troubleshooting
 
-If the player computer cannot open the host address, Windows Firewall may be blocking Node.js.
+If the learner computer cannot open the host address, Windows Firewall may be blocking Node.js.
 
 Try this:
 
@@ -275,7 +321,7 @@ Try this:
 Also check:
 
 - Both computers are on the same Wi-Fi.
-- The player is using the host computer's IP address, not its own IP address.
+- The learner is using the host computer's IP address, not its own IP address.
 - The URL includes `:3000`.
 - The host terminal is still running.
 - VPNs are turned off if they block local network traffic.
@@ -321,36 +367,57 @@ docs/screenshots/results.png
 
 Suggested screenshots:
 
-- Home page
+- Home page station cards
 - Host room code screen
-- Active station question
-- Player answer screen
+- Host Chest Tube prompt with rubric
+- Learner prompt monitor
 - Results dashboard
 
-## Editing The Questions Later
+## Editing Stations Later
 
 Open:
 
 ```txt
-src/data/questions.ts
+src/data/stations.ts
 ```
 
-Each question uses this structure:
+Each station has this general shape:
 
 ```ts
 {
-  id: "code-blue-100",
-  category: "Code Blue",
-  points: 100,
-  type: "multiple-choice",
-  prompt: "Question text goes here",
-  choices: ["Choice A", "Choice B", "Choice C", "Choice D"],
-  answer: "Choice B",
-  explanation: "Why this answer is correct"
+  id: "chest-tube",
+  title: "Chest Tube Competency",
+  shortTitle: "Chest Tube",
+  description: "Assessment, suction verification, troubleshooting, and emergency response.",
+  estimatedMinutes: 18,
+  competencyType: "Practical assessment and emergency troubleshooting",
+  accent: "scrub",
+  prompts: []
 }
 ```
 
-For short-answer questions, remove `choices`.
+Each prompt has this general shape:
+
+```ts
+{
+  id: "chest-tube-clamping",
+  stationId: "chest-tube",
+  type: "verbal-response",
+  title: "Safe Clamping",
+  scenario: "The learner is asked whether it is acceptable to clamp a chest tube.",
+  instructions: [
+    "Explain when clamping is allowed.",
+    "Name brief troubleshooting exceptions."
+  ],
+  expectedResponse: "A chest tube should not be clamped unless specifically ordered by a physician...",
+  explanation: "Unnecessary clamping can prevent air or fluid from escaping...",
+  evaluationCriteria: [
+    "States that clamping requires a physician order.",
+    "Identifies brief clamping during Pleur-evac change.",
+    "Identifies brief clamping during air leak assessment."
+  ]
+}
+```
 
 ## Common Commands
 
