@@ -14,8 +14,17 @@ Add-Type -AssemblyName System.Drawing
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path -LiteralPath $env:GAME_DIR).Path
 $port = 3000
+$launcherLogPath = Join-Path $root "launcher.log"
 $serverProcess = $null
-$outputQueue = New-Object System.Collections.Concurrent.ConcurrentQueue[string]
+
+function Write-LauncherLog($line) {
+  try {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -LiteralPath $launcherLogPath -Value "[$timestamp] $line" -Encoding UTF8
+  } catch {
+    # Keep the GUI alive even if the log file cannot be written.
+  }
+}
 
 function Get-LocalIPv4 {
   $addresses = [System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList |
@@ -34,6 +43,7 @@ function Test-CommandAvailable($name) {
 
 function Add-Log($line) {
   if ([string]::IsNullOrWhiteSpace($line)) { return }
+  Write-LauncherLog $line
   $timestamp = Get-Date -Format "HH:mm:ss"
   $logBox.AppendText("[$timestamp] $line`r`n")
   $logBox.SelectionStart = $logBox.TextLength
@@ -41,11 +51,21 @@ function Add-Log($line) {
 }
 
 function Show-LauncherError($message) {
+  Write-LauncherLog "ERROR: $message"
   Add-Log "ERROR: $message"
   Set-Status "Needs attention" ([System.Drawing.Color]::FromArgb(255, 80, 104))
-  $startButton.Enabled = $true
-  $stopButton.Enabled = $false
+  if (-not ($serverProcess -and -not $serverProcess.HasExited)) {
+    $startButton.Enabled = $true
+    $stopButton.Enabled = $false
+  }
   [System.Windows.Forms.MessageBox]::Show($message, "Launcher Error", "OK", "Error") | Out-Null
+}
+
+function Open-Url($url) {
+  if ([string]::IsNullOrWhiteSpace($url)) {
+    throw "No URL was provided."
+  }
+  Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "start", '""', $url -WindowStyle Hidden
 }
 
 function Set-Status($text, $color) {
@@ -59,6 +79,26 @@ function Refresh-Urls {
   $playerUrl = if ($ip) { "http://$ip`:$port/player" } else { "http://YOUR-HOST-IP:$port/player" }
   $hostUrlBox.Text = $hostUrl
   $playerUrlBox.Text = $playerUrl
+}
+
+function Open-HostPage {
+  try {
+    Refresh-Urls
+    Add-Log "Opening Host Mode..."
+    Open-Url $hostUrlBox.Text
+  } catch {
+    Show-LauncherError "Could not open Host Mode automatically. Open this URL manually in your browser:`n`n$($hostUrlBox.Text)`n`nDetails: $($_.Exception.Message)"
+  }
+}
+
+function Copy-PlayerUrl {
+  try {
+    Refresh-Urls
+    [System.Windows.Forms.Clipboard]::SetText($playerUrlBox.Text)
+    Add-Log "Copied player URL: $($playerUrlBox.Text)"
+  } catch {
+    Show-LauncherError "Could not copy the player URL. Details: $($_.Exception.Message)"
+  }
 }
 
 function Stop-ExistingServerOnPort {
@@ -77,11 +117,27 @@ function Stop-ExistingServerOnPort {
   }
 }
 
+function Wait-ForServerReady {
+  param([int]$timeoutSeconds = 60)
+
+  $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+  while ((Get-Date) -lt $deadline) {
+    [System.Windows.Forms.Application]::DoEvents()
+    $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($listener) {
+      return $true
+    }
+    Start-Sleep -Milliseconds 350
+  }
+
+  throw "The server did not start listening on port $port within $timeoutSeconds seconds."
+}
+
 function Start-GameServer {
   try {
     if ($serverProcess -and -not $serverProcess.HasExited) {
       Add-Log "Server is already running."
-      Start-Process $hostUrlBox.Text
+      Open-HostPage
       return
     }
 
@@ -92,7 +148,7 @@ function Start-GameServer {
 
     if (-not (Test-CommandAvailable "node") -or -not (Test-CommandAvailable "npm")) {
       [System.Windows.Forms.MessageBox]::Show("Node.js is not installed on this computer.`n`nInstall the LTS version from https://nodejs.org/ and then double-click start-game.bat again.", "Node.js Required", "OK", "Warning") | Out-Null
-      Start-Process "https://nodejs.org/"
+      Open-Url "https://nodejs.org/"
       return
     }
 
@@ -109,64 +165,77 @@ function Start-GameServer {
     $commandFile = Join-Path $env:TEMP "competency-stations-start.cmd"
     $commandText = @"
 @echo off
+title Competency Stations Server
 cd /d "$root"
+echo =====================================================
+echo        COMPETENCY STATIONS LOCAL SERVER
+echo =====================================================
+echo.
+echo Keep this window open while using the game.
+echo Host:   http://localhost:$port/host
+echo Player: $($playerUrlBox.Text)
+echo.
 if not exist node_modules (
   echo Installing dependencies...
   call npm install
-  if errorlevel 1 exit /b 1
+  if errorlevel 1 (
+    echo.
+    echo Dependency install failed. Read the message above.
+    pause
+    exit /b 1
+  )
 ) else (
   echo Dependencies ready.
 )
+echo.
 echo Starting local server...
 call npm run dev
+echo.
+echo Server stopped. Read any message above.
+pause
 "@
     Set-Content -LiteralPath $commandFile -Value $commandText -Encoding ASCII
 
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $env:ComSpec
-    $psi.Arguments = "/d /s /c `"$commandFile`""
-    $psi.WorkingDirectory = $root
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
+    Add-Log "Opening server command window..."
+    $script:serverProcess = Start-Process -FilePath $env:ComSpec -ArgumentList "/k", "`"$commandFile`"" -WorkingDirectory $root -PassThru
 
-    $script:serverProcess = New-Object System.Diagnostics.Process
-    $script:serverProcess.StartInfo = $psi
-    $script:serverProcess.EnableRaisingEvents = $true
-    $script:serverProcess.add_OutputDataReceived({ param($sender, $eventArgs) if ($eventArgs.Data) { $outputQueue.Enqueue($eventArgs.Data) } })
-    $script:serverProcess.add_ErrorDataReceived({ param($sender, $eventArgs) if ($eventArgs.Data) { $outputQueue.Enqueue($eventArgs.Data) } })
-    $script:serverProcess.add_Exited({ $outputQueue.Enqueue("Server process stopped.") })
-
-    [void]$script:serverProcess.Start()
-    $script:serverProcess.BeginOutputReadLine()
-    $script:serverProcess.BeginErrorReadLine()
-
-    Start-Sleep -Milliseconds 600
+    Add-Log "Waiting for local server on port $port..."
+    Wait-ForServerReady 90
     Set-Status "Running on localhost:3000" ([System.Drawing.Color]::FromArgb(34, 245, 199))
-    Add-Log "Opening Host Mode in your browser..."
-    Start-Process $hostUrlBox.Text
+    Open-HostPage
   } catch {
     Show-LauncherError $_.Exception.Message
   }
 }
 
 function Stop-GameServer {
-  if ($serverProcess -and -not $serverProcess.HasExited) {
-    Add-Log "Stopping server..."
-    try {
+  try {
+    if ($serverProcess -and -not $serverProcess.HasExited) {
+      Add-Log "Stopping server..."
       & taskkill.exe /PID $serverProcess.Id /T /F | Out-Null
       $serverProcess.WaitForExit(2500) | Out-Null
-    } catch {
-      Add-Log "Could not stop cleanly: $($_.Exception.Message)"
     }
+    Set-Status "Stopped" ([System.Drawing.Color]::FromArgb(255, 80, 104))
+    $startButton.Enabled = $true
+    $stopButton.Enabled = $false
+  } catch {
+    Show-LauncherError "Could not stop cleanly: $($_.Exception.Message)"
   }
-  Set-Status "Stopped" ([System.Drawing.Color]::FromArgb(255, 80, 104))
-  $startButton.Enabled = $true
-  $stopButton.Enabled = $false
 }
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
+[System.Windows.Forms.Application]::SetUnhandledExceptionMode([System.Windows.Forms.UnhandledExceptionMode]::CatchException)
+[System.Windows.Forms.Application]::add_ThreadException({
+  param($sender, $eventArgs)
+  Show-LauncherError "Unexpected launcher error: $($eventArgs.Exception.Message)"
+})
+[AppDomain]::CurrentDomain.add_UnhandledException({
+  param($sender, $eventArgs)
+  $exception = $eventArgs.ExceptionObject
+  $message = if ($exception -is [Exception]) { $exception.Message } else { [string]$exception }
+  Write-LauncherLog "FATAL: $message"
+})
+Write-LauncherLog "Launcher opened from $root"
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Competency Stations Launcher"
@@ -215,7 +284,9 @@ $startButton.ForeColor = [System.Drawing.Color]::White
 $startButton.FlatStyle = "Flat"
 $startButton.Location = New-Object System.Drawing.Point(30, 160)
 $startButton.Size = New-Object System.Drawing.Size(210, 56)
-$startButton.Add_Click({ Start-GameServer })
+$startButton.Add_Click({
+  try { Start-GameServer } catch { Show-LauncherError $_.Exception.Message }
+})
 $form.Controls.Add($startButton)
 
 $openHostButton = New-Object System.Windows.Forms.Button
@@ -225,7 +296,9 @@ $openHostButton.ForeColor = [System.Drawing.Color]::White
 $openHostButton.FlatStyle = "Flat"
 $openHostButton.Location = New-Object System.Drawing.Point(255, 160)
 $openHostButton.Size = New-Object System.Drawing.Size(145, 56)
-$openHostButton.Add_Click({ Refresh-Urls; Start-Process $hostUrlBox.Text })
+$openHostButton.Add_Click({
+  try { Open-HostPage } catch { Show-LauncherError $_.Exception.Message }
+})
 $form.Controls.Add($openHostButton)
 
 $copyPlayerButton = New-Object System.Windows.Forms.Button
@@ -235,7 +308,9 @@ $copyPlayerButton.ForeColor = [System.Drawing.Color]::White
 $copyPlayerButton.FlatStyle = "Flat"
 $copyPlayerButton.Location = New-Object System.Drawing.Point(415, 160)
 $copyPlayerButton.Size = New-Object System.Drawing.Size(155, 56)
-$copyPlayerButton.Add_Click({ Refresh-Urls; [System.Windows.Forms.Clipboard]::SetText($playerUrlBox.Text); Add-Log "Copied player URL." })
+$copyPlayerButton.Add_Click({
+  try { Copy-PlayerUrl } catch { Show-LauncherError $_.Exception.Message }
+})
 $form.Controls.Add($copyPlayerButton)
 
 $stopButton = New-Object System.Windows.Forms.Button
@@ -246,7 +321,9 @@ $stopButton.FlatStyle = "Flat"
 $stopButton.Location = New-Object System.Drawing.Point(585, 160)
 $stopButton.Size = New-Object System.Drawing.Size(145, 56)
 $stopButton.Enabled = $false
-$stopButton.Add_Click({ Stop-GameServer })
+$stopButton.Add_Click({
+  try { Stop-GameServer } catch { Show-LauncherError $_.Exception.Message }
+})
 $form.Controls.Add($stopButton)
 
 $hostLabel = New-Object System.Windows.Forms.Label
@@ -297,10 +374,6 @@ $form.Controls.Add($logBox)
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 250
 $timer.Add_Tick({
-  $line = $null
-  while ($outputQueue.TryDequeue([ref]$line)) {
-    Add-Log $line
-  }
   if ($serverProcess -and $serverProcess.HasExited -and $stopButton.Enabled) {
     Set-Status "Stopped" ([System.Drawing.Color]::FromArgb(255, 80, 104))
     $startButton.Enabled = $true
