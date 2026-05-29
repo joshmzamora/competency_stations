@@ -75,20 +75,19 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
   const groupAccuracy = weightedAccuracy(groupCorrect, groupPartial, totalCompleted);
 
   return (
-    <div className="grid gap-4 rounded-md border border-white/10 bg-black/35 p-4">
+    <div className="grid gap-3 rounded-md border border-white/10 bg-black/30 p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
-          <div className="mt-1 text-sm text-white/48">Live turn status and competency performance</div>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-right">
-          <StatTile label="Done" value={totalCompleted} />
-          <StatTile label="Accuracy" value={`${groupAccuracy}%`} tone="text-scrub" />
-          <StatTile label="Missed" value={groupIncorrect} tone="text-trauma" />
+        <div className="flex flex-wrap gap-2 text-right">
+          <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2"><span className="text-[10px] uppercase tracking-[0.14em] text-white/35">Done </span><span className="font-display text-sm font-black text-white">{totalCompleted}</span></div>
+          <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2"><span className="text-[10px] uppercase tracking-[0.14em] text-white/35">Accuracy </span><span className="font-display text-sm font-black text-scrub">{groupAccuracy}%</span></div>
+          <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2"><span className="text-[10px] uppercase tracking-[0.14em] text-white/35">Missed </span><span className="font-display text-sm font-black text-trauma">{groupIncorrect}</span></div>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {players.map((player) => {
           const active = player.id === activeId;
           const tone = shapeTone(player.shape);
@@ -97,17 +96,17 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
             <motion.div
               key={player.id}
               layout
-              className={`rounded-md border p-4 transition ${
+              className={`rounded-md border p-3 transition ${
                 active ? `${tone.border} ${tone.bg} ${tone.shadow}` : "border-white/10 bg-white/[0.035] opacity-75"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className={`grid h-14 w-14 flex-none place-items-center rounded-md border ${tone.border} bg-black/30`}>
-                    {player.shape && <ShapeIcon shape={player.shape} className={`h-9 w-9 ${tone.text}`} />}
+                  <div className={`grid h-11 w-11 flex-none place-items-center rounded-md border ${tone.border} bg-black/30`}>
+                    {player.shape && <ShapeIcon shape={player.shape} className={`h-7 w-7 ${tone.text}`} />}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate font-display text-base font-black uppercase text-white">{player.displayName}</div>
+                    <div className="truncate font-display text-sm font-black uppercase text-white">{player.displayName}</div>
                     <div className={`mt-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] ${tone.text}`}>{player.shape ?? "shape pending"}</div>
                   </div>
                 </div>
@@ -118,27 +117,19 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Turns</div><div className="font-display text-lg font-black">{player.turnCount}</div></div>
-                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Right</div><div className="font-display text-lg font-black text-scrub">{player.correct}</div></div>
-                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Partial</div><div className="font-display text-lg font-black text-amber">{player.partial}</div></div>
-                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Missed</div><div className="font-display text-lg font-black text-trauma">{player.incorrect}</div></div>
+              <div className="mt-3 grid grid-cols-5 gap-1.5 text-center">
+                <div className="rounded-md bg-black/25 p-1.5"><div className="text-[8px] uppercase text-white/35">Turns</div><div className="font-display text-sm font-black">{player.turnCount}</div></div>
+                <div className="rounded-md bg-black/25 p-1.5"><div className="text-[8px] uppercase text-white/35">Right</div><div className="font-display text-sm font-black text-scrub">{player.correct}</div></div>
+                <div className="rounded-md bg-black/25 p-1.5"><div className="text-[8px] uppercase text-white/35">Part</div><div className="font-display text-sm font-black text-amber">{player.partial}</div></div>
+                <div className="rounded-md bg-black/25 p-1.5"><div className="text-[8px] uppercase text-white/35">Miss</div><div className="font-display text-sm font-black text-trauma">{player.incorrect}</div></div>
+                <div className="rounded-md bg-black/25 p-1.5"><div className="text-[8px] uppercase text-white/35">Acc</div><div className={`font-display text-sm font-black ${player.accuracy >= 80 ? "text-scrub" : player.accuracy >= 50 ? "text-amber" : "text-trauma"}`}>{player.accuracy}%</div></div>
               </div>
 
-              <div className="mt-3 grid gap-2">
-                <div>
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-white/40">
-                    <span>Participation</span>
-                    <span>{player.participation}%</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div className={`h-full rounded-full ${active ? "bg-scrub" : "bg-white/35"}`} style={{ width: `${player.participation}%` }} />
-                  </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10" aria-label={`Participation ${player.participation}%`}>
+                  <div className={`h-full rounded-full ${active ? "bg-scrub" : "bg-white/35"}`} style={{ width: `${player.participation}%` }} />
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                  <span className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Accuracy</span>
-                  <span className={`font-display text-base font-black ${player.accuracy >= 80 ? "text-scrub" : player.accuracy >= 50 ? "text-amber" : "text-trauma"}`}>{player.accuracy}%</span>
-                </div>
+                <span className="font-display text-[10px] font-black text-white/45">{player.participation}%</span>
               </div>
             </motion.div>
           );
@@ -379,7 +370,6 @@ export function PlayerPage() {
             </div>
           </div>
 
-          <ParticipantBoard players={participantStats} activeId={room.currentParticipantId} />
           <CountdownTimer endsAt={room.timerEndsAt} />
 
           {activePrompt && station && activeParticipant ? (
@@ -401,6 +391,8 @@ export function PlayerPage() {
               </p>
             </div>
           )}
+
+          <ParticipantBoard players={participantStats} activeId={room.currentParticipantId} />
         </div>
       )}
 
