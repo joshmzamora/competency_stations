@@ -480,51 +480,148 @@ const chestTubePrompts: CompetencyPrompt[] = [
 
 const codeBertPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "code-bert-recognition",
+    id: "code-bert-violent-restraints-code-rush",
     stationId: "code-bert",
-    type: "timed-emergency",
-    title: "Confused and Combative Patient",
-    scenario: "After a few days, Emma is extubated and the chest tube is out. She becomes confused and combative.",
+    type: "verbal-response",
+    title: "Violent Restraints Escalation",
+    scenario: "Which code do you call if violent restraints are applied?",
     instructions: [
-      "Recognize behavioral escalation.",
-      "Call Code BERT.",
-      "Prioritize safety and de-escalation.",
-      "State what documentation is required."
+      "Answer verbally.",
+      "Name the correct code."
     ],
-    expectedResponse:
-      "Call Code BERT, maintain safety, use calm de-escalation, keep a safe exit path, reduce hazards, and document the event using the appropriate Epic documentation and SmartPhrase.",
-    explanation:
-      "The document station is less than 5 minutes and expects learners to call Code BERT and complete documentation/SmartPhrase in Epic Play.",
+    expectedResponse: "Call Code RUSH.",
+    explanation: "Violent restraint application requires escalation through Code RUSH.",
     evaluationCriteria: [
-      "Recognizes the need for Code BERT.",
-      "Calls for help rather than managing alone.",
-      "Uses safety-focused de-escalation.",
-      "Mentions Epic documentation and SmartPhrase."
+      "States Code RUSH.",
+      "Does not answer Code BERT for violent restraint application."
     ],
-    criticalActions: ["Calls Code BERT.", "Maintains personal and patient safety."],
-    timerSeconds: 60
+    criticalActions: ["Identifies Code RUSH."]
   }),
   prompt({
-    id: "code-bert-documentation",
+    id: "code-bert-restraint-face-to-face",
     stationId: "code-bert",
-    type: "practical-assessment",
-    title: "Epic Documentation",
-    scenario: "After the behavioral emergency response, the learner must document the event.",
+    type: "verbal-response",
+    title: "Face-to-Face Requirement",
+    scenario: "How long does the provider have to see the patient face-to-face once violent restraints are applied?",
     instructions: [
-      "State where the event should be documented.",
-      "Use the expected SmartPhrase workflow.",
-      "Include objective safety details."
+      "Answer verbally.",
+      "State the time requirement."
+    ],
+    expectedResponse: "The provider must see the patient face-to-face within one hour.",
+    explanation: "Once violent restraints are applied, the provider face-to-face evaluation must occur within one hour.",
+    evaluationCriteria: [
+      "States one hour.",
+      "Connects the one-hour requirement to violent restraint application."
+    ],
+    criticalActions: ["States one hour."]
+  }),
+  prompt({
+    id: "code-bert-acronym",
+    stationId: "code-bert",
+    type: "verbal-response",
+    title: "BERT Meaning",
+    scenario: "What does BERT stand for?",
+    instructions: [
+      "Answer verbally.",
+      "State the full phrase."
+    ],
+    expectedResponse: "BERT stands for Behavioral Emergency Response Team.",
+    explanation: "The Code BERT process activates the Behavioral Emergency Response Team for behavioral safety events.",
+    evaluationCriteria: [
+      "States Behavioral Emergency Response Team.",
+      "Does not confuse BERT with Code RUSH."
+    ]
+  }),
+  prompt({
+    id: "code-bert-cancelled-documentation",
+    stationId: "code-bert",
+    type: "verbal-response",
+    title: "Cancelled BERT Documentation",
+    scenario: "Do you document anything on the BERT flow sheet if the BERT is cancelled?",
+    instructions: [
+      "Answer yes or no.",
+      "State whether documentation is still required."
+    ],
+    expectedResponse: "Yes. Documentation is still completed on the BERT flow sheet if the BERT is cancelled.",
+    explanation: "A cancelled BERT still requires documentation on the BERT flow sheet.",
+    evaluationCriteria: [
+      "Answers yes.",
+      "States that the BERT flow sheet still requires documentation."
+    ]
+  }),
+  prompt({
+    id: "code-bert-family-member",
+    stationId: "code-bert",
+    type: "verbal-response",
+    title: "Family Member Activation",
+    scenario: "You can call a Code BERT on a family member. True or false?",
+    instructions: [
+      "Answer true or false.",
+      "Clarify who Code BERT applies to."
+    ],
+    expectedResponse: "False. Code BERT is not called on a family member.",
+    explanation: "The provided competency answer identifies this statement as false.",
+    evaluationCriteria: [
+      "Answers false.",
+      "Does not describe Code BERT as the correct response for a family member."
+    ]
+  }),
+  prompt({
+    id: "code-bert-debrief-form",
+    stationId: "code-bert",
+    type: "verbal-response",
+    title: "Debrief Timing and Form Location",
+    scenario: "When does the debriefing occur and where do you find the form?",
+    instructions: [
+      "State when the debrief occurs.",
+      "State where the form is located."
+    ],
+    expectedResponse: "The debriefing occurs when the BERT has ended. The form is on the Hub.",
+    explanation: "Debriefing is completed after the BERT ends, using the form located on the Hub.",
+    evaluationCriteria: [
+      "States debriefing occurs when the BERT has ended.",
+      "States the form is on the Hub."
+    ]
+  }),
+  prompt({
+    id: "code-bert-call-number",
+    stationId: "code-bert",
+    type: "verbal-response",
+    title: "Calling Code BERT",
+    scenario: "How do you call a Code BERT?",
+    instructions: [
+      "Answer verbally.",
+      "State the number to call."
+    ],
+    expectedResponse: "Call 3333.",
+    explanation: "The Code BERT activation number is 3333.",
+    evaluationCriteria: [
+      "States call 3333.",
+      "Does not give an alternate activation number."
+    ],
+    criticalActions: ["States 3333."]
+  }),
+  prompt({
+    id: "code-bert-activation-triggers",
+    stationId: "code-bert",
+    type: "scenario-walkthrough",
+    title: "Activation Triggers",
+    scenario: "What are the primary criteria or triggers for activating a Code BERT?",
+    instructions: [
+      "Answer verbally.",
+      "Name behavioral signs that create immediate safety concern."
     ],
     expectedResponse:
-      "Document the Code BERT event in Epic Play using the appropriate SmartPhrase. Include objective behavior, staff response, safety interventions, notifications, patient response, and follow-up plan.",
+      "Activate Code BERT for a patient exhibiting escalating verbal aggression, physical threats, acute disorientation with combativeness, or behaviors that pose an immediate safety risk to themselves or staff.",
     explanation:
-      "The document specifically calls out documentation and SmartPhrase in Epic Play.",
+      "Code BERT is intended for behavioral emergencies where escalation creates a safety risk for the patient or staff.",
     evaluationCriteria: [
-      "Uses the correct Epic documentation area or workflow.",
-      "Uses the SmartPhrase.",
-      "Documents objective behavior and safety interventions.",
-      "Includes notification and follow-up details."
-    ]
+      "Names escalating verbal aggression.",
+      "Names physical threats.",
+      "Names acute disorientation with combativeness.",
+      "Identifies immediate safety risk to self or staff as the key trigger."
+    ],
+    criticalActions: ["Recognizes immediate safety risk."]
   })
 ];
 
@@ -846,8 +943,8 @@ export const stations: CompetencyStation[] = [
     id: "code-bert",
     title: "Code BERT",
     shortTitle: "Code BERT",
-    description: "Behavioral emergency recognition, safety, de-escalation, Code BERT activation, and Epic documentation.",
-    estimatedMinutes: 5,
+    description: "Behavioral emergency activation, violent restraint escalation, documentation, debriefing, call process, and safety triggers.",
+    estimatedMinutes: 8,
     competencyType: "Behavioral emergency response",
     accent: "trauma",
     prompts: codeBertPrompts
