@@ -31,6 +31,14 @@ type PromptEvaluation = {
   evaluatedAt: string;
 };
 
+type ActivityState = {
+  promptId: string;
+  placements: Record<string, string | null>;
+  checkCount: number;
+  itemResults?: Record<string, boolean>;
+  lastCheckedAt?: string;
+};
+
 type GameStats = {
   answered: number;
   correct: number;
@@ -53,12 +61,14 @@ type RoomState = {
   sessionStartedAt: number | null;
   score: number;
   selectedStation: unknown | null;
+  stationRouteStartId: string | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
   trafficLight: "red" | "green" | null;
   liveAnswer: { playerId: string; answer: string; submittedAt: string; responseTimeMs?: number } | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
+  activityStates: Record<string, ActivityState>;
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -107,12 +117,14 @@ function createInitialRoom(code: string): RoomState {
     sessionStartedAt: null,
     score: 0,
     selectedStation: null,
+    stationRouteStartId: null,
     activePromptIndex: 0,
     timerEndsAt: null,
     trafficLight: null,
     liveAnswer: null,
     players: [],
     evaluations: {},
+    activityStates: {},
     createdAt: now,
     stats: {
       answered: 0,
@@ -146,6 +158,52 @@ function promptId(prompt: unknown) {
   return String(objectField(prompt, "id") ?? "");
 }
 
+function selectedStationId(room: RoomState) {
+  return String(objectField(room.selectedStation, "id") ?? "");
+}
+
+function usesParticipantSelection(room: RoomState) {
+  return selectedStationId(room) !== "stroke";
+}
+
+function findPrompt(room: RoomState, id: string) {
+  return stationPrompts(room.selectedStation).find((prompt) => promptId(prompt) === id) ?? null;
+}
+
+function activityItems(prompt: unknown): string[] {
+  const activity = objectField(prompt, "activity");
+  const itemBank = objectField(activity, "itemBank");
+  return Array.isArray(itemBank) ? itemBank.map((item) => String(item)) : [];
+}
+
+function ensureActivityState(room: RoomState, prompt: unknown): ActivityState | null {
+  const id = promptId(prompt);
+  if (!id) return null;
+  if (!room.activityStates[id]) {
+    room.activityStates[id] = {
+      promptId: id,
+      placements: Object.fromEntries(activityItems(prompt).map((item) => [item, null])),
+      checkCount: 0
+    };
+  }
+  return room.activityStates[id];
+}
+
+function answerMap(prompt: unknown): Map<string, string> {
+  const answerKey = objectField(prompt, "answerKey");
+  const map = new Map<string, string>();
+  if (!Array.isArray(answerKey)) return map;
+  for (const column of answerKey) {
+    const title = String(objectField(column, "title") ?? "");
+    const items = objectField(column, "items");
+    if (!title || !Array.isArray(items)) continue;
+    for (const item of items) {
+      map.set(String(item), title);
+    }
+  }
+  return map;
+}
+
 function statusPoints(status: EvaluationStatus) {
   if (status === "correct") return 100;
   if (status === "partial") return 50;
@@ -171,6 +229,7 @@ function sanitizePrompt(prompt: unknown) {
     evaluationCriteria: _evaluationCriteria,
     criticalActions: _criticalActions,
     notifyProviderWhen: _notifyProviderWhen,
+    answerKey: _answerKey,
     ...safePrompt
   } = prompt as Record<string, unknown>;
   return safePrompt;
@@ -228,6 +287,11 @@ function pickBalancedPlayer(room: RoomState): string | null {
 
 function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
   if (room.status !== "in-progress") return false;
+  if (!usesParticipantSelection(room)) {
+    room.selection = null;
+    room.currentParticipantId = null;
+    return false;
+  }
   if (!room.players.some((player) => player.shape)) return false;
 
   const playerId = pickBalancedPlayer(room);
@@ -592,6 +656,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "start-selection": {
       if (client.role !== "host") return;
+      if (!usesParticipantSelection(room)) {
+        room.selection = null;
+        room.currentParticipantId = null;
+        broadcastState(room.code);
+        break;
+      }
       if (startSelection(room)) {
         broadcastState(room.code);
       }
@@ -599,6 +669,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "override-selection": {
       if (client.role !== "host") return;
+      if (!usesParticipantSelection(room)) return;
       const playerId = String(message.playerId);
       const player = room.players.find(p => p.id === playerId);
       if (player) {
@@ -622,39 +693,58 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "open-station": {
       if (client.role !== "host") return;
+      const wasLive = room.status === "in-progress";
       room.status = room.introCompletedAt ? "in-progress" : "lobby";
       room.introStartedAt = null;
       room.selectedStation = message.station ?? null;
+      if (!room.sessionStartedAt) {
+        room.stationRouteStartId = selectedStationId(room) || null;
+      }
       room.activePromptIndex = 0;
       room.timerEndsAt = null;
       room.trafficLight = null;
       room.liveAnswer = null;
-      room.evaluations = {};
+      if (!wasLive) {
+        room.evaluations = {};
+        room.activityStates = {};
+      }
       room.currentParticipantId = null;
       recalculateStats(room);
       room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
-      if (room.status === "in-progress") startSelection(room);
+      if (room.status === "in-progress" && usesParticipantSelection(room)) startSelection(room);
       broadcastState(room.code);
       break;
     }
     case "set-prompt-index": {
       if (client.role !== "host") return;
       const moved = movePrompt(room, Number(message.index ?? 0));
-      if (moved) startSelection(room);
+      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (!usesParticipantSelection(room)) {
+        room.selection = null;
+        room.currentParticipantId = null;
+      }
       broadcastState(room.code);
       break;
     }
     case "next-prompt": {
       if (client.role !== "host") return;
       const moved = movePrompt(room, room.activePromptIndex + 1);
-      if (moved) startSelection(room);
+      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (!usesParticipantSelection(room)) {
+        room.selection = null;
+        room.currentParticipantId = null;
+      }
       broadcastState(room.code);
       break;
     }
     case "previous-prompt": {
       if (client.role !== "host") return;
       const moved = movePrompt(room, room.activePromptIndex - 1);
-      if (moved) startSelection(room);
+      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (!usesParticipantSelection(room)) {
+        room.selection = null;
+        room.currentParticipantId = null;
+      }
       broadcastState(room.code);
       break;
     }
@@ -688,6 +778,39 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         responseTimeMs: typeof message.responseTimeMs === "number" ? message.responseTimeMs : undefined
       };
       broadcastState(room.code);
+      break;
+    }
+    case "update-activity-card": {
+      if (client.role !== "player") return;
+      const id = String(message.promptId ?? "");
+      const prompt = findPrompt(room, id);
+      const state = prompt ? ensureActivityState(room, prompt) : null;
+      const item = String(message.item ?? "");
+      const column = typeof message.column === "string" ? message.column : null;
+      const columns = objectField(objectField(prompt, "activity"), "columns");
+      const validColumns = Array.isArray(columns) ? new Set(columns.map((entry) => String(objectField(entry, "title") ?? ""))) : new Set<string>();
+      if (state && item in state.placements && (column === null || validColumns.has(column))) {
+        state.placements[item] = column;
+        state.itemResults = undefined;
+        state.lastCheckedAt = undefined;
+        broadcastState(room.code);
+      }
+      break;
+    }
+    case "check-activity": {
+      if (client.role !== "player") return;
+      const id = String(message.promptId ?? "");
+      const prompt = findPrompt(room, id);
+      const state = prompt ? ensureActivityState(room, prompt) : null;
+      const answers = prompt ? answerMap(prompt) : new Map<string, string>();
+      if (state && answers.size && state.checkCount < 2) {
+        state.itemResults = Object.fromEntries(
+          Object.keys(state.placements).map((item) => [item, state.placements[item] === answers.get(item)])
+        );
+        state.checkCount++;
+        state.lastCheckedAt = new Date().toISOString();
+        broadcastState(room.code);
+      }
       break;
     }
     case "evaluate-prompt": {

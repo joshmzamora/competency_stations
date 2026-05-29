@@ -1,15 +1,18 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, ListChecks } from "lucide-react";
-import type { CompetencyPrompt, PlayerPrompt } from "../types";
+import type { ActivityState, CompetencyPrompt, PlayerPrompt } from "../types";
+import { ActivityPromptLayout } from "./ActivityPromptLayout";
 
 export function PromptCard({
   prompt,
   showAnswer = false,
-  playerMode = false
+  playerMode = false,
+  activityState
 }: {
   prompt: CompetencyPrompt | PlayerPrompt | null;
   showAnswer?: boolean;
   playerMode?: boolean;
+  activityState?: ActivityState;
 }) {
   if (!prompt) {
     return (
@@ -23,6 +26,10 @@ export function PromptCard({
   }
 
   const hostPrompt = prompt as CompetencyPrompt;
+
+  if (prompt.type === "activity") {
+    return <ActivityPromptLayout prompt={prompt} showAnswer={showAnswer} activityState={activityState} readOnly />;
+  }
 
   return (
     <motion.article

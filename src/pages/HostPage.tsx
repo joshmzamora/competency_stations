@@ -89,6 +89,12 @@ function formatDuration(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function stationRoute(startId?: string | null) {
+  const startIndex = stations.findIndex((station) => station.id === startId);
+  if (startIndex < 0) return stations;
+  return [...stations.slice(startIndex), ...stations.slice(0, startIndex)];
+}
+
 function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "active" | "review" }) {
   const className =
     tone === "active"
@@ -287,6 +293,7 @@ export function HostPage() {
 
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
+  const isStrokeStation = station?.id === "stroke";
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
@@ -304,6 +311,10 @@ export function HostPage() {
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
   const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
+  const orderedStations = useMemo(() => stationRoute(room?.stationRouteStartId ?? station?.id), [room?.stationRouteStartId, station?.id]);
+  const routeIndex = station ? orderedStations.findIndex((item) => item.id === station.id) : -1;
+  const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
+  const atLastPrompt = (room?.activePromptIndex ?? 0) >= totalPrompts - 1;
 
   const groupStats = useMemo(() => {
     const correct = evaluationList.filter((item) => item.status === "correct").length;
@@ -377,16 +388,16 @@ export function HostPage() {
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
     setIntroVisible(false);
-    send({ type: "start-protocol-assignment" });
-  }, [introKey, send]);
+    if (!isStrokeStation) send({ type: "start-protocol-assignment" });
+  }, [introKey, isStrokeStation, send]);
 
   const skipIntro = useCallback(() => {
     send({ type: "skip-intro" });
     setIntroKeySeen(introKey);
     setIntroVisible(false);
     setProtocolIntroSeenAt(null);
-    send({ type: "start-protocol-assignment" });
-  }, [introKey, send]);
+    if (!isStrokeStation) send({ type: "start-protocol-assignment" });
+  }, [introKey, isStrokeStation, send]);
 
   const protocolIntroVisible = Boolean(
     room?.protocolIntroStartedAt &&
@@ -396,8 +407,9 @@ export function HostPage() {
   );
 
   function evaluate(statusValue: EvaluationStatus) {
-    if (!prompt || !room?.currentParticipantId) return;
-    send({ type: "evaluate-prompt", promptId: prompt.id, playerId: room.currentParticipantId, status: statusValue, note, flagged });
+    if (!prompt || (!room?.currentParticipantId && !isStrokeStation)) return;
+    const playerId = isStrokeStation ? undefined : room?.currentParticipantId ?? undefined;
+    send({ type: "evaluate-prompt", promptId: prompt.id, playerId, status: statusValue, note, flagged });
     setNote("");
     setFlagged(false);
   }
@@ -405,6 +417,16 @@ export function HostPage() {
   function startSimulation() {
     if (!station || !canStartSession) return;
     send({ type: "start-session" });
+  }
+
+  function goNext() {
+    if (!station || !room) return;
+    if (!atLastPrompt) send({ type: "next-prompt" });
+  }
+
+  function goPrevious() {
+    if (!station || !room) return;
+    if (!atFirstPrompt) send({ type: "previous-prompt" });
   }
 
   return (
@@ -472,37 +494,51 @@ export function HostPage() {
                 <p className="mt-3 text-xs text-amber">The learner computer must join with 2-5 participant names before the intro can start.</p>
               )}
               {station && connectedParticipants >= 2 && room.status !== "in-progress" && (
-                <p className="mt-3 text-xs text-scrub">Ready. The intro plays once, then participant selection begins.</p>
+                <p className="mt-3 text-xs text-scrub">
+                  {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin." : "Ready. The intro plays once, then participant selection begins."}
+                </p>
               )}
             </div>
 
             <div className="rounded-md border border-trauma/20 bg-black/35 p-4">
               <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Session setup</div>
               <div className="mt-3 grid gap-2">
-                <AnimatedButton variant="ghost" onClick={() => send({ type: "start-protocol-assignment" })} disabled={room.status !== "in-progress"}>
-                  <UsersRound className="h-4 w-4" />
-                  Show assignments
-                </AnimatedButton>
+                {!isStrokeStation && (
+                  <AnimatedButton variant="ghost" onClick={() => send({ type: "start-protocol-assignment" })} disabled={room.status !== "in-progress"}>
+                    <UsersRound className="h-4 w-4" />
+                    Show assignments
+                  </AnimatedButton>
+                )}
               </div>
               <div className="mt-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/50">
-                Selection stays balanced behind the scenes. Participant cards show engagement without revealing who is mathematically due next.
+                {isStrokeStation
+                  ? "Stroke runs as a guided group activity. The learner screen mirrors here while the answer key stays host-only."
+                  : "Selection stays balanced behind the scenes. Participant cards show engagement without revealing who is mathematically due next."}
               </div>
             </div>
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
+              <div className="mb-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/55">
+                Pick the first station before starting. After each station, choose the next station here; scores and results stay in one continuous session.
+              </div>
               <div className="grid gap-2">
-                {stations.map((item) => {
+                {orderedStations.map((item, index) => {
                   const isActive = item.id === station?.id;
+                  const completedStation = routeIndex > index;
                   return (
                     <button
                       key={item.id}
                       onClick={() => send({ type: "open-station", station: item })}
                       className={`rounded-md border px-3 py-3 text-left transition ${
-                        isActive ? "border-scrub/50 bg-scrub/10 text-scrub" : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
+                        isActive
+                          ? "border-scrub/50 bg-scrub/10 text-scrub"
+                          : completedStation
+                            ? "border-white/10 bg-white/[0.025] text-white/35"
+                            : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
                       }`}
                     >
-                      <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{item.shortTitle}</div>
+                      <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
                       <div className="mt-1 text-xs text-white/45">{item.prompts.length} prompts</div>
                     </button>
                   );
@@ -531,18 +567,23 @@ export function HostPage() {
               </div>
             ) : (
               <>
-                <PromptCard prompt={prompt ?? null} showAnswer />
+                <PromptCard prompt={prompt ?? null} showAnswer activityState={prompt ? room.activityStates?.[prompt.id] : undefined} />
 
                 <div className="grid gap-2 md:grid-cols-2">
-                  <AnimatedButton variant="ghost" onClick={() => send({ type: "previous-prompt" })} disabled={(room.activePromptIndex ?? 0) <= 0}>
+                  <AnimatedButton variant="ghost" onClick={goPrevious} disabled={atFirstPrompt}>
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </AnimatedButton>
-                  <AnimatedButton variant="secondary" onClick={() => send({ type: "next-prompt" })} disabled={(room.activePromptIndex ?? 0) >= totalPrompts - 1}>
+                  <AnimatedButton variant="secondary" onClick={goNext} disabled={atLastPrompt}>
                     <SkipForward className="h-4 w-4" />
-                    Skip / Next
+                    Skip / Next Prompt
                   </AnimatedButton>
                 </div>
+                {atLastPrompt && (
+                  <div className="rounded-md border border-monitor/20 bg-monitor/10 p-3 text-sm text-monitor">
+                    Station complete. Choose the next station from the station navigation list.
+                  </div>
+                )}
               </>
             )}
           </main>
@@ -587,6 +628,10 @@ export function HostPage() {
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Evaluating</div>
                   <div className="mt-1 font-display text-xl font-black uppercase text-white">{activeParticipant.displayName}</div>
                 </div>
+              ) : isStrokeStation ? (
+                <div className="mb-3 rounded-md border border-monitor/25 bg-monitor/10 p-3 text-xs leading-5 text-monitor">
+                  Stroke is scored as a group activity. No random participant selection is required.
+                </div>
               ) : (
                 <div className="mb-3 rounded-md border border-amber/25 bg-amber/10 p-3 text-xs leading-5 text-amber">
                   Select a participant before marking this prompt.
@@ -604,14 +649,14 @@ export function HostPage() {
                 Flag prompt for review
               </label>
               <div className="mt-3 grid gap-2">
-                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || !activeParticipant}>
+                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
                   <Check className="h-4 w-4" />
                   Correct
                 </AnimatedButton>
-                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt || !activeParticipant}>
+                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
                   Partial
                 </AnimatedButton>
-                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt || !activeParticipant}>
+                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
                   <X className="h-4 w-4" />
                   Incorrect
                 </AnimatedButton>
@@ -619,15 +664,17 @@ export function HostPage() {
             </div>
 
             <div className="grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
-              <AnimatedButton
-                variant="ghost"
-                className="min-h-9 py-1 text-[10px] opacity-70 hover:opacity-100"
-                onClick={() => send({ type: "start-selection" })}
-                disabled={!prompt || room.status !== "in-progress"}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Re-run selection
-              </AnimatedButton>
+              {!isStrokeStation && (
+                <AnimatedButton
+                  variant="ghost"
+                  className="min-h-9 py-1 text-[10px] opacity-70 hover:opacity-100"
+                  onClick={() => send({ type: "start-selection" })}
+                  disabled={!prompt || room.status !== "in-progress"}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Re-run selection
+                </AnimatedButton>
+              )}
               <AnimatedButton variant="danger" onClick={() => send({ type: "end-game" })}>
                 <Power className="h-4 w-4" />
                 End session
@@ -653,7 +700,7 @@ export function HostPage() {
                   player={player}
                   active={player.id === room.currentParticipantId}
                   selecting={room.selection?.playerId === player.id}
-                  disabled={room.status !== "in-progress"}
+                  disabled={room.status !== "in-progress" || isStrokeStation}
                   onSelect={() => send({ type: "override-selection", playerId: player.id })}
                   note={participantNotes[player.id] ?? ""}
                   onNoteChange={(value) => setParticipantNotes((current) => ({ ...current, [player.id]: value }))}
@@ -683,10 +730,10 @@ export function HostPage() {
         players={room?.players ?? []}
         onComplete={() => {
           setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          send({ type: "start-selection" });
+          if (!isStrokeStation) send({ type: "start-selection" });
         }}
       />
-      <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />
+      {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
     </section>
   );
 }

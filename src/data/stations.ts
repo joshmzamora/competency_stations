@@ -885,6 +885,108 @@ const codeBertPrompts: CompetencyPrompt[] = [
 
 const strokePrompts: CompetencyPrompt[] = [
   prompt({
+    id: "stroke-activity-safe-unsafe",
+    stationId: "stroke",
+    type: "activity",
+    title: "Post-Tenecteplase Safety Sort",
+    scenario: "Sort each post-Tenecteplase action into Safe or Unsafe.",
+    instructions: [
+      "Review each card on the learner screen.",
+      "Sort the action into Safe or Unsafe.",
+      "Explain any item that could increase bleeding or procedural risk."
+    ],
+    activity: {
+      question: "Sort each post-Tenecteplase action into Safe or Unsafe.",
+      itemBankLabel: "Action cards",
+      itemBank: [
+        "Stool softener",
+        "Accuchek",
+        "Diuretics",
+        "Physical therapy",
+        "14 hours post tNK",
+        "NGT insertion",
+        "Blood draw",
+        "Foley catheter insertion",
+        "Heparin"
+      ],
+      columns: [
+        { title: "Safe", items: [] },
+        { title: "Unsafe", items: [] }
+      ]
+    },
+    answerKey: [
+      {
+        title: "Safe",
+        items: ["Stool softener", "Accuchek", "Diuretics", "Physical therapy", "14 hours post tNK"]
+      },
+      {
+        title: "Unsafe",
+        items: ["NGT insertion", "Blood draw", "Foley catheter insertion", "Heparin"]
+      }
+    ],
+    expectedResponse:
+      "Safe: stool softener, Accuchek, diuretics, physical therapy, and 14 hours post tNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
+    explanation:
+      "This activity reinforces post-Tenecteplase restrictions and the need to avoid unnecessary invasive procedures or anticoagulant exposure during the restricted period.",
+    evaluationCriteria: [
+      "Correctly sorts stool softener, Accuchek, diuretics, physical therapy, and 14 hours post tNK as Safe.",
+      "Correctly sorts NGT insertion, blood draw, Foley catheter insertion, and heparin as Unsafe.",
+      "Explains that invasive procedures and anticoagulant exposure increase post-thrombolytic risk."
+    ],
+    criticalActions: ["Does not identify heparin or invasive tube insertion as safe during the restricted period."]
+  }),
+  prompt({
+    id: "stroke-activity-eligibility",
+    stationId: "stroke",
+    type: "activity",
+    title: "Tenecteplase Eligibility Sort",
+    scenario: "Sort each patient factor into Eligible or Ineligible for Tenecteplase consideration.",
+    instructions: [
+      "Review each eligibility card on the learner screen.",
+      "Sort the factor into Eligible or Ineligible.",
+      "Explain any contraindication or exclusion factor."
+    ],
+    activity: {
+      question: "Sort each patient factor into Eligible or Ineligible for Tenecteplase consideration.",
+      itemBankLabel: "Eligibility cards",
+      itemBank: [
+        "Last known well 3 hours ago",
+        "Ischemic stroke",
+        "No signs of intracranial hemorrhage",
+        "BP 150/60",
+        "16 y/o",
+        "Major surgery within 2 months ~~Intracranial bleeding~~",
+        "Active GI bleeding",
+        "INR 4.5"
+      ],
+      columns: [
+        { title: "Eligible", items: [] },
+        { title: "Ineligible", items: [] }
+      ]
+    },
+    answerKey: [
+      {
+        title: "Eligible",
+        items: ["Last known well 3 hours ago", "Ischemic stroke", "No signs of intracranial hemorrhage", "BP 150/60"]
+      },
+      {
+        title: "Ineligible",
+        items: ["16 y/o", "Major surgery within 2 months ~~Intracranial bleeding~~", "Active GI bleeding", "INR 4.5"]
+      }
+    ],
+    expectedResponse:
+      "Eligible: last known well 3 hours ago, ischemic stroke, no signs of intracranial hemorrhage, and BP 150/60. Ineligible: 16 years old, major surgery within 2 months, active GI bleeding, and INR 4.5.",
+    explanation:
+      "This activity reinforces common inclusion and exclusion cues before Tenecteplase administration.",
+    evaluationCriteria: [
+      "Correctly sorts last known well 3 hours ago as Eligible.",
+      "Correctly sorts ischemic stroke as Eligible.",
+      "Correctly sorts no signs of intracranial hemorrhage and BP 150/60 as Eligible.",
+      "Correctly sorts 16 y/o, recent major surgery, active GI bleeding, and INR 4.5 as Ineligible."
+    ],
+    criticalActions: ["Does not miss active bleeding, high INR, or age exclusion cues."]
+  }),
+  prompt({
     id: "stroke-pre-tenecteplase-bp-limit",
     stationId: "stroke",
     type: "verbal-response",

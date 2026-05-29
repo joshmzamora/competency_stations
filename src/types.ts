@@ -1,10 +1,23 @@
 export type PromptType =
+  | "activity"
   | "verbal-response"
   | "scenario-walkthrough"
   | "troubleshooting"
   | "practical-assessment"
   | "multiple-choice"
   | "timed-emergency";
+
+export type ActivityColumn = {
+  title: string;
+  items: string[];
+};
+
+export type PromptActivity = {
+  question: string;
+  itemBankLabel: string;
+  itemBank: string[];
+  columns: ActivityColumn[];
+};
 
 export type CompetencyPrompt = {
   id: string;
@@ -13,6 +26,8 @@ export type CompetencyPrompt = {
   title: string;
   scenario: string;
   instructions: string[];
+  activity?: PromptActivity;
+  answerKey?: ActivityColumn[];
   expectedResponse: string;
   explanation: string;
   evaluationCriteria: string[];
@@ -22,7 +37,7 @@ export type CompetencyPrompt = {
   choices?: string[];
 };
 
-export type PlayerPrompt = Omit<CompetencyPrompt, "expectedResponse" | "explanation" | "evaluationCriteria" | "criticalActions" | "notifyProviderWhen" | "choices"> & {
+export type PlayerPrompt = Omit<CompetencyPrompt, "expectedResponse" | "explanation" | "evaluationCriteria" | "criticalActions" | "notifyProviderWhen" | "choices" | "answerKey"> & {
   choices?: string[];
 };
 
@@ -50,6 +65,14 @@ export type PromptEvaluation = {
   note?: string;
   flagged: boolean;
   evaluatedAt: string;
+};
+
+export type ActivityState = {
+  promptId: string;
+  placements: Record<string, string | null>;
+  checkCount: number;
+  itemResults?: Record<string, boolean>;
+  lastCheckedAt?: string;
 };
 
 export type ProtocolAnnouncement = {
@@ -116,12 +139,14 @@ export type RoomState = {
   sessionStartedAt: number | null;
   score: number;
   selectedStation: CompetencyStation | PlayerStation | null;
+  stationRouteStartId: string | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
   trafficLight: "red" | "green" | null;
   liveAnswer: LiveAnswer | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
+  activityStates: Record<string, ActivityState>;
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -164,6 +189,8 @@ export type ClientMessage =
   | { type: "reset-timer" }
   | { type: "set-traffic-light"; light: "red" | "green" | null }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
+  | { type: "update-activity-card"; promptId: string; item: string; column: string | null }
+  | { type: "check-activity"; promptId: string }
   | { type: "evaluate-prompt"; promptId: string; playerId?: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }
   | { type: "end-game" };

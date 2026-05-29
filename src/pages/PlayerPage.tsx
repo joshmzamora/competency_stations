@@ -1,6 +1,7 @@
 import { Circle as CircleIcon, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { ActivityPromptLayout } from "../components/ActivityPromptLayout";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { EvaluationEffect } from "../components/EvaluationEffect";
@@ -10,7 +11,7 @@ import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
+import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
 
 type PlayerPerformance = PlayerState & {
   displayName: string;
@@ -171,15 +172,22 @@ function ActivePromptView({
   station,
   activeParticipant,
   promptNumber,
-  totalPrompts
+  totalPrompts,
+  activityState,
+  onMoveActivityCard,
+  onCheckActivity
 }: {
   prompt: PlayerPrompt;
   station: PlayerStation;
   activeParticipant?: PlayerState;
   promptNumber: number;
   totalPrompts: number;
+  activityState?: ActivityState;
+  onMoveActivityCard: (item: string, column: string | null) => void;
+  onCheckActivity: () => void;
 }) {
   const tone = shapeTone(activeParticipant?.shape);
+  const usesSelection = station.id !== "stroke";
 
   return (
     <motion.div
@@ -199,29 +207,47 @@ function ActivePromptView({
         </div>
       </div>
 
-      <div className={`grid gap-5 rounded-md border p-5 md:grid-cols-[170px_1fr] md:items-center ${tone.border} ${tone.bg}`}>
-        <motion.div
-          initial={{ scale: 0.75, rotate: -12 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 230, damping: 18 }}
-          className={`grid aspect-square place-items-center rounded-md border ${tone.border} bg-black/30 ${tone.shadow}`}
-        >
-          {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 ${tone.text}`} />}
-        </motion.div>
-        <div>
-          <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
-          <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl">{publicName(activeParticipant?.name)}</h2>
-          <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68">
-            Respond verbally or perform the skill. The evaluator will mark the result.
+      {usesSelection ? (
+        <div className={`grid gap-5 rounded-md border p-5 md:grid-cols-[170px_1fr] md:items-center ${tone.border} ${tone.bg}`}>
+          <motion.div
+            initial={{ scale: 0.75, rotate: -12 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 230, damping: 18 }}
+            className={`grid aspect-square place-items-center rounded-md border ${tone.border} bg-black/30 ${tone.shadow}`}
+          >
+            {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 ${tone.text}`} />}
+          </motion.div>
+          <div>
+            <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
+            <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl">{publicName(activeParticipant?.name)}</h2>
+            <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68">
+              Respond verbally or perform the skill. The evaluator will mark the result.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
+          <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-monitor">Stroke activity mode</div>
+          <p className="mt-2 max-w-3xl text-lg leading-7 text-white/68">
+            Work together on the learner screen. Drag the cards into the correct columns, then use up to two checks.
           </p>
         </div>
-      </div>
+      )}
 
-      <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
-        <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario prompt</div>
-        <h3 className="mt-3 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h3>
-        <p className="mt-5 text-2xl leading-10 text-white/82">{prompt.scenario}</p>
-      </div>
+      {prompt.type === "activity" ? (
+        <ActivityPromptLayout
+          prompt={prompt}
+          activityState={activityState}
+          onMoveCard={onMoveActivityCard}
+          onCheck={onCheckActivity}
+        />
+      ) : (
+        <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
+          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario prompt</div>
+          <h3 className="mt-3 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h3>
+          <p className="mt-5 text-2xl leading-10 text-white/82">{prompt.scenario}</p>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -238,6 +264,7 @@ export function PlayerPage() {
 
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
+  const isStrokeStation = station?.id === "stroke";
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
   const activeParticipant = useMemo(() => room?.players.find((player) => player.id === room.currentParticipantId), [room?.currentParticipantId, room?.players]);
@@ -400,13 +427,16 @@ export function PlayerPage() {
           <CountdownTimer endsAt={room.timerEndsAt} />
           <TrafficLightSignal value={room.trafficLight} />
 
-          {activePrompt && station && activeParticipant ? (
+          {activePrompt && station && (activeParticipant || isStrokeStation) ? (
             <ActivePromptView
               prompt={activePrompt}
               station={station}
               activeParticipant={activeParticipant}
               promptNumber={(room.activePromptIndex ?? 0) + 1}
               totalPrompts={station.prompts.length}
+              activityState={room.activityStates?.[activePrompt.id]}
+              onMoveActivityCard={(item, column) => send({ type: "update-activity-card", promptId: activePrompt.id, item, column })}
+              onCheckActivity={() => send({ type: "check-activity", promptId: activePrompt.id })}
             />
           ) : (
             <div className="rounded-md border border-amber/25 bg-amber/10 p-8 text-amber">
@@ -414,7 +444,9 @@ export function PlayerPage() {
               <div className="font-display text-3xl font-black uppercase text-white">Stand By</div>
               <p className="mt-3 text-white/70">
                 {station
-                  ? "The host will run the selection animation before the next prompt appears."
+                  ? isStrokeStation
+                    ? "The host will advance the Stroke activity when ready."
+                    : "The host will run the selection animation before the next prompt appears."
                   : "The host will select a competency station and start the session."}
               </p>
             </div>
@@ -435,7 +467,7 @@ export function PlayerPage() {
         players={room?.players ?? []}
         onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
       />
-      <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />
+      {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
     </section>
   );
 }
