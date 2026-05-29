@@ -110,120 +110,282 @@ const codeBluePrompts: CompetencyPrompt[] = [
 
 const hemodynamicsPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "hemodynamics-line-prep",
+    id: "hemodynamics-post-arrest-briefing",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "Post-Code Line Insertion Preparation",
+    title: "Post-Arrest Hemodynamic Briefing",
     scenario:
-      "Emma has persistent hypotension after the code with BP 79/50, HR 100, and SpO2 100%. The provider decides to insert an arterial line, PA catheter, and central line.",
+      "Host reads: Status post cardiac arrest due to pulseless VTACH, status post intubation, and the patient remains hypotensive with BP 80/50. The ICU team has decided there is an emergent need to insert a PA catheter and an arterial line, and possibly a CVC, to obtain intracardiac pressures to guide management of this critically ill patient.",
     instructions: [
-      "State what must be done before line insertion.",
-      "Verbalize supplies needed for invasive line setup.",
-      "Prepare for pressure tubing setup within the time limit."
+      "Listen to the clinical briefing.",
+      "State why invasive monitoring is needed.",
+      "Prepare to work in pairs for pressure tubing setup."
     ],
     expectedResponse:
-      "Obtain consent as appropriate, gather line insertion supplies, prepare pressure tubing and pressure bag, and be ready to assist with arterial line, PA catheter, and central line setup.",
+      "Recognize persistent post-arrest hypotension after pulseless VTACH and intubation. State that a PA catheter, arterial line, and possible CVC are being inserted emergently to obtain intracardiac pressures and guide management.",
     explanation:
-      "The document expects learners to verbalize needed supplies, set up pressure bags and pressure tubing, and understand preparation steps before invasive line monitoring.",
+      "This opening prompt sets the station context before the timed red/green light supply and setup sequence.",
     evaluationCriteria: [
-      "States consent or procedural readiness step.",
-      "Identifies arterial line, PA catheter, and central line setup needs.",
-      "Prepares pressure tubing and pressure bag.",
-      "Works within a 3-5 minute timed setup expectation."
+      "Identifies post-arrest pulseless VTACH and intubation history.",
+      "States current hypotension around BP 80/50.",
+      "Explains PA catheter and arterial line use for intracardiac pressures and critical management.",
+      "Understands that the team will proceed with emergent invasive line setup."
+    ]
+  }),
+  prompt({
+    id: "hemodynamics-red-green-pressure-tubing",
+    stationId: "hemodynamics",
+    type: "timed-emergency",
+    title: "Red/Green Light: Pressure Tubing Setup",
+    scenario:
+      "Four players continue to follow this patient. Pair up to gather supplies and set up pressure tubing for PA catheter and arterial line insertion. The host uses red light and green light cues to stop or move forward.",
+    instructions: [
+      "Pair up and gather supplies for PA catheter and arterial line pressure tubing.",
+      "Verbalize supplies as you gather them.",
+      "Move only when the host gives green light; pause when red light is shown."
+    ],
+    expectedResponse:
+      "Pairs gather and verbalize needed supplies for PA catheter and arterial line pressure tubing setup while following red/green light cues. They prepare pressure bags, pressure tubing, non-vented caps, flush setup, labels, and leveling/zeroing supplies.",
+    explanation:
+      "The station uses red/green light as an interactive pacing cue. The host can stop the team, verify setup, and then allow the next step.",
+    evaluationCriteria: [
+      "Pairs up and works as a team.",
+      "Verbalizes supplies needed for PA catheter and arterial line pressure tubing.",
+      "Responds appropriately to red light and green light cues.",
+      "Prepares pressure tubing setup efficiently within the timed station."
     ],
     timerSeconds: 300
   }),
   prompt({
-    id: "hemodynamics-pressure-tubing",
+    id: "hemodynamics-pressure-bag-quality-check",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "Pressure Tubing Setup",
-    scenario: "The learner must set up a pressure bag and pressure tubing for invasive hemodynamic monitoring.",
+    title: "Pressure Bag and Tubing Quality Check",
+    scenario: "Before the host gives green light, inspect the pressure tubing setup for required safety details.",
     instructions: [
-      "Set up the pressure tubing.",
-      "Inflate the pressure bag correctly.",
-      "Level and zero the system.",
-      "Identify missing or incorrect setup elements."
+      "Confirm pressure bags are inflated correctly.",
+      "Confirm caps, priming, bubble removal, and labels.",
+      "Correct any setup errors before moving forward."
     ],
     expectedResponse:
-      "Set up the pressure tubing, inflate the pressure bag to 300 mmHg, ensure all end caps are present, level to the phlebostatic axis, zero the system, label tubing, and correct setup errors before use.",
-    explanation:
-      "The document specifically names missing end cap, pressure bag not inflated to 300 mmHg, not leveled, and no labels as setup errors.",
+      "Pressure bags are inflated to 300 mmHg, all end caps are changed to non-vented caps, lines are primed with no bubbles, and tubing is properly labeled.",
+    explanation: "This is the required setup checkpoint before line insertion can proceed.",
     evaluationCriteria: [
       "Inflates pressure bag to 300 mmHg.",
-      "Verifies end caps are present.",
-      "Levels at the phlebostatic axis.",
-      "Zeros the line correctly.",
-      "Labels tubing appropriately."
+      "Changes all end caps to non-vented caps.",
+      "Primes lines completely with no bubbles.",
+      "Labels tubing appropriately.",
+      "Corrects issues before green light."
     ],
-    criticalActions: ["Does not use an unzeroed or incorrectly leveled line.", "Corrects missing end cap or underinflated pressure bag."]
+    criticalActions: ["Pressure bag is at 300 mmHg.", "No bubbles remain in primed lines.", "Non-vented caps are used."]
   }),
   prompt({
-    id: "hemodynamics-phlebostatic-axis",
+    id: "hemodynamics-level-zero-lines",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "Phlebostatic Axis",
-    scenario: "Multiple possible leveling marks are placed on the manikin, including incorrect options.",
+    title: "Level and Zero Lines",
+    scenario: "Use the leveler to level the lines and identify the mid-point of the AP chest wall against the stopcock before zeroing.",
     instructions: [
-      "Identify the correct phlebostatic axis.",
-      "Explain why incorrect leveling changes readings.",
-      "Re-level and zero the system."
+      "Use the leveler.",
+      "Identify the mid-point of the AP chest wall.",
+      "Level against the stopcock.",
+      "Zero the lines before proceeding."
     ],
     expectedResponse:
-      "Identify the phlebostatic axis at the fourth intercostal space, mid-axillary line, level the transducer there, and zero the system so pressure readings are accurate.",
-    explanation:
-      "The document instructs placing dots on the patient and asking learners to identify the correct phlebostatic axis.",
+      "Use the leveler to identify the mid-point of the AP chest wall, align against the stopcock, level the system, and zero the lines before use.",
+    explanation: "Accurate invasive pressures require proper leveling and zeroing before interpretation.",
     evaluationCriteria: [
-      "Identifies correct anatomical leveling location.",
-      "Explains that incorrect leveling causes inaccurate pressure readings.",
-      "Re-levels and zeros the system."
+      "Uses the leveler correctly.",
+      "Identifies mid-point of AP chest wall.",
+      "Levels against the stopcock.",
+      "Zeros lines before moving forward."
     ]
   }),
   prompt({
-    id: "hemodynamics-pa-waveform-troubleshooting",
-    stationId: "hemodynamics",
-    type: "troubleshooting",
-    title: "PA Catheter Waveform Change",
-    scenario: "During PA catheter insertion, the waveform changes and x-ray confirms position. The monitor shows an abnormal waveform.",
-    instructions: [
-      "Identify the possible waveform issue.",
-      "State immediate safety concerns.",
-      "Verbalize troubleshooting and escalation."
-    ],
-    expectedResponse:
-      "Recognize abnormal PA catheter waveforms such as wedging, ventricular waveform, VT, or flat line. Stop advancing if unsafe, assess the patient and waveform, notify provider, and troubleshoot connections, cables, leveling, and monitor setup.",
-    explanation:
-      "The document names PA lines waveform wedged, induced VT, flat line on PA catheter, waveform changes, and x-ray confirmation as station elements.",
-    evaluationCriteria: [
-      "Recognizes abnormal PA catheter waveform patterns.",
-      "Assesses patient stability and stops unsafe advancement.",
-      "Troubleshoots cables, monitor connection, leveling, and zeroing.",
-      "Escalates to provider when waveform or rhythm is unsafe."
-    ],
-    criticalActions: ["Responds to VT or flat line immediately.", "Does not ignore wedged PA waveform."]
-  }),
-  prompt({
-    id: "hemodynamics-hemosphere",
+    id: "hemodynamics-insertion-readiness",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "HemoSphere Setup",
-    scenario: "The learner must connect cables to the HemoSphere and troubleshoot why values are not uploading into Epic.",
+    title: "Insertion Readiness",
+    scenario:
+      "Once green light is received, the next step is insertion of the PA catheter. The team must gather supplies for PA catheter and arterial line insertion.",
     instructions: [
-      "Connect monitoring cables correctly.",
-      "Enter required patient information.",
-      "Explain why height and weight matter.",
-      "Troubleshoot missing Epic values."
+      "Gather supplies needed for PA catheter insertion.",
+      "Gather supplies needed for arterial line insertion.",
+      "Obtain consent if able.",
+      "Perform a time out before the procedure."
     ],
     expectedResponse:
-      "Connect the HemoSphere cables, confirm correct patient height and weight in the monitor, verify monitor and Epic integration, and troubleshoot missing values by checking connection, patient information, and device setup.",
-    explanation:
-      "The document specifically mentions bringing HemoSphere, information needed in HemoSphere, height and weight in monitor, and why values are not uploading into Epic.",
+      "Gather PA catheter, arterial line, and possible CVC insertion supplies; obtain consent if able; and perform a time out before the procedure.",
+    explanation: "The flow moves from setup to invasive insertion readiness only after the host gives green light.",
     evaluationCriteria: [
-      "Connects cables correctly.",
-      "Verifies required patient height and weight.",
-      "Recognizes missing or incorrect patient information can affect values.",
-      "Troubleshoots monitor-to-Epic upload issue."
+      "Identifies PA catheter supplies.",
+      "Identifies arterial line supplies.",
+      "Mentions possible CVC supplies if needed.",
+      "Obtains consent if able.",
+      "Performs time out."
+    ],
+    criticalActions: ["Performs time out before procedure."]
+  }),
+  prompt({
+    id: "hemodynamics-ra-cvp-waveform",
+    stationId: "hemodynamics",
+    type: "scenario-walkthrough",
+    title: "Right Atrium and CVP Waveform",
+    scenario:
+      "Prior to PA catheter insertion, each player is assigned and given a waveform to match a waveform in every chamber of the heart. As the catheter is inserted through the right IJ and passes into the right atrium at approximately 15 cm, you will see the CVP waveform and A, C, and V waves.",
+    instructions: [
+      "Match the CVP waveform.",
+      "Identify A, C, and V waves.",
+      "State the normal CVP for a healthy individual without valve dysfunction."
+    ],
+    expectedResponse:
+      "Match the CVP waveform in the right atrium. Identify A, C, and V waves. State that normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
+    explanation: "At about 15 cm in the right atrium, the PA catheter tracing shows CVP waveform characteristics.",
+    evaluationCriteria: [
+      "Matches the CVP waveform.",
+      "Identifies A, C, and V waves.",
+      "States normal CVP as 2-6 mmHg.",
+      "Accepts 0-8 mmHg as a stated variation."
     ]
+  }),
+  prompt({
+    id: "hemodynamics-a-wave-ekg",
+    stationId: "hemodynamics",
+    type: "verbal-response",
+    title: "A Wave and EKG Alignment",
+    scenario: "If the A wave stands for atrial contraction, where does it align with the EKG?",
+    instructions: ["Answer verbally.", "Connect atrial contraction to the EKG interval."],
+    expectedResponse: "The A wave aligns with the PR interval.",
+    explanation: "The A wave represents atrial contraction and aligns with the PR interval on the EKG.",
+    evaluationCriteria: ["States PR interval.", "Connects the A wave with atrial contraction."]
+  }),
+  prompt({
+    id: "hemodynamics-balloon-inflation",
+    stationId: "hemodynamics",
+    type: "scenario-walkthrough",
+    title: "Balloon Inflation at 15 cm",
+    scenario:
+      "At 15 cm, the advanced provider instructs you to inflate the balloon and lock it into place to help float the catheter through the different chambers of the heart.",
+    instructions: [
+      "State when the balloon is inflated.",
+      "State why the balloon is used.",
+      "Identify that this occurs under advanced provider direction."
+    ],
+    expectedResponse:
+      "At approximately 15 cm, under advanced provider instruction, inflate the balloon and lock it into place so it can float the catheter through the chambers of the heart.",
+    explanation: "The balloon assists catheter flotation during PA catheter insertion and should be inflated under provider direction.",
+    evaluationCriteria: [
+      "States balloon inflation occurs at approximately 15 cm.",
+      "States it is done under advanced provider direction.",
+      "Explains that balloon inflation helps float the catheter."
+    ]
+  }),
+  prompt({
+    id: "hemodynamics-rv-vtach-waveform",
+    stationId: "hemodynamics",
+    type: "troubleshooting",
+    title: "Tricuspid Valve to RV: Waveform Change",
+    scenario:
+      "As the catheter passes the tricuspid valve into the right ventricle, the team notices a pressure and waveform change. The waveform appears as VTACH. The player must match the waveform.",
+    instructions: [
+      "Recognize the rhythm or waveform change.",
+      "Match the VTACH waveform.",
+      "Pause for host red/green light feedback."
+    ],
+    expectedResponse:
+      "Recognize VTACH as the waveform/rhythm change as the catheter passes into the RV, match the correct waveform, and pause for red/green light feedback.",
+    explanation: "The script identifies VTACH as the expected answer during the RV waveform change checkpoint.",
+    evaluationCriteria: [
+      "Identifies VTACH.",
+      "Matches the correct waveform.",
+      "Recognizes this as a critical waveform change during catheter advancement."
+    ],
+    criticalActions: ["Identifies VTACH."]
+  }),
+  prompt({
+    id: "hemodynamics-rv-pressure",
+    stationId: "hemodynamics",
+    type: "verbal-response",
+    title: "RV Pressure",
+    scenario: "The catheter is in the right ventricle. What pressure pattern should the learner know for this station?",
+    instructions: ["Answer verbally.", "State the high systolic and low diastolic pressure pattern."],
+    expectedResponse:
+      "The RV has a high systolic pressure pattern. In this station, state approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
+    explanation: "The script gives the pressure range as 20-30 mmHg over 0-5 mmHg during the RV portion of the flow.",
+    evaluationCriteria: ["States high systolic pressure pattern.", "States 20-30 mmHg systolic.", "States 0-5 mmHg diastolic."]
+  }),
+  prompt({
+    id: "hemodynamics-pa-dicrotic-notch",
+    stationId: "hemodynamics",
+    type: "verbal-response",
+    title: "PA Waveform and Dicrotic Notch",
+    scenario:
+      "As the catheter continues to float from the RV into the PA through the pulmonic valve, the PA waveform appears with a dicrotic notch. What does the dicrotic notch represent?",
+    instructions: ["Answer verbally.", "Name the valve event represented by the dicrotic notch."],
+    expectedResponse: "The dicrotic notch represents closure of the pulmonic valve.",
+    explanation: "The PA waveform dicrotic notch corresponds with pulmonic valve closure.",
+    evaluationCriteria: ["States closure of the pulmonic valve.", "Identifies this finding on the PA waveform."]
+  }),
+  prompt({
+    id: "hemodynamics-wedge-balloon-deflation",
+    stationId: "hemodynamics",
+    type: "timed-emergency",
+    title: "Wedge Position and Balloon Deflation",
+    scenario:
+      "The catheter eventually wedges into a small vessel against the wall. Some will call this PCWP, PAOP, or LVEDP. The provider tells you to deflate the balloon.",
+    instructions: [
+      "Identify the wedge terminology.",
+      "State the immediate balloon action.",
+      "Explain why the balloon must be deflated."
+    ],
+    expectedResponse:
+      "Recognize the wedge position as PCWP, PAOP, or LVEDP. Deflate the balloon when instructed by the provider to prevent rupture.",
+    explanation: "Once wedged, prolonged balloon inflation can create risk of vessel rupture.",
+    evaluationCriteria: [
+      "Recognizes PCWP, PAOP, or LVEDP terminology.",
+      "States to deflate the balloon.",
+      "States balloon deflation prevents rupture."
+    ],
+    criticalActions: ["Deflates balloon when wedged.", "Recognizes rupture risk."],
+    timerSeconds: 60
+  }),
+  prompt({
+    id: "hemodynamics-secure-verify-troubleshoot",
+    stationId: "hemodynamics",
+    type: "practical-assessment",
+    title: "Secure, Verify, and Troubleshoot",
+    scenario:
+      "After placement, the provider ensures the catheter is locked in place. The sleeve cover protects the catheter, the dressing is dated, labeled, and initialed, CXR is obtained for line placement, and lines are leveled and zeroed.",
+    instructions: [
+      "State post-placement securement checks.",
+      "State verification steps.",
+      "Perform or verbalize square wave test.",
+      "Troubleshoot overdamped and underdamped waveforms."
+    ],
+    expectedResponse:
+      "Confirm catheter locked in place, sleeve cover protecting catheter, dressing dated/labeled/initialed, CXR for placement, lines leveled and zeroed, square wave test performed, and ability to troubleshoot overdamped and underdamped waveforms.",
+    explanation:
+      "Post-placement safety includes securement, labeling, x-ray verification, leveling/zeroing, square wave testing, and waveform troubleshooting.",
+    evaluationCriteria: [
+      "Confirms catheter lock and sleeve cover.",
+      "Confirms dressing dated, labeled, and initialed.",
+      "Mentions CXR for line placement.",
+      "Levels and zeroes lines.",
+      "Performs square wave test.",
+      "Troubleshoots overdamped and underdamped waveforms."
+    ]
+  }),
+  prompt({
+    id: "hemodynamics-hemosphere-continuous-monitoring",
+    stationId: "hemodynamics",
+    type: "practical-assessment",
+    title: "HemoSphere Continuous Monitoring",
+    scenario:
+      "The final step is HemoSphere setup. The learner is expected to connect cables to the HemoSphere and initiate continuous monitoring.",
+    instructions: ["Connect HemoSphere cables.", "Confirm the monitor is ready.", "Initiate continuous monitoring."],
+    expectedResponse: "Connect the required cables to the HemoSphere, verify the setup, and initiate continuous monitoring.",
+    explanation: "The script ends with HemoSphere cable connection and initiation of continuous monitoring.",
+    evaluationCriteria: ["Connects cables to HemoSphere.", "Verifies setup readiness.", "Initiates continuous monitoring."]
   })
 ];
 
@@ -913,9 +1075,9 @@ export const stations: CompetencyStation[] = [
     id: "hemodynamics",
     title: "Hemodynamics",
     shortTitle: "Hemodynamics",
-    description: "Arterial line, PA catheter, central line readiness, pressure tubing, leveling, zeroing, waveform troubleshooting, and HemoSphere setup.",
-    estimatedMinutes: 15,
-    competencyType: "Invasive monitoring checkoff",
+    description: "Post-arrest hypotension flow with red/green light pressure tubing setup, PA catheter waveform progression, wedge safety, square wave testing, and HemoSphere monitoring.",
+    estimatedMinutes: 20,
+    competencyType: "PA catheter and arterial line simulation",
     accent: "monitor",
     prompts: hemodynamicsPrompts
   },

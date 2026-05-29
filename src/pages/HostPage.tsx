@@ -109,6 +109,56 @@ function StatTile({ label, value, tone = "text-white" }: { label: string; value:
   );
 }
 
+function TrafficLightPanel({
+  value,
+  onSet
+}: {
+  value: "red" | "green" | null;
+  onSet: (value: "red" | "green" | null) => void;
+}) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/35 p-4">
+      <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Red / Green Light</div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() => onSet("red")}
+          className={`rounded-md border px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] transition ${
+            value === "red" ? "border-trauma/70 bg-trauma/25 text-white shadow-alert" : "border-white/10 bg-white/[0.04] text-trauma hover:bg-trauma/10"
+          }`}
+        >
+          Red
+        </button>
+        <button
+          type="button"
+          onClick={() => onSet("green")}
+          className={`rounded-md border px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] transition ${
+            value === "green" ? "border-scrub/70 bg-scrub/25 text-white shadow-scrub" : "border-white/10 bg-white/[0.04] text-scrub hover:bg-scrub/10"
+          }`}
+        >
+          Green
+        </button>
+        <button
+          type="button"
+          onClick={() => onSet(null)}
+          className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] text-white/55 transition hover:bg-white/10"
+        >
+          Clear
+        </button>
+      </div>
+      <div className={`mt-3 rounded-md border px-3 py-2 text-center font-display text-sm font-black uppercase tracking-[0.18em] ${
+        value === "red"
+          ? "border-trauma/45 bg-trauma/15 text-trauma"
+          : value === "green"
+            ? "border-scrub/45 bg-scrub/15 text-scrub"
+            : "border-white/10 bg-white/[0.03] text-white/35"
+      }`}>
+        {value === "red" ? "Stop movement" : value === "green" ? "Proceed" : "No signal"}
+      </div>
+    </div>
+  );
+}
+
 function ParticipantCard({
   player,
   active,
@@ -524,6 +574,8 @@ export function HostPage() {
                 Reset
               </AnimatedButton>
             </div>
+
+            <TrafficLightPanel value={room.trafficLight} onSet={(light) => send({ type: "set-traffic-light", light })} />
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">

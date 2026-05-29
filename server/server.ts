@@ -55,6 +55,7 @@ type RoomState = {
   selectedStation: unknown | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
+  trafficLight: "red" | "green" | null;
   liveAnswer: { playerId: string; answer: string; submittedAt: string; responseTimeMs?: number } | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
@@ -108,6 +109,7 @@ function createInitialRoom(code: string): RoomState {
     selectedStation: null,
     activePromptIndex: 0,
     timerEndsAt: null,
+    trafficLight: null,
     liveAnswer: null,
     players: [],
     evaluations: {},
@@ -454,6 +456,7 @@ function movePrompt(room: RoomState, nextIndex: number) {
   room.activePromptIndex = Math.max(0, Math.min(prompts.length - 1, nextIndex));
   room.liveAnswer = null;
   room.timerEndsAt = null;
+  room.trafficLight = null;
   return previousIndex !== room.activePromptIndex;
 }
 
@@ -552,6 +555,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
       room.protocolIntroStartedAt = null;
       room.selection = null;
+      room.trafficLight = null;
       broadcastState(room.code);
       break;
     }
@@ -623,6 +627,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.selectedStation = message.station ?? null;
       room.activePromptIndex = 0;
       room.timerEndsAt = null;
+      room.trafficLight = null;
       room.liveAnswer = null;
       room.evaluations = {};
       room.currentParticipantId = null;
@@ -668,6 +673,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
+    case "set-traffic-light": {
+      if (client.role !== "host") return;
+      room.trafficLight = message.light === "red" || message.light === "green" ? message.light : null;
+      broadcastState(room.code);
+      break;
+    }
     case "submit-answer": {
       if (client.role !== "player") return;
       room.liveAnswer = {
@@ -697,6 +708,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.status = "ended";
       room.endedAt = new Date().toISOString();
       room.timerEndsAt = null;
+      room.trafficLight = null;
       recalculateStats(room);
       saveRoomResult(room).catch((error) => {
         console.error("Could not save room result", error);

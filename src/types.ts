@@ -118,6 +118,7 @@ export type RoomState = {
   selectedStation: CompetencyStation | PlayerStation | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
+  trafficLight: "red" | "green" | null;
   liveAnswer: LiveAnswer | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
@@ -161,6 +162,7 @@ export type ClientMessage =
   | { type: "previous-prompt" }
   | { type: "start-timer"; seconds: number }
   | { type: "reset-timer" }
+  | { type: "set-traffic-light"; light: "red" | "green" | null }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
   | { type: "evaluate-prompt"; promptId: string; playerId?: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }

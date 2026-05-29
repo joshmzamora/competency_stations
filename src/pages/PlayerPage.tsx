@@ -66,6 +66,33 @@ function StatTile({ label, value, tone = "text-white" }: { label: string; value:
   );
 }
 
+function TrafficLightSignal({ value }: { value: "red" | "green" | null }) {
+  if (!value) return null;
+
+  const isGreen = value === "green";
+  return (
+    <motion.div
+      key={value}
+      initial={{ opacity: 0, scale: 0.96, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.22 }}
+      className={`rounded-md border p-5 text-center ${
+        isGreen
+          ? "border-scrub/60 bg-scrub/15 shadow-[0_0_48px_rgba(34,245,199,0.16)]"
+          : "border-trauma/60 bg-trauma/15 shadow-[0_0_48px_rgba(255,48,77,0.18)]"
+      }`}
+    >
+      <div className={`mx-auto h-16 w-16 rounded-full border-4 ${isGreen ? "border-scrub bg-scrub shadow-scrub" : "border-trauma bg-trauma shadow-alert"}`} />
+      <div className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-6xl">
+        {isGreen ? "Green Light" : "Red Light"}
+      </div>
+      <div className={`mt-2 font-display text-sm font-bold uppercase tracking-[0.22em] ${isGreen ? "text-scrub" : "text-trauma"}`}>
+        {isGreen ? "Proceed to the next setup step" : "Pause movement and wait for host"}
+      </div>
+    </motion.div>
+  );
+}
+
 function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[]; activeId?: string | null }) {
   if (players.length === 0) return null;
   const totalCompleted = players.reduce((sum, player) => sum + player.evaluatedTurns, 0);
@@ -371,6 +398,7 @@ export function PlayerPage() {
           </div>
 
           <CountdownTimer endsAt={room.timerEndsAt} />
+          <TrafficLightSignal value={room.trafficLight} />
 
           {activePrompt && station && activeParticipant ? (
             <ActivePromptView
