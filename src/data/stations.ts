@@ -14,7 +14,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     type: "timed-emergency",
     title: "Unstable Atrial Fibrillation",
     scenario:
-      "Emma is pale, cool, mildly diaphoretic, anxious, and in atrial fibrillation with HR 160, BP 78/50, RR 26, and SpO2 on 2 L nasal cannula. The team must respond to unstable atrial fibrillation.",
+      "Emma is pale, cool, mildly diaphoretic, anxious, and in atrial fibrillation with HR 160, BP 78/50, RR 26, and SpO2 on 2 L nasal cannula. What rhythm and instability do you recognize, and what cardioversion preparation is required?",
     instructions: [
       "Recognize the rhythm and hemodynamic instability.",
       "Prepare for synchronized cardioversion.",
@@ -39,7 +39,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     stationId: "code-blue",
     type: "timed-emergency",
     title: "Pulseless Ventricular Tachycardia",
-    scenario: "Emma becomes unresponsive and the rhythm changes to pulseless ventricular tachycardia.",
+    scenario: "Emma becomes unresponsive and the rhythm changes to pulseless ventricular tachycardia. What are your immediate assessment, CPR, ventilation, defibrillation, and medication actions?",
     instructions: [
       "Assess pulse and breathing.",
       "Start CPR immediately if pulseless.",
@@ -61,11 +61,59 @@ const codeBluePrompts: CompetencyPrompt[] = [
     timerSeconds: 120
   }),
   prompt({
+    id: "code-blue-shock-sequence",
+    stationId: "code-blue",
+    type: "verbal-response",
+    title: "Defibrillation and CPR Sequence",
+    scenario: "Emma is in pulseless VTACH. What defibrillation energy sequence and CPR timing are listed in the scenario?",
+    instructions: [
+      "Start at first shock.",
+      "Include CPR timing.",
+      "State the second and third shock energies."
+    ],
+    expectedResponse:
+      "Defibrillate at 120 J, resume CPR for 2 minutes, repeat defibrillation at 150 J, continue CPR, then defibrillate at 200 J.",
+    explanation:
+      "The DOCX gives a staged defibrillation sequence of 120 J, CPR for 2 minutes, 150 J, then 200 J.",
+    evaluationCriteria: [
+      "States first defibrillation at 120 J.",
+      "States CPR for 2 minutes.",
+      "States repeat defibrillation at 150 J.",
+      "States defibrillation at 200 J."
+    ],
+    criticalActions: ["Does not delay CPR between shocks."]
+  }),
+  prompt({
+    id: "code-blue-shockable-rhythm-meds",
+    stationId: "code-blue",
+    type: "verbal-response",
+    title: "Shockable Rhythm Medications",
+    scenario:
+      "During the pulseless VTACH algorithm, what medications, timing, and doses are expected in this station?",
+    instructions: [
+      "State when epinephrine is given.",
+      "State epinephrine dose and interval.",
+      "State amiodarone or lidocaine options."
+    ],
+    expectedResponse:
+      "Administer epinephrine 1 mg every 3-5 minutes only after the second shock. Administer amiodarone 300 mg then 150 mg, or lidocaine 1-1.5 mg/kg followed by 0.5-0.75 mg/kg.",
+    explanation:
+      "The DOCX specifies epinephrine only after the second shock and gives amiodarone and lidocaine dosing options.",
+    evaluationCriteria: [
+      "States epinephrine 1 mg.",
+      "States every 3-5 minutes.",
+      "States epinephrine is given only after the second shock.",
+      "States amiodarone 300 mg then 150 mg.",
+      "States lidocaine 1-1.5 mg/kg then 0.5-0.75 mg/kg as an option."
+    ],
+    criticalActions: ["Does not give epinephrine before the second shock."]
+  }),
+  prompt({
     id: "code-blue-reversible-causes",
     stationId: "code-blue",
     type: "verbal-response",
     title: "Reversible Causes",
-    scenario: "During the code, the team leader asks for reversible causes to consider.",
+    scenario: "During the code, what H's and T's should the team consider as reversible causes?",
     instructions: [
       "Name the H's and T's from memory.",
       "Prioritize causes relevant to Emma's clinical picture.",
@@ -86,7 +134,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     stationId: "code-blue",
     type: "timed-emergency",
     title: "ROSC With Symptomatic Bradycardia",
-    scenario: "After ROSC, Emma has HR 42, BP 80/50, SpO2 99%, RR 12, and an ETT in place with 100% FiO2.",
+    scenario: "After ROSC, Emma has HR 42, BP 80/50, SpO2 99%, RR 12, and an ETT in place with 100% FiO2. What first-line medication, dose, repeat interval, maximum dose, and next escalation are expected?",
     instructions: [
       "Recognize symptomatic bradycardia after ROSC.",
       "Select the appropriate first-line medication and dose.",
@@ -105,6 +153,54 @@ const codeBluePrompts: CompetencyPrompt[] = [
     ],
     criticalActions: ["Does not choose incorrect medication or incorrect dose.", "Escalates to pacing."],
     timerSeconds: 90
+  }),
+  prompt({
+    id: "code-blue-transcutaneous-pacing",
+    stationId: "code-blue",
+    type: "practical-assessment",
+    title: "Transcutaneous Pacing",
+    scenario:
+      "Emma remains symptomatically bradycardic after ROSC. What transcutaneous pacing setup must you verbalize on the Zoll?",
+    instructions: [
+      "Recognize the need for transcutaneous pacemaker.",
+      "Select output and rate.",
+      "Verbalize 100% capture.",
+      "Explain the 4:1 button on the Zoll machine."
+    ],
+    expectedResponse:
+      "Recognize the need for transcutaneous pacing. Select the output in milliamps and the rate, verbalize 100% capture, and be knowledgeable about the 4:1 button on the Zoll machine.",
+    explanation:
+      "The DOCX specifically expects learners to recognize TCP need, select output and rate, verbalize 100% capture, and know the 4:1 button.",
+    evaluationCriteria: [
+      "Recognizes need for transcutaneous pacing.",
+      "Selects output in mA.",
+      "Selects pacing rate.",
+      "Verbalizes 100% capture.",
+      "Explains or identifies the 4:1 Zoll function."
+    ],
+    criticalActions: ["Recognizes pacing need.", "Confirms capture."]
+  }),
+  prompt({
+    id: "code-blue-bradycardia-infusion-options",
+    stationId: "code-blue",
+    type: "verbal-response",
+    title: "Additional Bradycardia Medical Management",
+    scenario:
+      "What other medical management may be used for symptomatic bradycardia after atropine and while preparing pacing?",
+    instructions: [
+      "State epinephrine infusion dose range.",
+      "State dopamine infusion dose range.",
+      "Connect both options to symptomatic bradycardia management."
+    ],
+    expectedResponse:
+      "Additional medical management for symptomatic bradycardia includes epinephrine infusion at 2-10 mcg/min and dopamine infusion at 5-20 mcg/kg/min.",
+    explanation:
+      "The DOCX lists epinephrine 2-10 mcg/min and dopamine 5-20 mcg/kg/min as other medical management for symptomatic bradycardia.",
+    evaluationCriteria: [
+      "States epinephrine infusion 2-10 mcg/min.",
+      "States dopamine infusion 5-20 mcg/kg/min.",
+      "Identifies these as symptomatic bradycardia management options."
+    ]
   })
 ];
 
@@ -789,129 +885,176 @@ const codeBertPrompts: CompetencyPrompt[] = [
 
 const strokePrompts: CompetencyPrompt[] = [
   prompt({
-    id: "stroke-recognition-code-cva",
-    stationId: "stroke",
-    type: "timed-emergency",
-    title: "Stroke Recognition and Code CVA",
-    scenario:
-      "Emma develops arm weakness, speech difficulty, headache, BP 195/100, HR 90, and SpO2 96%. Repeat vital signs show BP 190/102, HR 90, and SpO2 93%.",
-    instructions: [
-      "Perform BEFAST screening.",
-      "Recognize stroke symptoms.",
-      "Call Code CVA.",
-      "State immediate priorities."
-    ],
-    expectedResponse:
-      "Use BEFAST to recognize balance, eyes, face, arm, speech, and time concerns. Identify arm weakness, speech difficulty, and headache as stroke symptoms. Call Code CVA, obtain vital signs, perform neuro assessment, verify last-known-well, and prepare for imaging and telestroke workflow.",
-    explanation:
-      "The document lists arm weakness, speech difficulty, headache, BEFAST, Code CVA, and telestroke elements.",
-    evaluationCriteria: [
-      "Uses BEFAST appropriately.",
-      "Recognizes arm weakness and speech difficulty as stroke symptoms.",
-      "Calls Code CVA promptly.",
-      "Verbalizes last-known-well and urgent imaging priorities."
-    ],
-    criticalActions: ["Calls Code CVA.", "Does not delay stroke response."],
-    timerSeconds: 90
-  }),
-  prompt({
-    id: "stroke-tnk-prep",
-    stationId: "stroke",
-    type: "practical-assessment",
-    title: "Tenecteplase Preparation",
-    scenario: "CT is negative for bleed and the team prepares for Tenecteplase.",
-    instructions: [
-      "Confirm order and patient identity.",
-      "Verify patient weight.",
-      "Calculate and prepare the dose.",
-      "Demonstrate mixing technique."
-    ],
-    expectedResponse:
-      "Confirm the Tenecteplase order in the EMR, verify patient weight, identify the patient using appropriate identifiers, calculate total dose as 0.25 mg/kg with max dose 25 mg, withdraw 10 mL sterile water, inject into vial, gently swirl until dissolved, do not shake, withdraw the total dose, and leave waste in the vial.",
-    explanation:
-      "The DOCX includes a detailed Tenecteplase checklist with order confirmation, weight, identifiers, dose formula, max dose, and mixing instructions.",
-    evaluationCriteria: [
-      "Confirms order in EMR.",
-      "Verifies correct patient weight.",
-      "Uses patient identifiers.",
-      "States dose 0.25 mg/kg and max 25 mg.",
-      "Gently swirls and does not shake.",
-      "Leaves waste in vial."
-    ],
-    criticalActions: ["Verifies weight before dosing.", "Does not exceed max dose.", "Does not shake vial."]
-  }),
-  prompt({
-    id: "stroke-bp-neuro-checks",
+    id: "stroke-pre-tenecteplase-bp-limit",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Blood Pressure and Neuro Check Timing",
-    scenario: "The learner must verbalize required BP limits and neuro check timing before and after Tenecteplase.",
+    title: "Pre-Tenecteplase Blood Pressure",
+    scenario: "What is the upper limit of blood pressure allowed prior to Tenecteplase administration?",
     instructions: [
-      "State BP limit prior to Tenecteplase.",
-      "State BP limit after Tenecteplase.",
-      "Verbalize post-Tenecteplase neuro check timing.",
-      "State when full NIHSS is due."
+      "Answer verbally.",
+      "State both the systolic and diastolic limit."
     ],
     expectedResponse:
-      "BP must be less than 185/110 before Tenecteplase push and less than 180/105 after administration. Neuro checks are every 15 minutes for the first 2 hours, every 30 minutes for the next 6 hours, every hour for the next 16 hours, and full NIHSS at 24 hours post-Tenecteplase.",
+      "Blood pressure must be less than 185/110 mmHg before Tenecteplase can be administered.",
     explanation:
-      "The DOCX checklist provides specific BP thresholds and neuro check intervals using HMSCS or NIHSS.",
+      "Tenecteplase should not be administered until blood pressure is below the pre-treatment threshold.",
     evaluationCriteria: [
-      "States pre-Tenecteplase BP must be less than 185/110.",
-      "States post-Tenecteplase BP must be less than 180/105.",
-      "States every 15 minutes for 2 hours.",
-      "States every 30 minutes for 6 hours.",
-      "States every hour for 16 hours and NIHSS at 24 hours."
+      "States blood pressure must be less than 185/110 mmHg.",
+      "Recognizes this limit applies before Tenecteplase administration."
+    ],
+    criticalActions: ["Does not administer Tenecteplase above the pre-treatment BP limit."]
+  }),
+  prompt({
+    id: "stroke-post-tenecteplase-bp-limit",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "Post-Tenecteplase Blood Pressure",
+    scenario: "What is the upper limit of blood pressure allowed after Tenecteplase administration?",
+    instructions: [
+      "Answer verbally.",
+      "State both the systolic and diastolic limit."
+    ],
+    expectedResponse:
+      "Blood pressure must remain less than 180/105 mmHg after Tenecteplase administration.",
+    explanation:
+      "Post-Tenecteplase blood pressure must remain below the stricter post-treatment threshold.",
+    evaluationCriteria: [
+      "States blood pressure must remain less than 180/105 mmHg.",
+      "Recognizes this limit applies after Tenecteplase administration."
+    ],
+    criticalActions: ["Escalates post-treatment BP above threshold."]
+  }),
+  prompt({
+    id: "stroke-vital-signs-neuro-assessment-frequency",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "Vitals and Neuro Assessment Frequency",
+    scenario: "How often should vital signs and neurological assessments be completed following Tenecteplase administration?",
+    instructions: [
+      "Answer verbally.",
+      "Include the pre-administration check.",
+      "State all post-administration intervals.",
+      "State the 24-hour NIHSS requirement."
+    ],
+    expectedResponse:
+      "Complete vital signs and neurological assessment once within 15 minutes prior to administration, every 15 minutes for the first 2 hours, every 30 minutes for the next 6 hours, and every 1 hour for the next 16 hours for 24 hours total. A full NIHSS must be completed 24 hours after Tenecteplase initiation and documented in the EMR.",
+    explanation:
+      "The post-Tenecteplase monitoring schedule covers 24 hours and includes a full NIHSS at the 24-hour mark.",
+    evaluationCriteria: [
+      "States assessment once within 15 minutes prior to administration.",
+      "States every 15 minutes for the first 2 hours.",
+      "States every 30 minutes for the next 6 hours.",
+      "States every 1 hour for the next 16 hours.",
+      "States 24 hours total monitoring.",
+      "States full NIHSS at 24 hours after Tenecteplase initiation.",
+      "States documentation in the EMR."
+    ],
+    criticalActions: ["Does not miss the 24-hour NIHSS requirement."]
+  }),
+  prompt({
+    id: "stroke-tenecteplase-adverse-reactions",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "Adverse Reaction Monitoring",
+    scenario: "What adverse reactions should be monitored for following Tenecteplase administration?",
+    instructions: [
+      "Answer verbally.",
+      "Name the major adverse reactions."
+    ],
+    expectedResponse:
+      "Monitor for bleeding, neurological changes, angioedema, and anaphylaxis.",
+    explanation:
+      "These are the priority complications to monitor for after Tenecteplase administration.",
+    evaluationCriteria: [
+      "Names bleeding.",
+      "Names neurological changes.",
+      "Names angioedema.",
+      "Names anaphylaxis."
+    ],
+    criticalActions: ["Recognizes neurological change or bleeding as urgent."]
+  }),
+  prompt({
+    id: "stroke-rn-transfer-requirement",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "RN Transfer Requirement",
+    scenario: "Who must accompany a patient during transfers or location changes after receiving Tenecteplase?",
+    instructions: [
+      "Answer verbally.",
+      "State the required timeframe."
+    ],
+    expectedResponse:
+      "An RN must accompany the patient on any transfer or location change for 24 hours following Tenecteplase administration.",
+    explanation:
+      "For the first 24 hours after Tenecteplase, the patient requires RN accompaniment for transfers or location changes.",
+    evaluationCriteria: [
+      "States an RN must accompany the patient.",
+      "Applies this to any transfer or location change.",
+      "States the requirement lasts for 24 hours after Tenecteplase."
+    ],
+    criticalActions: ["Does not allow transfer without RN accompaniment during the 24-hour period."]
+  }),
+  prompt({
+    id: "stroke-education-documentation",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "Stroke Education and Documentation",
+    scenario: "What education and documentation is required for stroke patients?",
+    instructions: [
+      "Answer verbally.",
+      "Include education, care plan, and patient-specific risk factors."
+    ],
+    expectedResponse:
+      "Document individualized stroke education and the plan of care, including the patient's personal stroke risk factors.",
+    explanation:
+      "Stroke education and care planning should be individualized and documented with patient-specific risk factors.",
+    evaluationCriteria: [
+      "States individualized stroke education must be documented.",
+      "States the plan of care must be documented.",
+      "Includes the patient's personal stroke risk factors."
     ]
   }),
   prompt({
-    id: "stroke-administration-monitoring",
-    stationId: "stroke",
-    type: "scenario-walkthrough",
-    title: "Tenecteplase Administration and Monitoring",
-    scenario: "The dose is ready and the learner must describe safe administration and post-dose monitoring.",
-    instructions: [
-      "Describe medication scanning and co-sign workflow.",
-      "State IV compatibility and flushes.",
-      "State push time.",
-      "Name adverse reactions and escalation."
-    ],
-    expectedResponse:
-      "With the MAR open, scan the patient armband, obtain required co-sign, scan the Tenecteplase bottle, flush IV with normal saline because Tenecteplase is not compatible with dextrose, push over 5 seconds, flush with normal saline, monitor for bleeding, neurological change, angioedema, anaphylaxis, notify provider, document notification, and obtain non-contrast CT for worsening neurological condition.",
-    explanation:
-      "The DOCX gives specific administration steps and adverse-reaction monitoring requirements.",
-    evaluationCriteria: [
-      "Uses MAR, armband scan, drug scan, and co-sign.",
-      "Uses normal saline flush and avoids dextrose.",
-      "Pushes Tenecteplase over 5 seconds.",
-      "Monitors for bleeding and neurological changes.",
-      "Escalates worsening neuro condition and anticipates non-contrast CT."
-    ],
-    criticalActions: ["Uses normal saline flush.", "Recognizes worsening neuro condition as urgent."]
-  }),
-  prompt({
-    id: "stroke-post-tnk-restrictions",
+    id: "stroke-dysphagia-before-po",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Post-Tenecteplase Restrictions",
-    scenario: "The learner must state care restrictions and required follow-up for the first 24 hours after Tenecteplase.",
+    title: "Dysphagia Screen Before PO",
+    scenario: "What must be completed before giving a stroke patient anything by mouth?",
     instructions: [
-      "State transfer requirement.",
-      "State imaging follow-up.",
-      "State dysphagia screen requirement.",
-      "State medication/procedure restrictions."
+      "Answer verbally.",
+      "Apply this to food, fluids, and oral medications."
     ],
     expectedResponse:
-      "An RN accompanies the patient on any transfer or location change for 24 hours. CT/MRI is completed at 24 hours. Perform and document dysphagia screen before anything by mouth. Do not administer antithrombotic medications until 24 hours after Tenecteplase. Avoid blood thinners, NGT, Foley, and procedures for 24 hours as directed by protocol.",
+      "A dysphagia screen must be completed before administering food, fluids, or oral medications.",
     explanation:
-      "The DOCX includes RN transfer accompaniment, 24-hour CT/MRI, dysphagia screening, education/care plan, and post-TNK restrictions.",
+      "Stroke patients must be screened for swallowing safety before anything is given by mouth.",
     evaluationCriteria: [
-      "States RN accompanies transfers for 24 hours.",
-      "States 24-hour CT/MRI follow-up.",
-      "Performs dysphagia screen before oral intake.",
-      "Avoids antithrombotic medications for 24 hours.",
-      "Mentions individualized education, risk factors, and care plan."
-    ]
+      "States dysphagia screen must be completed.",
+      "States this must occur before food.",
+      "States this must occur before fluids.",
+      "States this must occur before oral medications."
+    ],
+    criticalActions: ["Does not give anything by mouth before dysphagia screening."]
+  }),
+  prompt({
+    id: "stroke-antithrombotic-timing",
+    stationId: "stroke",
+    type: "verbal-response",
+    title: "Antithrombotic Timing",
+    scenario: "When can antithrombotic medications be administered after Tenecteplase administration?",
+    instructions: [
+      "Answer verbally.",
+      "State the minimum time after Tenecteplase."
+    ],
+    expectedResponse:
+      "Do not administer antithrombotic medications until 24 hours after Tenecteplase administration.",
+    explanation:
+      "Antithrombotic medications are held until 24 hours after Tenecteplase administration.",
+    evaluationCriteria: [
+      "States antithrombotic medications are not administered until 24 hours after Tenecteplase.",
+      "Recognizes the restriction applies after Tenecteplase administration."
+    ],
+    criticalActions: ["Does not administer antithrombotics before 24 hours."]
   })
 ];
 
