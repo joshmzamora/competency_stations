@@ -1,22 +1,22 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, ShieldCheck, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square"];
-const totalDurationMs = 8200;
+const totalDurationMs = 22000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.46;
-const fadeOutMs = 1400;
+const fadeOutMs = 2200;
+const openingMs = 2600;
+const closingMs = 1600;
 
-type PhaseName = "shuffle" | "reveal";
-
-function phaseForElapsed(elapsed: number): PhaseName {
-  return elapsed < 2400 ? "shuffle" : "reveal";
+function segmentMs(playerCount: number) {
+  return Math.max(2600, (totalDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
 }
 
-function revealAt(index: number) {
-  return 2850 + index * 620;
+function revealAt(index: number, playerCount: number) {
+  return openingMs + index * segmentMs(playerCount);
 }
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
@@ -50,11 +50,11 @@ function shapeColor(shape: PlayerShape) {
 }
 
 function shapeRing(shape?: PlayerShape) {
-  if (shape === "triangle") return "border-trauma/70 shadow-[0_0_42px_rgba(255,48,77,0.28)]";
-  if (shape === "star") return "border-amber/70 shadow-[0_0_42px_rgba(255,176,32,0.24)]";
-  if (shape === "umbrella") return "border-white/40 shadow-[0_0_42px_rgba(255,255,255,0.14)]";
-  if (shape === "circle") return "border-scrub/65 shadow-[0_0_42px_rgba(36,245,199,0.22)]";
-  if (shape === "square") return "border-monitor/65 shadow-[0_0_42px_rgba(110,247,255,0.2)]";
+  if (shape === "triangle") return "border-trauma/70 shadow-[0_0_70px_rgba(255,48,77,0.28)]";
+  if (shape === "star") return "border-amber/70 shadow-[0_0_70px_rgba(255,176,32,0.24)]";
+  if (shape === "umbrella") return "border-white/45 shadow-[0_0_70px_rgba(255,255,255,0.14)]";
+  if (shape === "circle") return "border-scrub/65 shadow-[0_0_70px_rgba(36,245,199,0.22)]";
+  if (shape === "square") return "border-monitor/65 shadow-[0_0_70px_rgba(110,247,255,0.2)]";
   return "border-white/10";
 }
 
@@ -63,35 +63,73 @@ function publicName(name: string) {
   return match?.[1] || name;
 }
 
-function IdentityCard({ player, index, elapsed }: { player: PlayerState; index: number; elapsed: number }) {
-  const isRevealed = elapsed >= revealAt(index);
-  const placeholderShape = ALL_SHAPES[Math.floor((elapsed / 120 + index) % ALL_SHAPES.length)];
-  const shape = player.shape ?? placeholderShape;
+function activeIndexForElapsed(elapsed: number, playerCount: number) {
+  if (elapsed < openingMs || playerCount === 0) return -1;
+  return Math.min(playerCount - 1, Math.floor((elapsed - openingMs) / segmentMs(playerCount)));
+}
+
+function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[]; activeIndex: number; elapsed: number }) {
+  return (
+    <div className="mx-auto grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      {players.map((player, index) => {
+        const revealed = elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34;
+        const active = index === activeIndex;
+        const shape = player.shape;
+        return (
+          <motion.div
+            key={player.id}
+            animate={{ opacity: active || revealed ? 1 : 0.38, y: active ? -4 : 0 }}
+            className={`rounded-md border bg-black/35 px-3 py-2 ${active ? shapeRing(shape) : "border-white/10"}`}
+          >
+            <div className="flex items-center gap-2">
+              {shape && <ShapeIcon shape={shape} className={`h-5 w-5 ${revealed ? shapeColor(shape) : "text-white/25"}`} />}
+              <div className="min-w-0">
+                <div className="truncate font-display text-xs font-black uppercase text-white">{publicName(player.name)}</div>
+                <div className={`font-display text-[9px] font-bold uppercase tracking-[0.16em] ${revealed && shape ? shapeColor(shape) : "text-white/28"}`}>
+                  {revealed ? shape ?? "pending" : active ? "revealing" : "stand by"}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FeaturedReveal({ player, index, elapsed, playerCount }: { player: PlayerState; index: number; elapsed: number; playerCount: number }) {
+  const shape = player.shape;
+  const localElapsed = Math.max(0, elapsed - revealAt(index, playerCount));
+  const revealShape = localElapsed >= segmentMs(playerCount) * 0.34;
+  const cyclingShape = ALL_SHAPES[Math.floor(elapsed / 110) % ALL_SHAPES.length];
+  const displayedShape = revealShape && shape ? shape : cyclingShape;
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 24, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: isRevealed ? 1 : 0.96 }}
-      transition={{ delay: index * 0.05, duration: 0.32, ease: "easeOut" }}
-      className={`relative min-h-[188px] overflow-hidden rounded-md border bg-[#07090d] p-4 text-center ${isRevealed ? shapeRing(player.shape) : "border-white/10"}`}
+      key={player.id}
+      initial={{ opacity: 0, scale: 0.92, y: 28 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 1.04, y: -24 }}
+      transition={{ duration: 0.48, ease: "easeOut" }}
+      className="grid w-full max-w-4xl justify-items-center text-center"
     >
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-trauma/70 to-transparent" />
-      <div className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-white/32">Participant {index + 1}</div>
-      <div className="mt-2 truncate font-display text-2xl font-black uppercase text-white">{publicName(player.name)}</div>
+      <div className="font-display text-xs font-bold uppercase tracking-[0.34em] text-trauma">Participant {index + 1}</div>
+      <h3 className="mt-3 font-display text-6xl font-black uppercase leading-none text-white md:text-8xl">{publicName(player.name)}</h3>
 
       <motion.div
-        key={`${player.id}-${isRevealed ? player.shape : placeholderShape}`}
-        initial={{ scale: 0.65, rotate: -10, opacity: 0 }}
-        animate={{ scale: isRevealed ? 1 : 0.86, rotate: 0, opacity: isRevealed ? 1 : 0.28 }}
-        transition={{ type: "spring", stiffness: 320, damping: 20 }}
-        className={`mx-auto mt-6 flex justify-center ${isRevealed && player.shape ? shapeColor(player.shape) : "text-white/22"}`}
+        key={revealShape ? `${player.id}-${shape}` : displayedShape}
+        initial={{ scale: 0.72, rotate: -18, opacity: 0 }}
+        animate={{ scale: revealShape ? 1 : 0.82, rotate: revealShape ? 0 : [0, 8, -8, 0], opacity: revealShape ? 1 : 0.38 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        className={`mt-10 grid h-56 w-56 place-items-center rounded-md border bg-black/45 md:h-72 md:w-72 ${
+          revealShape ? shapeRing(shape) : "border-white/10"
+        }`}
       >
-        <ShapeIcon shape={shape} className="h-20 w-20" />
+        <ShapeIcon shape={displayedShape} className={`h-32 w-32 md:h-44 md:w-44 ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
       </motion.div>
 
-      <div className={`mt-4 font-display text-base font-black uppercase tracking-[0.22em] ${isRevealed && player.shape ? shapeColor(player.shape) : "text-white/20"}`}>
-        {isRevealed ? player.shape ?? "pending" : "assigning"}
+      <div className={`mt-8 font-display text-4xl font-black uppercase tracking-[0.24em] md:text-5xl ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
+        {revealShape ? shape ?? "pending" : "assigning"}
       </div>
     </motion.div>
   );
@@ -166,10 +204,14 @@ export function ProtocolIntro({
     };
   }, [open, startedAt]);
 
-  const phase = phaseForElapsed(elapsed);
   const progress = Math.min(100, (elapsed / totalDurationMs) * 100);
-  const cyclingShape = ALL_SHAPES[Math.floor(elapsed / 105) % ALL_SHAPES.length];
-  const revealedCount = useMemo(() => players.filter((_, index) => elapsed >= revealAt(index)).length, [elapsed, players]);
+  const activeIndex = activeIndexForElapsed(elapsed, players.length);
+  const activePlayer = activeIndex >= 0 ? players[activeIndex] : undefined;
+  const openingShape = ALL_SHAPES[Math.floor(elapsed / 105) % ALL_SHAPES.length];
+  const assignedCount = useMemo(
+    () => players.filter((_, index) => elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34).length,
+    [elapsed, players]
+  );
 
   return (
     <AnimatePresence>
@@ -183,98 +225,51 @@ export function ProtocolIntro({
           className="fixed inset-0 z-[200] overflow-hidden bg-[#030406] text-white"
         >
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,48,77,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:42px_42px]" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(255,48,77,0.18),transparent_34%),radial-gradient(circle_at_50%_75%,rgba(36,245,199,0.08),transparent_40%)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-trauma/14 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,48,77,0.2),transparent_35%),radial-gradient(circle_at_50%_76%,rgba(36,245,199,0.08),transparent_42%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-trauma/16 to-transparent" />
 
           <div className="relative grid h-screen grid-rows-[auto_1fr_auto] p-5 md:p-7">
-            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-              <div>
-                <div className="font-display text-xs font-bold uppercase tracking-[0.24em] text-trauma">Shape assignment</div>
-                <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none md:text-6xl">Choose Your Shape</h2>
-              </div>
-              <div className="flex items-center gap-4 rounded-md border border-white/10 bg-white/[0.045] px-4 py-3">
-                <ShieldCheck className="h-6 w-6 text-scrub" />
-                <div>
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Participants</div>
-                  <div className="font-display text-2xl font-black text-white">{players.length}</div>
-                </div>
-              </div>
+            <header className="text-center">
+              <div className="font-display text-xs font-bold uppercase tracking-[0.32em] text-trauma">Shape assignment</div>
+              <h2 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-7xl">Choose Your Shape</h2>
             </header>
 
-            <main className="grid min-h-0 place-items-center py-5">
+            <main className="grid min-h-0 place-items-center py-6">
               <AnimatePresence mode="wait">
-                {phase === "shuffle" && (
+                {!activePlayer ? (
                   <motion.div
-                    key="shuffle"
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    className="grid w-full max-w-5xl gap-8 text-center"
+                    key="opening"
+                    initial={{ opacity: 0, scale: 0.94 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.04 }}
+                    className="grid justify-items-center text-center"
                   >
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 3.4, repeat: Infinity, ease: "linear" }}
-                      className="mx-auto grid h-36 w-36 place-items-center rounded-full border border-trauma/55 bg-trauma/10 shadow-[0_0_54px_rgba(255,48,77,0.2)]"
+                      transition={{ duration: 3.2, repeat: Infinity, ease: "linear" }}
+                      className="grid h-52 w-52 place-items-center rounded-full border border-trauma/55 bg-trauma/10 shadow-[0_0_64px_rgba(255,48,77,0.24)]"
                     >
-                      <ShapeIcon shape={cyclingShape} className={`h-20 w-20 ${shapeColor(cyclingShape)}`} />
+                      <ShapeIcon shape={openingShape} className={`h-28 w-28 ${shapeColor(openingShape)}`} />
                     </motion.div>
-                    <div>
-                      <div className="font-display text-xs font-bold uppercase tracking-[0.34em] text-monitor">Randomizing identifiers</div>
-                      <h3 className="mt-3 font-display text-5xl font-black uppercase md:text-7xl">Stand By</h3>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-4">
-                      {ALL_SHAPES.map((shape, index) => (
-                        <motion.div
-                          key={shape}
-                          animate={{ y: [0, -14, 0], opacity: [0.42, 1, 0.42] }}
-                          transition={{ duration: 0.78, repeat: Infinity, delay: index * 0.08 }}
-                          className="grid h-16 w-16 place-items-center rounded-md border border-white/10 bg-white/[0.045]"
-                        >
-                          <ShapeIcon shape={shape} className={`h-9 w-9 ${shapeColor(shape)}`} />
-                        </motion.div>
-                      ))}
-                    </div>
+                    <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Preparing participant identifiers</div>
+                    <div className="mt-3 font-display text-5xl font-black uppercase md:text-7xl">Stand By</div>
                   </motion.div>
-                )}
-
-                {phase === "reveal" && (
-                  <motion.div
-                    key="reveal"
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="grid w-full max-w-6xl gap-5"
-                  >
-                    <div className="flex flex-wrap items-end justify-between gap-3">
-                      <div>
-                        <div className="font-display text-xs font-bold uppercase tracking-[0.24em] text-trauma">Reveal sequence</div>
-                        <h3 className="mt-2 font-display text-4xl font-black uppercase md:text-6xl">
-                          {revealedCount}/{players.length} Assigned
-                        </h3>
-                      </div>
-                      <div className="rounded-md border border-white/10 bg-white/[0.045] px-4 py-3 text-right">
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Priority pool</div>
-                        <div className="text-sm text-white/72">Triangle, star, umbrella, circle. Square only appears for a fifth participant.</div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                      {players.map((player, index) => (
-                        <IdentityCard key={player.id} player={player} index={index} elapsed={elapsed} />
-                      ))}
-                    </div>
-                  </motion.div>
+                ) : (
+                  <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={elapsed} playerCount={players.length} />
                 )}
               </AnimatePresence>
             </main>
 
-            <footer className="grid gap-3 border-t border-white/10 pt-4">
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-amber to-scrub" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="flex justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
-                <span>Geometric identifier assignment</span>
-                <span>{phase}</span>
+            <footer className="grid gap-4">
+              <MiniRoster players={players} activeIndex={activeIndex} elapsed={elapsed} />
+              <div className="grid gap-3 border-t border-white/10 pt-4">
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-amber to-scrub" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="flex justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+                  <span>{assignedCount}/{players.length} assigned</span>
+                  <span>{Math.max(0, Math.ceil((totalDurationMs - elapsed) / 1000))}s</span>
+                </div>
               </div>
             </footer>
           </div>
