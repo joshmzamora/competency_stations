@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
 const cardWidth = 204;
 const cardGap = 16;
 const cardStride = cardWidth + cardGap;
+const reelPadding = 32;
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -66,6 +67,82 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
 }
 
+function getAudioContext() {
+  const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextConstructor) return null;
+  return new AudioContextConstructor();
+}
+
+function playTick(context: AudioContext, when: number, progress: number) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(440 + progress * 240, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.exponentialRampToValueAtTime(0.055, when + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.055);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(when);
+  oscillator.stop(when + 0.06);
+}
+
+function playChosen(context: AudioContext) {
+  const now = context.currentTime;
+  [196, 294, 392].forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const start = now + index * 0.085;
+    oscillator.type = index === 2 ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.26);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.28);
+  });
+}
+
+function useRouletteAudio(selection: SelectionState | null, progress: number, reelPosition: number, resultVisible: boolean) {
+  const contextRef = useRef<AudioContext | null>(null);
+  const lastTickRef = useRef(-1);
+  const chosenPlayedRef = useRef(false);
+  const selectionKeyRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!selection) {
+      lastTickRef.current = -1;
+      chosenPlayedRef.current = false;
+      selectionKeyRef.current = null;
+      return;
+    }
+
+    if (selectionKeyRef.current !== selection.startedAt) {
+      selectionKeyRef.current = selection.startedAt;
+      lastTickRef.current = -1;
+      chosenPlayedRef.current = false;
+      if (!contextRef.current) contextRef.current = getAudioContext();
+      contextRef.current?.resume().catch(() => undefined);
+    }
+  }, [selection]);
+
+  useEffect(() => {
+    if (!selection || !contextRef.current) return;
+    const context = contextRef.current;
+    const tickIndex = Math.floor(reelPosition * 1.05);
+    if (!resultVisible && tickIndex !== lastTickRef.current) {
+      lastTickRef.current = tickIndex;
+      playTick(context, context.currentTime, progress);
+    }
+    if (resultVisible && !chosenPlayedRef.current) {
+      chosenPlayedRef.current = true;
+      playChosen(context);
+    }
+  }, [progress, reelPosition, resultVisible, selection]);
+}
+
 function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPosition: number }) {
   if (players.length === 0) return null;
   const repeatCount = 11;
@@ -73,13 +150,14 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   const baseIndex = players.length * 2;
   const centerPosition = baseIndex + reelPosition;
   const activeIndex = Math.round(centerPosition);
-  const translateX = `calc(50% - ${centerPosition * cardStride + cardWidth / 2}px)`;
+  const translateX = `calc(50% - ${reelPadding + centerPosition * cardStride + cardWidth / 2}px)`;
   const maxTurns = Math.max(1, ...players.map((player) => player.turnCount));
 
   return (
     <div className="relative h-36 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
       <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-[#05070a] via-transparent to-[#05070a]" />
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[216px] -translate-x-1/2 border-x border-trauma/80 bg-trauma/[0.055] shadow-[0_0_44px_rgba(255,48,77,0.24)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[228px] -translate-x-1/2 border-x-4 border-trauma/85 bg-trauma/[0.04] shadow-[0_0_44px_rgba(255,48,77,0.24)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[204px] -translate-x-1/2 border-y border-white/10 bg-white/[0.035]" />
       <div className="pointer-events-none absolute left-1/2 top-0 z-40 h-0 w-0 -translate-x-1/2 border-l-[13px] border-r-[13px] border-t-[18px] border-l-transparent border-r-transparent border-t-trauma" />
       <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 h-0 w-0 -translate-x-1/2 border-b-[18px] border-l-[13px] border-r-[13px] border-b-trauma border-l-transparent border-r-transparent" />
       <div className="pointer-events-none absolute inset-y-4 left-1/2 z-40 w-px -translate-x-1/2 bg-trauma/70 shadow-[0_0_18px_rgba(255,48,77,0.7)]" />
@@ -164,6 +242,8 @@ export function SelectionRoulette({
     const totalDistance = players.length * 6 + targetOffset;
     return resultVisible ? totalDistance : easeOutCubic(progress) * totalDistance;
   })();
+
+  useRouletteAudio(selection, progress, reelPosition, resultVisible);
 
   if (!selection) return null;
 
