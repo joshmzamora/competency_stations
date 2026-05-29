@@ -9,6 +9,51 @@ It is built for two computers on the same Wi-Fi network:
 
 No Supabase, Firebase, Socket.IO, accounts, cloud database, or outside syncing service is required.
 
+## Easiest Windows Start
+
+On the host computer:
+
+1. Make sure Node.js LTS is installed from `https://nodejs.org/`.
+2. Copy this whole project folder onto the computer.
+3. Double-click:
+
+```txt
+start-game.bat
+```
+
+4. Click `Start Game`.
+5. The launcher opens Host Mode automatically:
+
+```txt
+http://localhost:3000/host
+```
+
+6. On the learner computer, open the Player URL shown in the launcher.
+
+Example:
+
+```txt
+http://192.168.1.45:3000/player
+```
+
+Keep the launcher window open while the simulation is running.
+
+### What The Launcher Does
+
+The `start-game.bat` launcher is meant for easy use on any Windows computer.
+
+It will:
+
+- check that Node.js and npm are installed
+- install project dependencies if `node_modules` is missing
+- start the local Node.js server
+- open the host screen in the browser
+- show the learner/player URL for the second computer
+- let you copy the player URL
+- let you stop the server when finished
+
+If you copy the project folder with `node_modules` already included, the launcher can start faster because it does not need to download dependencies again. If `node_modules` is not included, the host computer needs internet the first time so `npm install` can download the required packages.
+
 ## What This App Does
 
 This app is not a trivia board. It is a guided competency checkoff system for simulation-style nursing stations.
@@ -28,11 +73,11 @@ The host controls the session:
 The learner/player screen is a clean simulation prompt monitor:
 
 - shows the active station
-- shows only the scenario and learner instructions
+- shows only the learner-facing prompt or activity
 - does not show answers
 - does not show explanations
 - does not show rubric criteria
-- supports optional typed notes, but the intended workflow is verbal or hands-on performance
+- supports local synced activities such as Stroke card sorting
 
 ## Current Stations
 
@@ -141,7 +186,15 @@ Dependencies are the code libraries this app needs, such as React, Vite, Tailwin
 
 ## Start The Website
 
-Run:
+The easiest way on Windows is to double-click:
+
+```txt
+start-game.bat
+```
+
+Then click `Start Game`.
+
+Manual terminal method:
 
 ```powershell
 npm run dev
@@ -168,12 +221,13 @@ Then:
 
 1. Click `Create room`.
 2. Tell the learner the room code.
-3. Choose a competency station.
+3. Choose the first competency station.
 4. Click `Start`.
 5. Advance through prompts.
-6. Evaluate the learner using Correct, Partial Credit, or Incorrect.
-7. Flag prompts that need review.
-8. End the session when finished.
+6. When a station is complete, choose the next station from the host station list.
+7. Evaluate using Correct, Partial Credit, or Incorrect.
+8. Flag prompts that need review.
+9. End the session when finished.
 
 ## Learner Computer Instructions
 
@@ -188,10 +242,11 @@ http://192.168.1.45:3000/player
 Then:
 
 1. Enter the room code shown on the host screen.
-2. Enter a learner name.
+2. Enter the participant names for the learner computer.
 3. Click `Join simulation`.
-4. Follow the prompt monitor after the host starts the station.
+4. Follow the prompt monitor after the host starts the session.
 5. Respond verbally or perform the skill in person.
+6. For Stroke activities, drag the cards into the columns on the learner screen and use the available checks.
 
 ## How To Find The Host Computer's Local IP Address
 
@@ -330,7 +385,13 @@ Also check:
 
 ## Local Deployment
 
-For normal use during practice, run:
+For normal use during practice on Windows, use:
+
+```txt
+start-game.bat
+```
+
+For manual terminal use, run:
 
 ```powershell
 npm run dev
