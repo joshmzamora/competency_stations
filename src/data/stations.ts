@@ -324,74 +324,87 @@ const pacemakerPrompts: CompetencyPrompt[] = [
 
 const chestTubePrompts: CompetencyPrompt[] = [
   prompt({
-    id: "chest-tube-respiratory-decline",
-    stationId: "chest-tube",
-    type: "timed-emergency",
-    title: "Sudden Respiratory Decline",
-    scenario: "Shortly after pacemaker placement, Emma becomes tachypneic and her oxygen saturation drops.",
-    instructions: [
-      "Respond to the drop in oxygen saturation.",
-      "State immediate ventilator and airway actions.",
-      "Call the provider and anticipate diagnostic orders."
-    ],
-    expectedResponse:
-      "Increase FiO2 on the ventilator, bag the patient if needed, call the provider, and anticipate a chest x-ray. The x-ray result shows pneumothorax.",
-    explanation:
-      "The document expects learners to increase FiO2, bag the patient, call provider, anticipate chest x-ray, and identify pneumothorax as the result.",
-    evaluationCriteria: [
-      "Recognizes acute respiratory decline.",
-      "Increases FiO2 or bags the patient as appropriate.",
-      "Calls provider promptly.",
-      "Anticipates chest x-ray and pneumothorax workup."
-    ],
-    criticalActions: ["Escalates respiratory decline.", "Supports oxygenation immediately."],
-    timerSeconds: 60
-  }),
-  prompt({
-    id: "chest-tube-insertion-prep",
-    stationId: "chest-tube",
-    type: "scenario-walkthrough",
-    title: "Chest Tube Insertion Preparation",
-    scenario: "X-ray confirms pneumothorax and the provider plans chest tube insertion.",
-    instructions: [
-      "Gather supplies needed for chest tube insertion.",
-      "Prepare the Pleur-evac.",
-      "Check the chest tube order in Epic.",
-      "State the ordered suction level."
-    ],
-    expectedResponse:
-      "Gather chest tube insertion supplies, prepare the Pleur-evac drainage system, verify the order in Epic, and set up the ordered suction level, which the scenario lists as -40.",
-    explanation:
-      "The document expects learners to gather supplies, prepare Pleur-evac, check the Epic order, and recognize the order of -40.",
-    evaluationCriteria: [
-      "Gathers appropriate insertion and drainage supplies.",
-      "Prepares the Pleur-evac correctly.",
-      "Checks Epic order before setup.",
-      "States and applies ordered suction level."
-    ]
-  }),
-  prompt({
     id: "chest-tube-clamping",
     stationId: "chest-tube",
     type: "verbal-response",
     title: "Safe Clamping",
-    scenario: "The learner is asked whether it is acceptable to clamp a chest tube during routine care.",
+    scenario: "Under what circumstance can you clamp a chest tube?",
     instructions: [
-      "Explain when a chest tube may be clamped.",
-      "State the safety concern with unnecessary clamping.",
-      "Name the limited circumstances when brief clamping may occur."
+      "Answer verbally.",
+      "Include the general rule and the brief exceptions."
     ],
     expectedResponse:
-      "A chest tube should not be clamped unless specifically ordered by a physician. Brief clamping may be used when changing the Pleur-evac system or when assessing for air leaks.",
-    explanation:
-      "Unnecessary clamping can prevent air or fluid from escaping. Brief clamping is reserved for specific troubleshooting or system-change situations.",
+      "A chest tube should not be clamped unless specifically ordered by a physician. It may be briefly clamped when changing the Pleur-evac system or assessing for air leaks.",
+    explanation: "Routine or prolonged clamping can create patient risk. Brief clamping is only for specific ordered or troubleshooting situations.",
     evaluationCriteria: [
-      "States that clamping requires a physician order unless in a brief approved circumstance.",
-      "Identifies Pleur-evac system change as an appropriate brief-clamp scenario.",
-      "Identifies air leak assessment as an appropriate brief-clamp scenario.",
-      "Avoids describing routine or prolonged clamping as acceptable."
+      "States clamping requires a physician order unless briefly troubleshooting.",
+      "Names changing the Pleur-evac as an exception.",
+      "Names air leak assessment as an exception.",
+      "Does not endorse routine clamping."
+    ]
+  }),
+  prompt({
+    id: "chest-tube-subcutaneous-emphysema",
+    stationId: "chest-tube",
+    type: "verbal-response",
+    title: "Palpation Finding",
+    scenario: "What assessment finding do you expect when palpating around a chest tube site?",
+    instructions: ["Answer verbally.", "Include what it feels like, where to assess, and what to do if new."],
+    expectedResponse:
+      "Assess for subcutaneous emphysema. Physical findings include crepitus, often described as a Rice Krispies sensation. Gently palpate around the insertion site and extend assessment to the neck and upper chest. Mark and document the extent to monitor progression, and notify the physician if this is a new finding.",
+    explanation: "Subcutaneous emphysema can indicate air tracking through tissue and should be trended and escalated if new or progressing.",
+    evaluationCriteria: [
+      "Identifies subcutaneous emphysema.",
+      "Describes crepitus or Rice Krispies sensation.",
+      "Assesses insertion site, neck, and upper chest.",
+      "Marks/documents extent and notifies provider if new."
     ],
-    criticalActions: ["Escalates uncertainty before clamping.", "Keeps clamping brief when used for troubleshooting."]
+    notifyProviderWhen: ["New subcutaneous emphysema is found.", "Crepitus expands or progresses."]
+  }),
+  prompt({
+    id: "chest-tube-transport-suction",
+    stationId: "chest-tube",
+    type: "verbal-response",
+    title: "Transport With Suction",
+    scenario: "Your patient is on continuous -20 cmH2O suction and a STAT CT chest is ordered. How would you transport this patient?",
+    instructions: ["Answer verbally.", "State how ordered suction is maintained during transport."],
+    expectedResponse: "Transport the patient using portable suction so the ordered continuous suction is maintained.",
+    explanation: "A patient ordered for continuous suction should not be disconnected from suction for transport unless directed by provider/policy.",
+    evaluationCriteria: ["States portable suction is required.", "Maintains ordered suction during transport.", "Checks the chest tube system before leaving."]
+  }),
+  prompt({
+    id: "chest-tube-suction-indicator",
+    stationId: "chest-tube",
+    type: "verbal-response",
+    title: "Adequate Suction",
+    scenario: "How do you assess that the chest tube is providing adequate suction to the prescribed rate?",
+    instructions: ["Answer verbally.", "Name the visual indicator."],
+    expectedResponse: "The orange float in the suction indicator window confirms that the desired suction has been achieved.",
+    explanation: "The suction indicator confirms that prescribed suction is present at the drainage system.",
+    evaluationCriteria: ["Identifies the orange float.", "Connects the indicator to prescribed suction being achieved."]
+  }),
+  prompt({
+    id: "chest-tube-output-notification",
+    stationId: "chest-tube",
+    type: "verbal-response",
+    title: "Output Notification",
+    scenario: "In what situation would you notify a physician regarding chest tube output?",
+    instructions: ["Answer verbally.", "Include volume, sudden changes, and drainage character."],
+    expectedResponse:
+      "Notify the physician for output greater than 200-300 mL per hour for two consecutive hours, a sudden unexpected surge in output, bright red free-flowing blood, or concern for hemorrhage.",
+    explanation: "High volume, sudden changes, and bright red free-flowing blood can indicate hemorrhage or another acute complication.",
+    evaluationCriteria: [
+      "States output greater than 200-300 mL/hr for two consecutive hours.",
+      "Identifies sudden unexpected increase as reportable.",
+      "Identifies bright red free-flowing blood as urgent.",
+      "Names hemorrhage concern."
+    ],
+    notifyProviderWhen: [
+      "Output is greater than 200-300 mL/hr for 2 consecutive hours.",
+      "There is a sudden unexpected output increase.",
+      "Drainage is bright red and free-flowing.",
+      "Hemorrhage is suspected."
+    ]
   }),
   prompt({
     id: "chest-tube-air-leak",
@@ -418,104 +431,24 @@ const chestTubePrompts: CompetencyPrompt[] = [
     criticalActions: ["Keeps clamping brief.", "Escalates persistent or unexplained air leak."]
   }),
   prompt({
-    id: "chest-tube-pleurevac-change",
-    stationId: "chest-tube",
-    type: "practical-assessment",
-    title: "Change the Pleur-evac",
-    scenario: "The learner must change the Pleur-evac drainage system safely.",
-    instructions: [
-      "Prepare the new drainage system.",
-      "Briefly clamp only if appropriate.",
-      "Maintain sterile/clean connections per policy.",
-      "Reconnect and verify function."
-    ],
-    expectedResponse:
-      "Prepare the new Pleur-evac, briefly clamp only for the system change if appropriate, change the unit efficiently, reconnect tubing securely, confirm suction and water seal function, and reassess the patient.",
-    explanation:
-      "The document identifies changing the Pleur-evac as a hands-on chest tube station activity.",
-    evaluationCriteria: [
-      "Prepares replacement drainage unit before disconnecting.",
-      "Keeps any clamping brief.",
-      "Reconnects tubing securely.",
-      "Verifies suction and water seal after change.",
-      "Reassesses patient status."
-    ]
-  }),
-  prompt({
-    id: "chest-tube-output-notification",
-    stationId: "chest-tube",
-    type: "timed-emergency",
-    title: "Output Escalation Threshold",
-    scenario: "Chest tube output is greater than 250 mL and the drainage appears concerning.",
-    instructions: [
-      "State when the physician must be notified for chest tube output.",
-      "Identify hemorrhage warning signs.",
-      "Prioritize immediate escalation."
-    ],
-    expectedResponse:
-      "Notify the physician for output greater than 200-300 mL/hr for 2 consecutive hours, sudden unexpected increase, bright red free-flowing blood, or concern for possible hemorrhage. In this scenario, output greater than 250 mL should prompt provider notification.",
-    explanation:
-      "The document specifically states chest tube output greater than 250 cc requires learners to verbalize provider notification. The competency detail also includes the 200-300 mL/hr for 2 consecutive hours threshold.",
-    evaluationCriteria: [
-      "Recognizes output greater than 250 mL as provider notification in the scenario.",
-      "States the 200-300 mL/hr for 2 consecutive hours threshold.",
-      "Recognizes sudden unexpected increase as reportable.",
-      "Recognizes bright red free-flowing blood as urgent.",
-      "Names possible hemorrhage as the safety concern."
-    ],
-    notifyProviderWhen: [
-      "Output is greater than 200-300 mL/hr for 2 consecutive hours.",
-      "Scenario output is greater than 250 mL.",
-      "There is a sudden unexpected output increase.",
-      "Drainage is bright red and free-flowing.",
-      "Hemorrhage is suspected."
-    ],
-    timerSeconds: 60
-  }),
-  prompt({
-    id: "chest-tube-transport-suction",
-    stationId: "chest-tube",
-    type: "scenario-walkthrough",
-    title: "Transport With Suction",
-    scenario: "Emma needs transport while chest tube suction is ordered.",
-    instructions: [
-      "Describe transport responsibility.",
-      "Maintain ordered suction during transport.",
-      "State what equipment is needed before leaving the unit."
-    ],
-    expectedResponse: "Transport the patient with portable suction so ordered suction is maintained during transport.",
-    explanation:
-      "The document lists transport responsibility as hooking to portable suction. This aligns with the competency detail that a patient on continuous suction should be transported with portable suction.",
-    evaluationCriteria: [
-      "States portable suction is required.",
-      "Maintains ordered suction during transport.",
-      "Checks chest tube system and tubing before departure."
-    ]
-  }),
-  prompt({
     id: "chest-tube-site-assessment",
     stationId: "chest-tube",
     type: "practical-assessment",
     title: "Insertion Site and Dressing Assessment",
-    scenario: "The learner assesses the chest tube insertion site and dressing. Bubble wrap is placed to simulate subcutaneous emphysema.",
+    scenario: "How do you properly assess a chest tube site?",
     instructions: [
-      "Assess the dressing and occlusive seal.",
-      "Assess surrounding tissue.",
-      "Identify subcutaneous emphysema.",
-      "State documentation and notification steps."
+      "Answer verbally.",
+      "Include dressing, infection signs, and tubing securement."
     ],
     expectedResponse:
-      "Confirm dressing is clean, dry, intact, and occlusive dressing is secure. Assess for redness, swelling, discharge, and tubing securement. Identify subcutaneous emphysema as crepitus or a Rice Krispies sensation, assess around the insertion site, neck, and upper chest, mark or document progression, and notify physician if new.",
-    explanation:
-      "The document uses bubble wrap for subcutaneous emphysema and asks learners to check the insertion site and dressing. The competency detail adds documentation and notification expectations.",
+      "Assess that the dressing is clean, dry, and intact and that the occlusive dressing is securely adhered to the skin. Assess for redness, swelling, or discharge at the insertion site. Check that tubing is anchored securely to prevent accidental pulling or dislodgement, using appropriate securement such as silk tape or Medipore tape per policy.",
+    explanation: "Site assessment focuses on dressing integrity, infection signs, and secure tubing to reduce accidental dislodgement.",
     evaluationCriteria: [
       "Checks dressing is clean, dry, intact, and occlusive.",
       "Assesses redness, swelling, and discharge.",
       "Ensures tubing is anchored securely.",
-      "Correctly identifies subcutaneous emphysema or crepitus.",
-      "Documents or marks progression and reports new finding."
-    ],
-    notifyProviderWhen: ["New subcutaneous emphysema is found.", "Crepitus expands or progresses."]
+      "Mentions appropriate securement method or policy."
+    ]
   }),
   prompt({
     id: "chest-tube-dislodgement",
@@ -903,9 +836,9 @@ export const stations: CompetencyStation[] = [
     id: "chest-tube",
     title: "Chest tube",
     shortTitle: "Chest tube",
-    description: "Respiratory decline, pneumothorax response, insertion prep, suction, air leaks, Pleur-evac changes, output escalation, transport, site assessment, and dislodgement.",
-    estimatedMinutes: 18,
-    competencyType: "Practical assessment and emergency troubleshooting",
+    description: "Clamping rules, site assessment, suction checks, transport with suction, output escalation, air leak troubleshooting, and emergency dislodgement response.",
+    estimatedMinutes: 10,
+    competencyType: "Chest tube safety checkoff",
     accent: "scrub",
     prompts: chestTubePrompts
   },

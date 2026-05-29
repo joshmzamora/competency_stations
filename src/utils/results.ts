@@ -62,7 +62,7 @@ export function downloadFile(filename: string, content: string, type: string) {
 
 export function resultsToCsv(results: ResultRecord[]) {
   const rows = [
-    ["id", "mode", "roomCode", "createdAt", "endedAt", "score", "answered", "correct", "partial", "incorrect", "accuracy", "missedPromptIds", "flaggedPromptIds"],
+    ["id", "mode", "roomCode", "createdAt", "endedAt", "score", "answered", "correct", "partial", "incorrect", "accuracy", "participants", "missedPromptIds", "flaggedPromptIds"],
     ...results.map((result) => [
       result.id,
       result.mode,
@@ -75,6 +75,7 @@ export function resultsToCsv(results: ResultRecord[]) {
       String(result.partial),
       String(result.incorrect),
       String(result.accuracy),
+      (result.participantStats ?? []).map((participant) => `${participant.name}: ${participant.correct}C/${participant.partial}P/${participant.incorrect}I/${participant.accuracy}%`).join(" | "),
       result.missedPromptIds.join("|"),
       result.flaggedPromptIds.join("|")
     ])

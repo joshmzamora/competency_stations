@@ -58,6 +58,46 @@ export function ResultsPage() {
       .slice(0, 4);
   }, [results]);
 
+  const participantLeaderboard = useMemo(() => {
+    const participants = results.reduce<Record<string, { name: string; correct: number; partial: number; incorrect: number; turns: number }>>((acc, result) => {
+      (result.participantStats ?? []).forEach((participant) => {
+        const key = participant.playerId || participant.name;
+        const current = acc[key] ?? { name: participant.name, correct: 0, partial: 0, incorrect: 0, turns: 0 };
+        current.correct += participant.correct;
+        current.partial += participant.partial;
+        current.incorrect += participant.incorrect;
+        current.turns += participant.turns;
+        acc[key] = current;
+      });
+      return acc;
+    }, {});
+
+    return Object.values(participants)
+      .map((participant) => {
+        const answered = participant.correct + participant.partial + participant.incorrect;
+        return {
+          ...participant,
+          answered,
+          accuracy: answered ? Math.round(((participant.correct * 100 + participant.partial * 50) / (answered * 100)) * 100) : 0
+        };
+      })
+      .sort((a, b) => b.accuracy - a.accuracy || b.correct - a.correct);
+  }, [results]);
+
+  const summary = useMemo(() => {
+    const fastest = results
+      .filter((result) => typeof result.completionSeconds === "number")
+      .sort((a, b) => (a.completionSeconds ?? 0) - (b.completionSeconds ?? 0))[0];
+    return {
+      totalSessions: results.length,
+      totalPromptsCompleted: stats.answered,
+      groupAccuracy: stats.accuracy,
+      mostActiveParticipant: participantLeaderboard.slice().sort((a, b) => b.turns - a.turns)[0]?.name ?? "None",
+      fastestCompletionSeconds: fastest?.completionSeconds ?? null,
+      participantLeaderboard
+    };
+  }, [participantLeaderboard, results, stats.accuracy, stats.answered]);
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -77,6 +117,13 @@ export function ResultsPage() {
             <Download className="h-4 w-4" />
             JSON
           </AnimatedButton>
+          <AnimatedButton
+            variant="ghost"
+            onClick={() => downloadFile("competency-session-summary.json", JSON.stringify(summary, null, 2), "application/json")}
+          >
+            <Download className="h-4 w-4" />
+            Summary
+          </AnimatedButton>
           <AnimatedButton variant="danger" onClick={resetAll}>
             <RotateCcw className="h-4 w-4" />
             Reset
@@ -90,7 +137,9 @@ export function ResultsPage() {
           ["Accuracy", `${stats.accuracy}%`],
           ["Correct", stats.correct],
           ["Partial", stats.partial],
-          ["Flagged", stats.flagged.length]
+          ["Flagged", stats.flagged.length],
+          ["Most active", summary.mostActiveParticipant],
+          ["Fastest", summary.fastestCompletionSeconds ? `${summary.fastestCompletionSeconds}s` : "-"]
         ].map(([label, value]) => (
           <div key={label} className="rounded-md border border-white/10 bg-black/35 p-5">
             <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/45">{label}</div>
@@ -117,6 +166,38 @@ export function ResultsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-md border border-white/10 bg-black/35 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Participant leaderboard</div>
+            <p className="mt-1 text-sm text-white/45">Individual performance calculated from host correct, partial, and incorrect marks.</p>
+          </div>
+          <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/45">{participantLeaderboard.length} participants</div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {participantLeaderboard.length === 0 && <p className="text-white/45">Participant stats appear after a completed session.</p>}
+          {participantLeaderboard.map((participant, index) => (
+            <div key={participant.name} className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">Rank {index + 1}</div>
+                  <div className="mt-1 font-display text-xl font-black uppercase text-white">{participant.name}</div>
+                </div>
+                <div className="grid h-14 w-14 place-items-center rounded-full border border-scrub/30 bg-scrub/10 font-display text-sm font-black text-scrub">
+                  {participant.accuracy}%
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[10px] uppercase text-white/35">Turns</div><div className="font-display text-lg font-black">{participant.turns}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[10px] uppercase text-white/35">Correct</div><div className="font-display text-lg font-black text-scrub">{participant.correct}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[10px] uppercase text-white/35">Partial</div><div className="font-display text-lg font-black text-amber">{participant.partial}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[10px] uppercase text-white/35">Missed</div><div className="font-display text-lg font-black text-trauma">{participant.incorrect}</div></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

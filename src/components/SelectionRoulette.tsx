@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Hexagon, Pentagon, Square, Triangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
@@ -15,10 +15,10 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
       return <Triangle className={className} />;
     case "square":
       return <Square className={className} />;
-    case "star":
-      return <Star className={className} />;
-    case "umbrella":
-      return <Umbrella className={className} />;
+    case "pentagon":
+      return <Pentagon className={className} />;
+    case "hexagon":
+      return <Hexagon className={className} />;
   }
 }
 
@@ -30,9 +30,9 @@ function shapeColor(shape?: PlayerShape) {
       return "text-trauma";
     case "square":
       return "text-monitor";
-    case "star":
+    case "pentagon":
       return "text-amber";
-    case "umbrella":
+    case "hexagon":
       return "text-white";
     default:
       return "text-white/35";
@@ -47,9 +47,9 @@ function shapeBorder(shape?: PlayerShape) {
       return "border-trauma/75 shadow-[0_0_50px_rgba(255,48,77,0.28)]";
     case "square":
       return "border-monitor/70 shadow-[0_0_50px_rgba(110,247,255,0.22)]";
-    case "star":
+    case "pentagon":
       return "border-amber/70 shadow-[0_0_50px_rgba(255,176,32,0.22)]";
-    case "umbrella":
+    case "hexagon":
       return "border-white/45 shadow-[0_0_50px_rgba(255,255,255,0.12)]";
     default:
       return "border-white/10";
@@ -74,6 +74,7 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   const centerPosition = baseIndex + reelPosition;
   const activeIndex = Math.round(centerPosition);
   const translateX = `calc(50% - ${centerPosition * cardStride + cardWidth / 2}px)`;
+  const maxTurns = Math.max(1, ...players.map((player) => player.turnCount));
 
   return (
     <div className="relative h-32 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a]">
@@ -104,7 +105,12 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
                 {player.shape && <ShapeIcon shape={player.shape} className={`h-9 w-9 ${shapeColor(player.shape)}`} />}
                 <div className="min-w-0 text-left">
                   <div className="truncate font-display text-lg font-black uppercase text-white">{publicName(player.name)}</div>
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Turns {player.turnCount}</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-full rounded-full bg-white/35" style={{ width: `${Math.max(18, (player.turnCount / maxTurns) * 100)}%` }} />
+                    </div>
+                    <div className="font-display text-[9px] font-bold uppercase tracking-[0.16em] text-white/35">Engagement</div>
+                  </div>
                 </div>
               </div>
             </div>

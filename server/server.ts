@@ -24,6 +24,7 @@ type PlayerState = {
 
 type PromptEvaluation = {
   promptId: string;
+  playerId?: string;
   status: EvaluationStatus;
   note?: string;
   flagged: boolean;
@@ -48,6 +49,8 @@ type RoomState = {
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   selection: { playerId: string; startedAt: number; durationMs: number } | null;
+  currentParticipantId: string | null;
+  sessionStartedAt: number | null;
   score: number;
   selectedStation: unknown | null;
   activePromptIndex: number;
@@ -99,6 +102,8 @@ function createInitialRoom(code: string): RoomState {
     introCompletedAt: null,
     protocolIntroStartedAt: null,
     selection: null,
+    currentParticipantId: null,
+    sessionStartedAt: null,
     score: 0,
     selectedStation: null,
     activePromptIndex: 0,
@@ -209,14 +214,17 @@ function pickBalancedPlayer(room: RoomState): string | null {
   const minTurns = Math.min(...players.map(p => p.turnCount));
   
   // Players who haven't had a turn or have the lowest turns
-  const candidates = players.filter(p => p.turnCount === minTurns);
+  let candidates = players.filter(p => p.turnCount === minTurns);
+  if (candidates.length > 1 && room.currentParticipantId) {
+    candidates = candidates.filter((player) => player.id !== room.currentParticipantId);
+  }
   
   // Randomly pick from the fairest candidates
   const selected = candidates[Math.floor(Math.random() * candidates.length)];
   return selected.id;
 }
 
-function startSelection(room: RoomState, durationMs = 2200, holdMs = 2600) {
+function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
   if (room.status !== "in-progress") return false;
   if (!room.players.some((player) => player.shape)) return false;
 
@@ -229,6 +237,7 @@ function startSelection(room: RoomState, durationMs = 2200, holdMs = 2600) {
     startedAt: selectionStartedAt,
     durationMs
   };
+  room.currentParticipantId = playerId;
 
   const player = room.players.find(p => p.id === playerId);
   if (player) player.turnCount++;
@@ -244,7 +253,7 @@ function startSelection(room: RoomState, durationMs = 2200, holdMs = 2600) {
 }
 
 function assignShapesToRoom(room: RoomState) {
-  const shapes = ["circle", "triangle", "square", "star", "umbrella"];
+  const shapes = ["circle", "triangle", "square", "pentagon", "hexagon"];
   
   // Shuffle shapes
   for (let i = shapes.length - 1; i > 0; i--) {
@@ -266,6 +275,27 @@ function publicRoom(room: RoomState, role: ClientRole | undefined): RoomState {
     players: connectedPlayers(room.code),
     selectedStation: role === "player" ? sanitizeStation(room.selectedStation) : room.selectedStation
   };
+}
+
+function participantStats(room: RoomState) {
+  const evaluations = Object.values(room.evaluations);
+  return room.players.map((player) => {
+    const playerEvaluations = evaluations.filter((evaluation) => evaluation.playerId === player.id);
+    const correct = playerEvaluations.filter((evaluation) => evaluation.status === "correct").length;
+    const partial = playerEvaluations.filter((evaluation) => evaluation.status === "partial").length;
+    const incorrect = playerEvaluations.filter((evaluation) => evaluation.status === "incorrect").length;
+    const weighted = correct * 100 + partial * 50;
+    return {
+      playerId: player.id,
+      name: player.name,
+      shape: player.shape,
+      turns: player.turnCount,
+      correct,
+      partial,
+      incorrect,
+      accuracy: playerEvaluations.length ? Math.round(weighted / playerEvaluations.length) : 0
+    };
+  });
 }
 
 function send(client: WsClient, message: WireMessage) {
@@ -349,6 +379,7 @@ async function saveRoomResult(room: RoomState) {
     incorrect: room.stats.incorrect,
     accuracy: prompts.length ? Math.round((room.score / (prompts.length * 100)) * 100) : 0,
     completionSeconds,
+    participantStats: participantStats(room),
     missedPromptIds: room.stats.missedPromptIds,
     flaggedPromptIds: room.stats.flaggedPromptIds,
     scoreHistory: room.stats.scoreHistory
@@ -432,6 +463,7 @@ function evaluatePrompt(room: RoomState, message: WireMessage) {
   const status = message.status === "correct" || message.status === "partial" || message.status === "incorrect" ? message.status : "incorrect";
   room.evaluations[id] = {
     promptId: id,
+    playerId: typeof message.playerId === "string" ? message.playerId : room.currentParticipantId ?? undefined,
     status,
     note: typeof message.note === "string" ? message.note.slice(0, 500) : undefined,
     flagged: Boolean(message.flagged),
@@ -515,6 +547,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         return;
       }
       room.status = "in-progress";
+      room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
       room.protocolIntroStartedAt = null;
       room.selection = null;
@@ -570,6 +603,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           startedAt: selectionStartedAt,
           durationMs: 1400
         };
+        room.currentParticipantId = playerId;
         player.turnCount++;
         broadcastState(room.code);
         setTimeout(() => {
@@ -590,6 +624,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.timerEndsAt = null;
       room.liveAnswer = null;
       room.evaluations = {};
+      room.currentParticipantId = null;
       recalculateStats(room);
       room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
       if (room.status === "in-progress") startSelection(room);

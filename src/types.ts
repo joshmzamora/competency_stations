@@ -45,6 +45,7 @@ export type EvaluationStatus = "correct" | "partial" | "incorrect";
 
 export type PromptEvaluation = {
   promptId: string;
+  playerId?: string;
   status: EvaluationStatus;
   note?: string;
   flagged: boolean;
@@ -65,7 +66,7 @@ export type SelectionState = {
   durationMs: number;
 };
 
-export type PlayerShape = "circle" | "triangle" | "square" | "star" | "umbrella";
+export type PlayerShape = "circle" | "triangle" | "square" | "pentagon" | "hexagon";
 
 export type PlayerState = {
   id: string;
@@ -73,6 +74,17 @@ export type PlayerState = {
   connected: boolean;
   shape?: PlayerShape;
   turnCount: number;
+};
+
+export type ParticipantStats = {
+  playerId: string;
+  name: string;
+  shape?: PlayerShape;
+  turns: number;
+  correct: number;
+  partial: number;
+  incorrect: number;
+  accuracy: number;
 };
 
 export type GameStats = {
@@ -100,6 +112,8 @@ export type RoomState = {
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   selection: SelectionState | null;
+  currentParticipantId: string | null;
+  sessionStartedAt: number | null;
   score: number;
   selectedStation: CompetencyStation | PlayerStation | null;
   activePromptIndex: number;
@@ -127,6 +141,7 @@ export type ResultRecord = {
   completionSeconds?: number;
   averageResponseMs?: number;
   stationBreakdown?: Record<string, { answered: number; correct: number; partial: number; incorrect: number; flagged: number }>;
+  participantStats?: ParticipantStats[];
   missedPromptIds: string[];
   flaggedPromptIds: string[];
   scoreHistory: Array<{ at: string; score: number }>;
@@ -147,7 +162,7 @@ export type ClientMessage =
   | { type: "start-timer"; seconds: number }
   | { type: "reset-timer" }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
-  | { type: "evaluate-prompt"; promptId: string; status: EvaluationStatus; note?: string; flagged?: boolean }
+  | { type: "evaluate-prompt"; promptId: string; playerId?: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }
   | { type: "end-game" };
 

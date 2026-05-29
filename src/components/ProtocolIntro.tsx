@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Loader2, ShieldCheck, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Hexagon, Loader2, Pentagon, ShieldCheck, Square, Triangle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
 
-const ALL_SHAPES: PlayerShape[] = ["circle", "triangle", "square", "star", "umbrella"];
+const ALL_SHAPES: PlayerShape[] = ["circle", "triangle", "square", "pentagon", "hexagon"];
 const totalDurationMs = 22000;
 
 type PhaseName = "boot" | "shuffle" | "reveal" | "brief";
@@ -23,10 +23,10 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
       return <Triangle className={className} />;
     case "square":
       return <Square className={className} />;
-    case "star":
-      return <Star className={className} />;
-    case "umbrella":
-      return <Umbrella className={className} />;
+    case "pentagon":
+      return <Pentagon className={className} />;
+    case "hexagon":
+      return <Hexagon className={className} />;
   }
 }
 
@@ -38,9 +38,9 @@ function shapeColor(shape: PlayerShape) {
       return "text-trauma";
     case "square":
       return "text-monitor";
-    case "star":
+    case "pentagon":
       return "text-amber";
-    case "umbrella":
+    case "hexagon":
       return "text-white";
   }
 }
@@ -49,8 +49,8 @@ function shapeRing(shape?: PlayerShape) {
   if (shape === "circle") return "border-scrub/60 shadow-[0_0_34px_rgba(36,245,199,0.22)]";
   if (shape === "triangle") return "border-trauma/65 shadow-[0_0_34px_rgba(255,48,77,0.24)]";
   if (shape === "square") return "border-monitor/60 shadow-[0_0_34px_rgba(110,247,255,0.2)]";
-  if (shape === "star") return "border-amber/60 shadow-[0_0_34px_rgba(255,176,32,0.2)]";
-  if (shape === "umbrella") return "border-white/35 shadow-[0_0_34px_rgba(255,255,255,0.14)]";
+  if (shape === "pentagon") return "border-amber/60 shadow-[0_0_34px_rgba(255,176,32,0.2)]";
+  if (shape === "hexagon") return "border-white/35 shadow-[0_0_34px_rgba(255,255,255,0.14)]";
   return "border-white/10";
 }
 
