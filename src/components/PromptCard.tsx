@@ -43,7 +43,7 @@ export function PromptCard({
       <div className="mt-6 rounded-md border border-monitor/25 bg-monitor/10 p-4">
         <div className="mb-3 flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
           <ListChecks className="h-4 w-4" />
-          Learner instructions
+          Prompt details
         </div>
         <ol className="grid gap-2 text-white/78">
           {prompt.instructions.map((item, index) => (

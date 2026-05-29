@@ -10,7 +10,17 @@ import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { PlayerPrompt, PlayerShape, PlayerState, PlayerStation } from "../types";
+import type { PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
+
+type PlayerPerformance = PlayerState & {
+  displayName: string;
+  correct: number;
+  partial: number;
+  incorrect: number;
+  evaluatedTurns: number;
+  accuracy: number;
+  participation: number;
+};
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -39,32 +49,101 @@ function shapeTone(shape?: PlayerShape) {
   }
 }
 
-function ParticipantStrip({ players, activeId }: { players: PlayerState[]; activeId?: string | null }) {
-  if (players.length === 0) return null;
+function percent(part: number, whole: number) {
+  return whole ? Math.round((part / whole) * 100) : 0;
+}
+
+function weightedAccuracy(correct: number, partial: number, total: number) {
+  return total ? Math.round(((correct * 100 + partial * 50) / (total * 100)) * 100) : 0;
+}
+
+function StatTile({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
   return (
-    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5">
-      {players.map((player) => {
-        const active = player.id === activeId;
-        const tone = shapeTone(player.shape);
-        return (
-          <div
-            key={player.id}
-            className={`rounded-md border p-3 transition ${
-              active ? `${tone.border} ${tone.bg} ${tone.shadow}` : "border-white/10 bg-black/30 opacity-60"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {player.shape && <ShapeIcon shape={player.shape} className={`h-6 w-6 ${tone.text}`} />}
-              <div className="min-w-0">
-                <div className="truncate font-display text-xs font-black uppercase text-white">{publicName(player.name)}</div>
-                <div className={`font-display text-[9px] font-bold uppercase tracking-[0.14em] ${active ? tone.text : "text-white/35"}`}>
-                  {active ? "Active" : "Standby"}
+    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+      <div className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
+      <div className={`mt-1 font-display text-2xl font-black ${tone}`}>{value}</div>
+    </div>
+  );
+}
+
+function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[]; activeId?: string | null }) {
+  if (players.length === 0) return null;
+  const totalCompleted = players.reduce((sum, player) => sum + player.evaluatedTurns, 0);
+  const groupCorrect = players.reduce((sum, player) => sum + player.correct, 0);
+  const groupPartial = players.reduce((sum, player) => sum + player.partial, 0);
+  const groupIncorrect = players.reduce((sum, player) => sum + player.incorrect, 0);
+  const groupAccuracy = weightedAccuracy(groupCorrect, groupPartial, totalCompleted);
+
+  return (
+    <div className="grid gap-4 rounded-md border border-white/10 bg-black/35 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
+          <div className="mt-1 text-sm text-white/48">Live turn status and competency performance</div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-right">
+          <StatTile label="Done" value={totalCompleted} />
+          <StatTile label="Accuracy" value={`${groupAccuracy}%`} tone="text-scrub" />
+          <StatTile label="Missed" value={groupIncorrect} tone="text-trauma" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {players.map((player) => {
+          const active = player.id === activeId;
+          const tone = shapeTone(player.shape);
+          const status = active ? "Active" : player.turnCount > 0 ? "Standby" : "Ready";
+          return (
+            <motion.div
+              key={player.id}
+              layout
+              className={`rounded-md border p-4 transition ${
+                active ? `${tone.border} ${tone.bg} ${tone.shadow}` : "border-white/10 bg-white/[0.035] opacity-75"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`grid h-14 w-14 flex-none place-items-center rounded-md border ${tone.border} bg-black/30`}>
+                    {player.shape && <ShapeIcon shape={player.shape} className={`h-9 w-9 ${tone.text}`} />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-base font-black uppercase text-white">{player.displayName}</div>
+                    <div className={`mt-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] ${tone.text}`}>{player.shape ?? "shape pending"}</div>
+                  </div>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.14em] ${
+                  active ? "border-scrub/35 bg-scrub/10 text-scrub" : "border-white/10 bg-white/[0.04] text-white/45"
+                }`}>
+                  {status}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Turns</div><div className="font-display text-lg font-black">{player.turnCount}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Right</div><div className="font-display text-lg font-black text-scrub">{player.correct}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Partial</div><div className="font-display text-lg font-black text-amber">{player.partial}</div></div>
+                <div className="rounded-md bg-black/25 p-2"><div className="text-[9px] uppercase text-white/35">Missed</div><div className="font-display text-lg font-black text-trauma">{player.incorrect}</div></div>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div>
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-white/40">
+                    <span>Participation</span>
+                    <span>{player.participation}%</span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className={`h-full rounded-full ${active ? "bg-scrub" : "bg-white/35"}`} style={{ width: `${player.participation}%` }} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <span className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Accuracy</span>
+                  <span className={`font-display text-base font-black ${player.accuracy >= 80 ? "text-scrub" : player.accuracy >= 50 ? "text-amber" : "text-trauma"}`}>{player.accuracy}%</span>
                 </div>
               </div>
-            </div>
-          </div>
-        );
-      })}
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -90,7 +169,7 @@ function ActivePromptView({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="grid min-h-[70vh] gap-5 rounded-md border border-white/10 bg-black/45 p-5 md:p-8"
+      className="grid gap-5 rounded-md border border-white/10 bg-black/45 p-5 md:p-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -102,37 +181,28 @@ function ActivePromptView({
         </div>
       </div>
 
-      <div className={`grid gap-5 rounded-md border p-5 md:grid-cols-[180px_1fr] md:items-center ${tone.border} ${tone.bg}`}>
+      <div className={`grid gap-5 rounded-md border p-5 md:grid-cols-[170px_1fr] md:items-center ${tone.border} ${tone.bg}`}>
         <motion.div
           initial={{ scale: 0.75, rotate: -12 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 230, damping: 18 }}
           className={`grid aspect-square place-items-center rounded-md border ${tone.border} bg-black/30 ${tone.shadow}`}
         >
-          {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-28 w-28 ${tone.text}`} />}
+          {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 ${tone.text}`} />}
         </motion.div>
         <div>
           <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
           <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl">{publicName(activeParticipant?.name)}</h2>
           <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68">
-            Answer verbally or perform the requested skill. The evaluator will mark the response from the host screen.
+            Respond verbally or perform the skill. The evaluator will mark the result.
           </p>
         </div>
       </div>
 
-      <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
+      <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
         <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario prompt</div>
         <h3 className="mt-3 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h3>
         <p className="mt-5 text-2xl leading-10 text-white/82">{prompt.scenario}</p>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {prompt.instructions.map((item, index) => (
-          <div key={item} className="grid grid-cols-[2.5rem_1fr] gap-3 rounded-md border border-white/10 bg-white/[0.04] p-4">
-            <div className="font-display text-xl font-black text-scrub">{String(index + 1).padStart(2, "0")}</div>
-            <div className="text-lg leading-7 text-white/74">{item}</div>
-          </div>
-        ))}
       </div>
     </motion.div>
   );
@@ -156,6 +226,29 @@ export function PlayerPage() {
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
   const validNames = names.map((name) => name.trim()).filter(Boolean);
+  const evaluations = room?.evaluations ?? {};
+  const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
+
+  const participantStats = useMemo<PlayerPerformance[]>(() => {
+    const totalTurns = Math.max(1, (room?.players ?? []).reduce((sum, player) => sum + player.turnCount, 0));
+    return (room?.players ?? []).map((player) => {
+      const playerEvaluations = evaluationList.filter((item: PromptEvaluation) => item.playerId === player.id);
+      const correct = playerEvaluations.filter((item) => item.status === "correct").length;
+      const partial = playerEvaluations.filter((item) => item.status === "partial").length;
+      const incorrect = playerEvaluations.filter((item) => item.status === "incorrect").length;
+      const evaluatedTurns = playerEvaluations.length;
+      return {
+        ...player,
+        displayName: publicName(player.name),
+        correct,
+        partial,
+        incorrect,
+        evaluatedTurns,
+        accuracy: weightedAccuracy(correct, partial, evaluatedTurns),
+        participation: percent(player.turnCount, totalTurns)
+      };
+    });
+  }, [evaluationList, room?.players]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
@@ -286,7 +379,7 @@ export function PlayerPage() {
             </div>
           </div>
 
-          <ParticipantStrip players={room.players} activeId={room.currentParticipantId} />
+          <ParticipantBoard players={participantStats} activeId={room.currentParticipantId} />
           <CountdownTimer endsAt={room.timerEndsAt} />
 
           {activePrompt && station && activeParticipant ? (

@@ -3,7 +3,7 @@ import { Circle, Hexagon, Pentagon, Square, Triangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
-const cardWidth = 188;
+const cardWidth = 204;
 const cardGap = 16;
 const cardStride = cardWidth + cardGap;
 
@@ -77,12 +77,15 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   const maxTurns = Math.max(1, ...players.map((player) => player.turnCount));
 
   return (
-    <div className="relative h-32 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a]">
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[184px] -translate-x-1/2 border-x border-trauma/70 bg-trauma/10 shadow-[0_0_34px_rgba(255,48,77,0.22)]" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#05070a] via-transparent to-[#05070a]" />
+    <div className="relative h-36 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+      <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-[#05070a] via-transparent to-[#05070a]" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[216px] -translate-x-1/2 border-x border-trauma/80 bg-trauma/[0.055] shadow-[0_0_44px_rgba(255,48,77,0.24)]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 z-40 h-0 w-0 -translate-x-1/2 border-l-[13px] border-r-[13px] border-t-[18px] border-l-transparent border-r-transparent border-t-trauma" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 h-0 w-0 -translate-x-1/2 border-b-[18px] border-l-[13px] border-r-[13px] border-b-trauma border-l-transparent border-r-transparent" />
+      <div className="pointer-events-none absolute inset-y-4 left-1/2 z-40 w-px -translate-x-1/2 bg-trauma/70 shadow-[0_0_18px_rgba(255,48,77,0.7)]" />
 
       <div
-        className="flex h-full items-center gap-4 px-8"
+        className="relative z-20 flex h-full items-center gap-4 px-8"
         style={{ transform: `translateX(${translateX})`, willChange: "transform" }}
       >
         {repeated.map((player, index) => {
@@ -95,10 +98,11 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
               style={{
                 opacity: 0.26 + focus * 0.74,
                 transform: `scale(${0.88 + focus * 0.16})`,
-                willChange: "opacity, transform"
+                willChange: "opacity, transform",
+                zIndex: active ? 5 : Math.round(focus * 4)
               }}
-              className={`grid h-24 min-w-[188px] flex-shrink-0 place-items-center rounded-md border bg-white/[0.035] px-4 ${
-                active ? shapeBorder(player.shape) : "border-white/10"
+              className={`grid h-24 min-w-[204px] flex-shrink-0 place-items-center rounded-md border px-4 transition-colors ${
+                active ? `${shapeBorder(player.shape)} bg-white/[0.095]` : "border-white/10 bg-white/[0.035]"
               }`}
             >
               <div className="flex items-center gap-3">

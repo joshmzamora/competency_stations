@@ -5,7 +5,6 @@ import {
   Circle as CircleIcon,
   ClipboardList,
   Copy,
-  Dices,
   Flag,
   Gauge,
   Hexagon,
@@ -370,10 +369,6 @@ export function HostPage() {
             <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Host connection</div>
             <div className={`font-display text-xl font-bold uppercase ${status === "open" ? "text-scrub" : "text-amber"}`}>{connectionLabel}</div>
           </div>
-          <div className="rounded-md border border-scrub/25 bg-scrub/10 px-4 py-3">
-            <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Group accuracy</div>
-            <div className="font-display text-xl font-bold uppercase text-scrub">{groupStats.accuracy}%</div>
-          </div>
         </div>
       </div>
 
@@ -432,15 +427,11 @@ export function HostPage() {
             </div>
 
             <div className="rounded-md border border-trauma/20 bg-black/35 p-4">
-              <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Session controls</div>
+              <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Session setup</div>
               <div className="mt-3 grid gap-2">
                 <AnimatedButton variant="ghost" onClick={() => send({ type: "start-protocol-assignment" })} disabled={room.status !== "in-progress"}>
                   <UsersRound className="h-4 w-4" />
                   Show assignments
-                </AnimatedButton>
-                <AnimatedButton variant="secondary" onClick={() => send({ type: "start-selection" })} disabled={room.status !== "in-progress" || room.players.length === 0}>
-                  <Dices className="h-4 w-4" />
-                  Reassign participant
                 </AnimatedButton>
               </div>
               <div className="mt-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/50">
@@ -490,27 +481,9 @@ export function HostPage() {
               </div>
             ) : (
               <>
-                <div className="rounded-md border border-white/10 bg-black/35 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">
-                        {room.status === "in-progress" ? "Live competency checkoff" : "Loaded, not started"} - {station.competencyType}
-                      </div>
-                      <h2 className="mt-1 font-display text-3xl font-black uppercase text-white">{station.title}</h2>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-display text-2xl font-black text-scrub">{groupStats.answered}/{totalPrompts}</div>
-                      <div className="text-xs text-white/45">prompts evaluated</div>
-                    </div>
-                  </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub" style={{ width: `${percent(groupStats.answered, totalPrompts)}%` }} />
-                  </div>
-                </div>
-
                 <PromptCard prompt={prompt ?? null} showAnswer />
 
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-2">
                   <AnimatedButton variant="ghost" onClick={() => send({ type: "previous-prompt" })} disabled={(room.activePromptIndex ?? 0) <= 0}>
                     <ChevronLeft className="h-4 w-4" />
                     Previous
@@ -518,10 +491,6 @@ export function HostPage() {
                   <AnimatedButton variant="secondary" onClick={() => send({ type: "next-prompt" })} disabled={(room.activePromptIndex ?? 0) >= totalPrompts - 1}>
                     <SkipForward className="h-4 w-4" />
                     Skip / Next
-                  </AnimatedButton>
-                  <AnimatedButton variant="ghost" onClick={() => send({ type: "start-selection" })} disabled={!prompt || room.status !== "in-progress"}>
-                    <RotateCcw className="h-4 w-4" />
-                    Re-run selection
                   </AnimatedButton>
                 </div>
               </>
@@ -534,7 +503,7 @@ export function HostPage() {
                 <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Group performance</div>
                 <Gauge className="h-4 w-4 text-monitor" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <StatTile label="Completed" value={groupStats.answered} />
                 <StatTile label="Accuracy" value={`${groupStats.accuracy}%`} tone="text-scrub" />
                 <StatTile label="Correct" value={groupStats.correct} tone="text-scrub" />
@@ -597,10 +566,21 @@ export function HostPage() {
               </div>
             </div>
 
-            <AnimatedButton variant="danger" onClick={() => send({ type: "end-game" })}>
-              <Power className="h-4 w-4" />
-              End session
-            </AnimatedButton>
+            <div className="grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
+              <AnimatedButton
+                variant="ghost"
+                className="min-h-9 py-1 text-[10px] opacity-70 hover:opacity-100"
+                onClick={() => send({ type: "start-selection" })}
+                disabled={!prompt || room.status !== "in-progress"}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Re-run selection
+              </AnimatedButton>
+              <AnimatedButton variant="danger" onClick={() => send({ type: "end-game" })}>
+                <Power className="h-4 w-4" />
+                End session
+              </AnimatedButton>
+            </div>
           </aside>
 
           <div className="lg:col-span-3">
