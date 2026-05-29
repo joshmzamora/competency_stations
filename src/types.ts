@@ -66,7 +66,7 @@ export type SelectionState = {
   durationMs: number;
 };
 
-export type PlayerShape = "circle" | "triangle" | "square" | "pentagon" | "hexagon";
+export type PlayerShape = "triangle" | "star" | "umbrella" | "circle" | "square";
 
 export type PlayerState = {
   id: string;

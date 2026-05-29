@@ -253,9 +253,10 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
 }
 
 function assignShapesToRoom(room: RoomState) {
-  const shapes = ["circle", "triangle", "square", "pentagon", "hexagon"];
+  const priorityShapes = ["triangle", "star", "umbrella", "circle", "square"];
+  const shapes = priorityShapes.slice(0, Math.max(0, Math.min(room.players.length, priorityShapes.length)));
   
-  // Shuffle shapes
+  // Shuffle the priority pool so assignments stay random while keeping square for a fifth participant.
   for (let i = shapes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shapes[i], shapes[j]] = [shapes[j], shapes[i]];

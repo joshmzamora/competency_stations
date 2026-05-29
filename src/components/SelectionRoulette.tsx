@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Hexagon, Pentagon, Square, Triangle } from "lucide-react";
+import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
@@ -15,10 +15,10 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
       return <Triangle className={className} />;
     case "square":
       return <Square className={className} />;
-    case "pentagon":
-      return <Pentagon className={className} />;
-    case "hexagon":
-      return <Hexagon className={className} />;
+    case "star":
+      return <Star className={className} />;
+    case "umbrella":
+      return <Umbrella className={className} />;
   }
 }
 
@@ -30,9 +30,9 @@ function shapeColor(shape?: PlayerShape) {
       return "text-trauma";
     case "square":
       return "text-monitor";
-    case "pentagon":
+    case "star":
       return "text-amber";
-    case "hexagon":
+    case "umbrella":
       return "text-white";
     default:
       return "text-white/35";
@@ -47,9 +47,9 @@ function shapeBorder(shape?: PlayerShape) {
       return "border-trauma/75 shadow-[0_0_50px_rgba(255,48,77,0.28)]";
     case "square":
       return "border-monitor/70 shadow-[0_0_50px_rgba(110,247,255,0.22)]";
-    case "pentagon":
+    case "star":
       return "border-amber/70 shadow-[0_0_50px_rgba(255,176,32,0.22)]";
-    case "hexagon":
+    case "umbrella":
       return "border-white/45 shadow-[0_0_50px_rgba(255,255,255,0.12)]";
     default:
       return "border-white/10";

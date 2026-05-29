@@ -7,17 +7,17 @@ import {
   Copy,
   Flag,
   Gauge,
-  Hexagon,
   PauseCircle,
-  Pentagon,
   Play,
   Power,
   Radio,
   RotateCcw,
   SkipForward,
   Square as SquareIcon,
+  Star,
   Timer,
   Triangle,
+  Umbrella,
   UsersRound,
   X
 } from "lucide-react";
@@ -52,8 +52,8 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
     case "circle": return <CircleIcon className={className} />;
     case "triangle": return <Triangle className={className} />;
     case "square": return <SquareIcon className={className} />;
-    case "pentagon": return <Pentagon className={className} />;
-    case "hexagon": return <Hexagon className={className} />;
+    case "star": return <Star className={className} />;
+    case "umbrella": return <Umbrella className={className} />;
   }
 }
 
@@ -68,8 +68,8 @@ function shapeTone(shape?: PlayerShape) {
     case "circle": return { text: "text-scrub", border: "border-scrub/45", bg: "bg-scrub/10", ring: "shadow-[0_0_36px_rgba(34,245,199,0.22)]" };
     case "triangle": return { text: "text-trauma", border: "border-trauma/45", bg: "bg-trauma/10", ring: "shadow-[0_0_36px_rgba(255,48,77,0.22)]" };
     case "square": return { text: "text-monitor", border: "border-monitor/45", bg: "bg-monitor/10", ring: "shadow-[0_0_36px_rgba(110,247,255,0.18)]" };
-    case "pentagon": return { text: "text-amber", border: "border-amber/45", bg: "bg-amber/10", ring: "shadow-[0_0_36px_rgba(255,176,32,0.18)]" };
-    case "hexagon": return { text: "text-white", border: "border-white/35", bg: "bg-white/10", ring: "shadow-[0_0_34px_rgba(255,255,255,0.12)]" };
+    case "star": return { text: "text-amber", border: "border-amber/45", bg: "bg-amber/10", ring: "shadow-[0_0_36px_rgba(255,176,32,0.18)]" };
+    case "umbrella": return { text: "text-white", border: "border-white/35", bg: "bg-white/10", ring: "shadow-[0_0_34px_rgba(255,255,255,0.12)]" };
     default: return { text: "text-white/40", border: "border-white/10", bg: "bg-white/[0.04]", ring: "" };
   }
 }
