@@ -61,6 +61,22 @@ function Refresh-Urls {
   $playerUrlBox.Text = $playerUrl
 }
 
+function Stop-ExistingServerOnPort {
+  try {
+    $listeners = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    $processIds = @($listeners | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -ne 0 })
+    foreach ($processId in $processIds) {
+      Add-Log "Stopping old server on port $port (PID $processId)..."
+      & taskkill.exe /PID $processId /T /F | Out-Null
+    }
+    if ($processIds.Count -gt 0) {
+      Start-Sleep -Milliseconds 900
+    }
+  } catch {
+    Add-Log "Could not check port $port`: $($_.Exception.Message)"
+  }
+}
+
 function Start-GameServer {
   try {
     if ($serverProcess -and -not $serverProcess.HasExited) {
@@ -87,6 +103,8 @@ function Start-GameServer {
     Add-Log "Project folder: $root"
     Add-Log "Host: $($hostUrlBox.Text)"
     Add-Log "Player: $($playerUrlBox.Text)"
+
+    Stop-ExistingServerOnPort
 
     $commandFile = Join-Path $env:TEMP "competency-stations-start.cmd"
     $commandText = @"
