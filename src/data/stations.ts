@@ -59,23 +59,17 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "verbal-response",
     title: "",
-    scenario:
-      "As the PA catheter is inserted through the right IJ and passes into the right atrium at approximately 15 cm, the CVP waveform appears with A, C, and V waves. What is the normal CVP for a healthy individual without valve dysfunction?",
-    instructions: [
-      "Identify the right atrium/CVP waveform location.",
-      "Recognize A, C, and V waves.",
-      "State the normal CVP range."
-    ],
-    expectedResponse:
-      "At approximately 15 cm in the right atrium, the learner should identify the CVP waveform with A, C, and V waves. Normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
+    scenario: "What is the normal CVP for a healthy individual without valve dysfunction?",
+    instructions: ["Answer verbally."],
+    expectedResponse: "Normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
   }),
   prompt({
     id: "hemodynamics-a-wave-pr-interval",
     stationId: "hemodynamics",
     type: "verbal-response",
     title: "",
-    scenario: "The CVP waveform includes an A wave. If the A wave represents atrial contraction, where does the A wave align with the EKG?",
-    instructions: ["Answer verbally.", "Connect atrial contraction to the correct EKG interval."],
+    scenario: "If the A wave represents atrial contraction, where does the A wave align with the EKG?",
+    instructions: ["Answer verbally."],
     expectedResponse: "The A wave aligns with the PR interval.",
   }),
   prompt({
@@ -83,15 +77,10 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "troubleshooting",
     title: "",
-    scenario:
-      "At approximately 15 cm, the advanced provider instructs you to inflate the balloon and lock it into place to help float the catheter. As the catheter passes the tricuspid valve into the right ventricle, the pressure and waveform change. What waveform/rhythm appears, and what RV pressure pattern should be recognized?",
-    instructions: [
-      "State when and why the balloon is inflated.",
-      "Identify the waveform/rhythm change as the catheter enters the RV.",
-      "State the RV pressure pattern from the script."
-    ],
+    scenario: "As the PA catheter passes through the tricuspid valve into the right ventricle, what waveform/rhythm appears and what RV pressure pattern should be recognized?",
+    instructions: ["Answer verbally."],
     expectedResponse:
-      "At approximately 15 cm, under advanced provider direction, inflate and lock the balloon to float the catheter. As the catheter passes through the tricuspid valve into the RV, the waveform/rhythm appears as VTACH. The RV has a high systolic and low diastolic pressure pattern, approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
+      "The waveform/rhythm appears as VTACH. The RV has a high systolic and low diastolic pressure pattern, approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
     explanation:
       "The script identifies VTACH as the answer during the right ventricular waveform change and lists the RV pressure pattern as 20-30 mmHg over 0-5 mmHg.",
     criticalActions: ["Identifies VTACH.", "Recognizes the RV pressure pattern."]
@@ -101,14 +90,8 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "timed-emergency",
     title: "",
-    scenario:
-      "As the catheter continues from the RV into the PA through the pulmonic valve, the PA waveform appears with a dicrotic notch. The catheter will eventually wedge into a small vessel against the wall. What does the dicrotic notch represent, and what must happen when the catheter is wedged?",
-    instructions: [
-      "Identify what the dicrotic notch represents.",
-      "Name the wedge terminology.",
-      "State the immediate balloon action.",
-      "Explain why the balloon must be deflated."
-    ],
+    scenario: "What does the PA waveform dicrotic notch represent, and what must happen when the catheter is wedged?",
+    instructions: ["Answer verbally."],
     expectedResponse:
       "The PA waveform dicrotic notch represents closure of the pulmonic valve. When the catheter wedges into a small vessel, this may be called PCWP, PAOP, or LVEDP. The provider should instruct balloon deflation at this time to prevent rupture.",
     explanation:
@@ -120,72 +103,16 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
 
 const pacemakerPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "pacemaker-epic-orders",
+    id: "pacemaker-facilitator-led",
     stationId: "pacemaker",
     type: "scenario-walkthrough",
     title: "",
-    scenario: "Emma develops symptomatic bradycardia with HR 32 and hypotension. She goes to the cath lab for a transvenous pacemaker.",
+    scenario: "This station is facilitator-led. Look to the host for pacemaker rhythm strips, device setup, and bedside instructions.",
     instructions: [
-      "Check pacemaker settings against Epic orders.",
-      "State what order details must match the pacemaker box.",
-      "Assign one team member to verify orders and one to program the pacemaker."
+      "Wait for the host to provide the next pacemaker task.",
+      "Follow the bedside equipment and rhythm-strip instructions given in person."
     ],
-    expectedResponse:
-      "Verify pacemaker settings with Epic orders before programming. Confirm ordered rate, output, sensitivity, mode, and any provider-specific settings. Program the pacemaker box according to the verified orders.",
-    explanation:
-      "The document expects learners to check pacemaker settings with Epic orders, with one person checking orders and one person programming the pacemaker.",
-    criticalActions: ["Does not program settings without order verification."]
-  }),
-  prompt({
-    id: "pacemaker-connections-markings",
-    stationId: "pacemaker",
-    type: "practical-assessment",
-    title: "",
-    scenario: "The learner assesses the external pacemaker box and transvenous pacing catheter after placement.",
-    instructions: [
-      "Check all connections.",
-      "Ensure cables are secured.",
-      "Check catheter markings.",
-      "Verbalize what would require escalation."
-    ],
-    expectedResponse:
-      "Check that connections are secure, the pacemaker cable is connected correctly, the catheter markings are documented and unchanged, and any dislodgement concern or unexpected marking change is escalated.",
-    explanation:
-      "The document names checking connections, ensuring they are secured, and checking pacemaker catheter markings as expected interventions.",
-  }),
-  prompt({
-    id: "pacemaker-capture-sensing",
-    stationId: "pacemaker",
-    type: "troubleshooting",
-    title: "",
-    scenario: "The monitor rhythm strip is handed to the learner. The learner must identify whether capture and sensing are appropriate.",
-    instructions: [
-      "Assess for capture on the monitor.",
-      "Assess for sensing.",
-      "Identify undersensing, oversensing, failure to pace, or failure to capture.",
-      "Verbalize how the pacemaker box may be adjusted."
-    ],
-    expectedResponse:
-      "Confirm capture and sensing on the monitor. Identify undersensing, oversensing, failure to pace, and failure to capture. Troubleshoot using the pacemaker box by verifying connections, output, sensitivity, rate, and patient condition while escalating as needed.",
-    explanation:
-      "The document directs handing each person rhythm examples of undersensing, oversensing, failure to pace, and failure to capture and fixing them using the actual pacemaker box.",
-    criticalActions: ["Recognizes loss of capture.", "Escalates unstable rhythm."]
-  }),
-  prompt({
-    id: "pacemaker-dual-box",
-    stationId: "pacemaker",
-    type: "practical-assessment",
-    title: "",
-    scenario: "The dual pacemaker box is brought to the bedside for learner demonstration.",
-    instructions: [
-      "Orient to the dual box controls.",
-      "Identify which controls affect rate, output, and sensitivity.",
-      "Explain how changes should be verified."
-    ],
-    expectedResponse:
-      "Identify the rate, output, and sensitivity controls on the dual box, verbalize that settings must match orders, and verify changes on the monitor with patient assessment.",
-    explanation:
-      "The scenario calls for bringing the dual box and having learners use actual equipment for troubleshooting.",
+    expectedResponse: "Learner follows the host-led pacemaker checkoff instructions."
   })
 ];
 
