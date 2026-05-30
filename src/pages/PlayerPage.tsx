@@ -292,6 +292,10 @@ export function PlayerPage() {
   }, [evaluationList, room?.players]);
 
   useEffect(() => {
+    if (clientId) reconnectAttemptedRef.current = false;
+  }, [clientId]);
+
+  useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
     setEffectVisible(true);
     const timeout = window.setTimeout(() => setEffectVisible(false), 1700);

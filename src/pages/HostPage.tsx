@@ -356,6 +356,10 @@ export function HostPage() {
   }, []);
 
   useEffect(() => {
+    if (clientId) resumeAttemptedRef.current = false;
+  }, [clientId]);
+
+  useEffect(() => {
     if (room?.code) {
       localStorage.setItem("competency-host-room-code", room.code);
     }

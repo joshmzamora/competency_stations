@@ -12,41 +12,56 @@ export function useRoomSocket() {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
-    socketRef.current = socket;
-    roomRef.current = null;
-    setRoom(null);
-    setError("");
+    let disposed = false;
+    let reconnectTimer = 0;
 
-    socket.addEventListener("open", () => setStatus("open"));
-    socket.addEventListener("close", () => {
+    function connect() {
+      if (disposed) return;
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+      socketRef.current = socket;
       roomRef.current = null;
       setRoom(null);
-      setStatus("closed");
-    });
-    socket.addEventListener("error", () => {
-      roomRef.current = null;
-      setRoom(null);
-      setStatus("error");
-    });
-    socket.addEventListener("message", (event) => {
-      const message = JSON.parse(event.data) as ServerMessage;
-      if (message.type === "connected") setClientId(message.id);
-      if (message.type === "room-created" || message.type === "room-joined" || message.type === "state") {
-        roomRef.current = message.room;
-        setRoom(message.room);
-      }
-      if (message.type === "room-left") {
+      setStatus("connecting");
+
+      socket.addEventListener("open", () => {
+        if (disposed) return;
+        setStatus("open");
+      });
+      socket.addEventListener("close", () => {
+        if (disposed) return;
         roomRef.current = null;
         setRoom(null);
-        if (message.reason) setError(message.reason);
-      }
-      if (message.type === "error") setError(message.message);
-    });
+        setStatus("closed");
+        reconnectTimer = window.setTimeout(connect, 1000);
+      });
+      socket.addEventListener("error", () => {
+        if (disposed) return;
+        setStatus("error");
+      });
+      socket.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data) as ServerMessage;
+        if (message.type === "connected") setClientId(message.id);
+        if (message.type === "room-created" || message.type === "room-joined" || message.type === "state") {
+          roomRef.current = message.room;
+          setRoom(message.room);
+          setError("");
+        }
+        if (message.type === "room-left") {
+          roomRef.current = null;
+          setRoom(null);
+          if (message.reason) setError(message.reason);
+        }
+        if (message.type === "error") setError(message.message);
+      });
+    }
+
+    connect();
 
     return () => {
-      socket.close();
+      disposed = true;
+      window.clearTimeout(reconnectTimer);
+      socketRef.current?.close();
       socketRef.current = null;
     };
   }, []);

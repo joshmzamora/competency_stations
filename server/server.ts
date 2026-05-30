@@ -315,7 +315,7 @@ function schedulePlayerRemovalIfHostGone(roomCode: string) {
     for (const playerClient of connectedPlayerClients(roomCode)) {
       detachPlayerClient(playerClient, "The host is no longer connected to this room. Rejoin after the host opens the room again.");
     }
-  }, 5000));
+  }, 10000));
 }
 
 function pickBalancedPlayer(room: RoomState): string | null {
@@ -706,11 +706,6 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
-    if (connectedHostClients(code).length === 0) {
-      sendError(client, "The host is not connected to this room. Ask the host to open the room first.");
-      return;
-    }
-
     const groupId = String(message.groupId ?? client.groupId ?? client.id).trim().slice(0, 80) || client.id;
     const existingPlayerClients = connectedPlayerClients(code);
     const reconnectingSameLearner = existingPlayerClients.some((existingClient) => existingClient.groupId === groupId);
@@ -746,6 +741,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     
     sendState(client, room, "room-joined");
     broadcastState(code);
+    if (connectedHostClients(code).length === 0) {
+      schedulePlayerRemovalIfHostGone(code);
+    }
     return;
   }
 
