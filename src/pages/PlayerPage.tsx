@@ -173,7 +173,7 @@ function ActivePromptView({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monitor">{station.title}</div>
-          <div className="mt-1 text-sm text-white/45">Prompt {promptNumber} of {totalPrompts}</div>
+          <div className="mt-1 text-sm text-white/45">Question {promptNumber} of {totalPrompts}</div>
         </div>
         <div className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 font-display text-xs font-black uppercase tracking-[0.16em] text-white/65">
           {prompt.type.replace(/-/g, " ")}
@@ -216,7 +216,7 @@ function ActivePromptView({
         />
       ) : (
         <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
-          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario prompt</div>
+          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario question</div>
           <p className="mt-4 text-2xl leading-10 text-white/84">{prompt.scenario}</p>
         </div>
       )}
@@ -417,7 +417,7 @@ export function PlayerPage() {
                 {station
                   ? isStrokeStation
                     ? "The host will advance the Stroke activity when ready."
-                    : "The host will run the selection animation before the next prompt appears."
+                    : "The host will run the selection animation before the next question appears."
                   : "The host will select a competency station and start the session."}
               </p>
             </div>

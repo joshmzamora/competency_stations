@@ -156,6 +156,11 @@ function promptId(prompt: unknown) {
   return String(objectField(prompt, "id") ?? "");
 }
 
+function activeQuestionIsEvaluated(room: RoomState) {
+  const id = promptId(activePrompt(room));
+  return Boolean(!id || room.evaluations[id]);
+}
+
 function selectedStationId(room: RoomState) {
   return String(objectField(room.selectedStation, "id") ?? "");
 }
@@ -690,6 +695,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "open-station": {
       if (client.role !== "host") return;
       const wasLive = room.status === "in-progress";
+      if (wasLive && !activeQuestionIsEvaluated(room)) {
+        sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to another station.");
+        return;
+      }
       room.status = room.introCompletedAt ? "in-progress" : "lobby";
       room.introStartedAt = null;
       room.selectedStation = message.station ?? null;
@@ -712,7 +721,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "set-prompt-index": {
       if (client.role !== "host") return;
-      const moved = movePrompt(room, Number(message.index ?? 0));
+      const nextIndex = Number(message.index ?? 0);
+      if (nextIndex > room.activePromptIndex && !activeQuestionIsEvaluated(room)) {
+        sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to the next question.");
+        return;
+      }
+      const moved = movePrompt(room, nextIndex);
       if (moved && usesParticipantSelection(room)) startSelection(room);
       if (!usesParticipantSelection(room)) {
         room.selection = null;
@@ -723,6 +737,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "next-prompt": {
       if (client.role !== "host") return;
+      if (!activeQuestionIsEvaluated(room)) {
+        sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to the next question.");
+        return;
+      }
       const moved = movePrompt(room, room.activePromptIndex + 1);
       if (moved && usesParticipantSelection(room)) startSelection(room);
       if (!usesParticipantSelection(room)) {

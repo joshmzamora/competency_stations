@@ -4,7 +4,6 @@ import {
   Circle as CircleIcon,
   ClipboardList,
   Copy,
-  Flag,
   Gauge,
   PauseCircle,
   Play,
@@ -223,13 +222,13 @@ function SessionHud({
           </div>
           {prompt ? (
             <div className="mt-3 rounded-md border border-monitor/15 bg-monitor/10 px-3 py-2">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Prompt in progress</div>
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Question in progress</div>
               <div className="mt-1 text-sm font-semibold text-white/78">Review the scenario below and evaluate the active response.</div>
             </div>
           ) : null}
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[520px] sm:grid-cols-5">
-          <HudPill label="Prompt" value={totalPrompts ? `${promptIndex + 1}/${totalPrompts}` : "-"} tone="text-monitor" />
+          <HudPill label="Question" value={totalPrompts ? `${promptIndex + 1}/${totalPrompts}` : "-"} tone="text-monitor" />
           <HudPill label="Active" value={activeParticipant?.displayName ?? "Pending"} tone={activeParticipant ? shapeTone(activeParticipant.shape).text : "text-white/45"} />
           <HudPill label="Station left" value={remaining} tone="text-amber" />
           <HudPill label="Accuracy" value={`${accuracy}%`} tone="text-scrub" />
@@ -243,9 +242,7 @@ function SessionHud({
 export function HostPage() {
   const { status, room, error, clientId, send, clearError } = useRoomSocket();
   const { setNavHidden } = useAppChrome();
-  const [note, setNote] = useState("");
   const [participantNotes, setParticipantNotes] = useState<Record<string, string>>({});
-  const [flagged, setFlagged] = useState(false);
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
@@ -281,6 +278,8 @@ export function HostPage() {
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
   const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
   const atLastPrompt = (room?.activePromptIndex ?? 0) >= totalPrompts - 1;
+  const canAdvanceQuestion = Boolean(currentEvaluation);
+  const stationNavigationLocked = Boolean(station && room?.status === "in-progress" && prompt && !currentEvaluation);
   const stationProgress = useMemo(() => {
     return new Map(
       stations.map((item) => {
@@ -390,9 +389,7 @@ export function HostPage() {
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt || (!room?.currentParticipantId && !isStrokeStation)) return;
     const playerId = isStrokeStation ? undefined : room?.currentParticipantId ?? undefined;
-    send({ type: "evaluate-prompt", promptId: prompt.id, playerId, status: statusValue, note, flagged });
-    setNote("");
-    setFlagged(false);
+    send({ type: "evaluate-prompt", promptId: prompt.id, playerId, status: statusValue, flagged: false });
   }
 
   function startSimulation() {
@@ -436,7 +433,7 @@ export function HostPage() {
               {[
                 ["1", "Create room"],
                 ["2", "Learner joins"],
-                ["3", "Run prompts"]
+                ["3", "Run questions"]
               ].map(([step, label]) => (
                 <div key={step} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
                   <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-scrub">Step {step}</div>
@@ -529,6 +526,7 @@ export function HostPage() {
                   return (
                     <button
                       key={item.id}
+                      disabled={stationNavigationLocked}
                       onClick={() => send({ type: "open-station", station: item })}
                       className={`rounded-md border px-3 py-3 text-left transition ${
                         isActive
@@ -536,7 +534,7 @@ export function HostPage() {
                           : completedStation
                             ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
                             : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
-                      }`}
+                      } ${stationNavigationLocked ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
@@ -593,12 +591,17 @@ export function HostPage() {
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </AnimatedButton>
-                  <AnimatedButton variant="secondary" onClick={goNext} disabled={atLastPrompt}>
+                  <AnimatedButton variant="secondary" onClick={goNext} disabled={atLastPrompt || !canAdvanceQuestion}>
                     <SkipForward className="h-4 w-4" />
-                    Skip / Next Prompt
+                    Next Question
                   </AnimatedButton>
                 </div>
-                {atLastPrompt && (
+                {!currentEvaluation && (
+                  <div className="rounded-md border border-amber/20 bg-amber/10 p-3 text-sm text-amber">
+                    Mark this question Correct, Partial, or Incorrect before moving on.
+                  </div>
+                )}
+                {atLastPrompt && currentEvaluation && (
                   <div className="rounded-md border border-monitor/20 bg-monitor/10 p-3 text-sm text-monitor">
                     Station complete. Choose the next station from the station navigation list.
                   </div>
@@ -652,22 +655,7 @@ export function HostPage() {
                 <div className="mb-3 rounded-md border border-monitor/25 bg-monitor/10 p-3 text-xs leading-5 text-monitor">
                   Stroke is scored as a group activity. No random participant selection is required.
                 </div>
-              ) : (
-                <div className="mb-3 rounded-md border border-amber/25 bg-amber/10 p-3 text-xs leading-5 text-amber">
-                  Select a participant before marking this prompt.
-                </div>
-              )}
-              <textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                className="min-h-24 w-full rounded-md border border-white/10 bg-panel px-3 py-2 text-white outline-none focus:border-scrub"
-                placeholder="Optional evaluator note..."
-              />
-              <label className="mt-3 flex items-center gap-2 text-sm text-white/70">
-                <input checked={flagged} onChange={(event) => setFlagged(event.target.checked)} type="checkbox" className="h-4 w-4 accent-red-500" />
-                <Flag className="h-4 w-4 text-amber" />
-                Flag prompt for review
-              </label>
+              ) : null}
               <div className="mt-3 grid gap-2">
                 <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
                   <Check className="h-4 w-4" />
