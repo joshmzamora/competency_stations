@@ -23,16 +23,6 @@ const codeBluePrompts: CompetencyPrompt[] = [
       "H's include hypovolemia, hypoxia, hydrogen ions or acidosis, and hypo/hyperkalemia. T's include tension pneumothorax, cardiac tamponade, toxins, pulmonary thrombosis, and coronary thrombosis.",
     explanation:
       "The H's and T's are reversible causes to consider during pulseless VTACH and cardiac arrest.",
-    evaluationCriteria: [
-      "Names hypovolemia.",
-      "Names hypoxia.",
-      "Names hydrogen ions or acidosis.",
-      "Names hypo/hyperkalemia.",
-      "Names tension pneumothorax.",
-      "Names cardiac tamponade.",
-      "Names toxins.",
-      "Names pulmonary thrombosis and/or coronary thrombosis."
-    ]
   }),
   prompt({
     id: "code-blue-atropine-max-dose",
@@ -42,8 +32,6 @@ const codeBluePrompts: CompetencyPrompt[] = [
     scenario: "What is the maximum dose of Atropine?",
     instructions: ["Answer verbally.", "State the maximum total dose."],
     expectedResponse: "The maximum dose of Atropine is 3 mg.",
-    explanation: "The expected maximum total Atropine dose is 3 mg.",
-    evaluationCriteria: ["States 3 mg."]
   }),
   prompt({
     id: "code-blue-advanced-airway-breathing",
@@ -53,8 +41,6 @@ const codeBluePrompts: CompetencyPrompt[] = [
     scenario: "Once an advanced airway is in place, how often should you give breaths? Give 1 breath every ___ seconds.",
     instructions: ["Answer verbally.", "State the seconds between breaths."],
     expectedResponse: "Once an advanced airway is in place, give 1 breath every 6 seconds.",
-    explanation: "The expected ventilation rate with an advanced airway in place is 1 breath every 6 seconds.",
-    evaluationCriteria: ["States 1 breath every 6 seconds."]
   }),
   prompt({
     id: "code-blue-pulseless-vtach-drug-therapy",
@@ -64,8 +50,6 @@ const codeBluePrompts: CompetencyPrompt[] = [
     scenario: "What is the drug therapy for pulseless VTACH?",
     instructions: ["Answer verbally.", "Name the medication options."],
     expectedResponse: "Drug therapy for pulseless VTACH includes epinephrine, amiodarone, and lidocaine.",
-    explanation: "The expected medication therapies for pulseless VTACH are epinephrine, amiodarone, and lidocaine.",
-    evaluationCriteria: ["Names epinephrine.", "Names amiodarone.", "Names lidocaine."]
   })
 ];
 
@@ -84,13 +68,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     ],
     expectedResponse:
       "At approximately 15 cm in the right atrium, the learner should identify the CVP waveform with A, C, and V waves. Normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
-    explanation: "The script states that at about 15 cm in the right atrium, the CVP waveform appears. The listed normal CVP answer is 2-6 mmHg, with some variation up to 0-8 mmHg.",
-    evaluationCriteria: [
-      "Identifies that the waveform is seen in the right atrium at approximately 15 cm.",
-      "Recognizes the CVP waveform and A, C, and V waves.",
-      "States normal CVP as 2-6 mmHg.",
-      "Accepts 0-8 mmHg as a stated variation."
-    ]
   }),
   prompt({
     id: "hemodynamics-a-wave-pr-interval",
@@ -100,12 +77,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     scenario: "The CVP waveform includes an A wave. If the A wave represents atrial contraction, where does the A wave align with the EKG?",
     instructions: ["Answer verbally.", "Connect atrial contraction to the correct EKG interval."],
     expectedResponse: "The A wave aligns with the PR interval.",
-    explanation: "The script states that the A wave stands for atrial contraction and asks where it aligns with the EKG. The answer is the PR interval.",
-    evaluationCriteria: [
-      "States PR interval.",
-      "Connects the A wave with atrial contraction.",
-      "Does not confuse the A wave with ventricular depolarization or the QRS complex."
-    ]
   }),
   prompt({
     id: "hemodynamics-rv-vtach-pressure",
@@ -123,12 +94,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
       "At approximately 15 cm, under advanced provider direction, inflate and lock the balloon to float the catheter. As the catheter passes through the tricuspid valve into the RV, the waveform/rhythm appears as VTACH. The RV has a high systolic and low diastolic pressure pattern, approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
     explanation:
       "The script identifies VTACH as the answer during the right ventricular waveform change and lists the RV pressure pattern as 20-30 mmHg over 0-5 mmHg.",
-    evaluationCriteria: [
-      "States balloon inflation occurs at approximately 15 cm under advanced provider direction.",
-      "Explains that the balloon helps float the catheter.",
-      "Identifies VTACH as the waveform/rhythm change in the RV.",
-      "States RV pressure as approximately 20-30 mmHg systolic and 0-5 mmHg diastolic."
-    ],
     criticalActions: ["Identifies VTACH.", "Recognizes the RV pressure pattern."]
   }),
   prompt({
@@ -148,12 +113,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
       "The PA waveform dicrotic notch represents closure of the pulmonic valve. When the catheter wedges into a small vessel, this may be called PCWP, PAOP, or LVEDP. The provider should instruct balloon deflation at this time to prevent rupture.",
     explanation:
       "The script states that the dicrotic notch represents pulmonic valve closure and that once wedged, the balloon must be deflated to prevent rupture.",
-    evaluationCriteria: [
-      "States the dicrotic notch represents closure of the pulmonic valve.",
-      "Recognizes wedge terminology: PCWP, PAOP, or LVEDP.",
-      "States to deflate the balloon once wedged.",
-      "Explains balloon deflation is needed to prevent rupture."
-    ],
     criticalActions: ["Deflates balloon when wedged.", "Recognizes rupture risk."],
     timerSeconds: 60
   })
@@ -175,12 +134,6 @@ const pacemakerPrompts: CompetencyPrompt[] = [
       "Verify pacemaker settings with Epic orders before programming. Confirm ordered rate, output, sensitivity, mode, and any provider-specific settings. Program the pacemaker box according to the verified orders.",
     explanation:
       "The document expects learners to check pacemaker settings with Epic orders, with one person checking orders and one person programming the pacemaker.",
-    evaluationCriteria: [
-      "Checks Epic orders before adjusting pacemaker settings.",
-      "Verifies ordered rate, output, sensitivity, and mode.",
-      "Programs the pacemaker box according to verified order.",
-      "Uses team cross-checking."
-    ],
     criticalActions: ["Does not program settings without order verification."]
   }),
   prompt({
@@ -199,12 +152,6 @@ const pacemakerPrompts: CompetencyPrompt[] = [
       "Check that connections are secure, the pacemaker cable is connected correctly, the catheter markings are documented and unchanged, and any dislodgement concern or unexpected marking change is escalated.",
     explanation:
       "The document names checking connections, ensuring they are secured, and checking pacemaker catheter markings as expected interventions.",
-    evaluationCriteria: [
-      "Checks pacemaker box and cable connections.",
-      "Confirms connections are secured.",
-      "Checks and verbalizes catheter markings.",
-      "Escalates suspected dislodgement or marking change."
-    ]
   }),
   prompt({
     id: "pacemaker-capture-sensing",
@@ -222,12 +169,6 @@ const pacemakerPrompts: CompetencyPrompt[] = [
       "Confirm capture and sensing on the monitor. Identify undersensing, oversensing, failure to pace, and failure to capture. Troubleshoot using the pacemaker box by verifying connections, output, sensitivity, rate, and patient condition while escalating as needed.",
     explanation:
       "The document directs handing each person rhythm examples of undersensing, oversensing, failure to pace, and failure to capture and fixing them using the actual pacemaker box.",
-    evaluationCriteria: [
-      "Correctly identifies capture and sensing.",
-      "Differentiates undersensing and oversensing.",
-      "Identifies failure to pace and failure to capture.",
-      "Uses pacemaker box settings and connection checks to troubleshoot."
-    ],
     criticalActions: ["Recognizes loss of capture.", "Escalates unstable rhythm."]
   }),
   prompt({
@@ -245,12 +186,6 @@ const pacemakerPrompts: CompetencyPrompt[] = [
       "Identify the rate, output, and sensitivity controls on the dual box, verbalize that settings must match orders, and verify changes on the monitor with patient assessment.",
     explanation:
       "The scenario calls for bringing the dual box and having learners use actual equipment for troubleshooting.",
-    evaluationCriteria: [
-      "Locates relevant dual box controls.",
-      "Links controls to rate, output, and sensitivity.",
-      "Verifies changes with monitor and patient assessment.",
-      "Maintains order-based practice."
-    ]
   })
 ];
 
@@ -268,12 +203,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     expectedResponse:
       "A chest tube should not be clamped unless specifically ordered by a physician. It may be briefly clamped when changing the Pleur-evac system or assessing for air leaks.",
     explanation: "Routine or prolonged clamping can create patient risk. Brief clamping is only for specific ordered or troubleshooting situations.",
-    evaluationCriteria: [
-      "States clamping requires a physician order unless briefly troubleshooting.",
-      "Names changing the Pleur-evac as an exception.",
-      "Names air leak assessment as an exception.",
-      "Does not endorse routine clamping."
-    ]
   }),
   prompt({
     id: "chest-tube-subcutaneous-emphysema",
@@ -285,12 +214,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     expectedResponse:
       "Assess for subcutaneous emphysema. Physical findings include crepitus, often described as a Rice Krispies sensation. Gently palpate around the insertion site and extend assessment to the neck and upper chest. Mark and document the extent to monitor progression, and notify the physician if this is a new finding.",
     explanation: "Subcutaneous emphysema can indicate air tracking through tissue and should be trended and escalated if new or progressing.",
-    evaluationCriteria: [
-      "Identifies subcutaneous emphysema.",
-      "Describes crepitus or Rice Krispies sensation.",
-      "Assesses insertion site, neck, and upper chest.",
-      "Marks/documents extent and notifies provider if new."
-    ],
     notifyProviderWhen: ["New subcutaneous emphysema is found.", "Crepitus expands or progresses."]
   }),
   prompt({
@@ -302,7 +225,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     instructions: ["Answer verbally.", "State how ordered suction is maintained during transport."],
     expectedResponse: "Transport the patient using portable suction so the ordered continuous suction is maintained.",
     explanation: "A patient ordered for continuous suction should not be disconnected from suction for transport unless directed by provider/policy.",
-    evaluationCriteria: ["States portable suction is required.", "Maintains ordered suction during transport.", "Checks the chest tube system before leaving."]
   }),
   prompt({
     id: "chest-tube-suction-indicator",
@@ -313,7 +235,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     instructions: ["Answer verbally.", "Name the visual indicator."],
     expectedResponse: "The orange float in the suction indicator window confirms that the desired suction has been achieved.",
     explanation: "The suction indicator confirms that prescribed suction is present at the drainage system.",
-    evaluationCriteria: ["Identifies the orange float.", "Connects the indicator to prescribed suction being achieved."]
   }),
   prompt({
     id: "chest-tube-output-notification",
@@ -325,12 +246,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     expectedResponse:
       "Notify the physician for output greater than 200-300 mL per hour for two consecutive hours, a sudden unexpected surge in output, bright red free-flowing blood, or concern for hemorrhage.",
     explanation: "High volume, sudden changes, and bright red free-flowing blood can indicate hemorrhage or another acute complication.",
-    evaluationCriteria: [
-      "States output greater than 200-300 mL/hr for two consecutive hours.",
-      "Identifies sudden unexpected increase as reportable.",
-      "Identifies bright red free-flowing blood as urgent.",
-      "Names hemorrhage concern."
-    ],
     notifyProviderWhen: [
       "Output is greater than 200-300 mL/hr for 2 consecutive hours.",
       "There is a sudden unexpected output increase.",
@@ -353,13 +268,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
       "Assess the water seal chamber. Intermittent bubbling with cough or exhalation is usually from the lung itself. Continuous bubbling suggests a leak in the system, tubing, or chest. Briefly clamp near the insertion site: if bubbling stops, it suggests an internal leak. If it stops farther down the tubing, it suggests a tubing leak. If bubbling continues near the drainage unit, suspect a defective drainage unit.",
     explanation:
       "Air leak troubleshooting is systematic. The water seal chamber shows bubbling patterns, and brief sequential clamping can help localize the source while minimizing risk.",
-    evaluationCriteria: [
-      "Uses the water seal chamber to assess bubbling.",
-      "Differentiates intermittent bubbling from continuous bubbling.",
-      "Correctly explains brief clamping near insertion site.",
-      "Correctly explains tubing leak localization.",
-      "Identifies possible defective drainage unit if bubbling persists near the unit."
-    ],
     criticalActions: ["Keeps clamping brief.", "Escalates persistent or unexplained air leak."]
   }),
   prompt({
@@ -375,12 +283,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     expectedResponse:
       "Assess that the dressing is clean, dry, and intact and that the occlusive dressing is securely adhered to the skin. Assess for redness, swelling, or discharge at the insertion site. Check that tubing is anchored securely to prevent accidental pulling or dislodgement, using appropriate securement such as silk tape or Medipore tape per policy.",
     explanation: "Site assessment focuses on dressing integrity, infection signs, and secure tubing to reduce accidental dislodgement.",
-    evaluationCriteria: [
-      "Checks dressing is clean, dry, intact, and occlusive.",
-      "Assesses redness, swelling, and discharge.",
-      "Ensures tubing is anchored securely.",
-      "Mentions appropriate securement method or policy."
-    ]
   }),
   prompt({
     id: "chest-tube-dislodgement",
@@ -398,13 +300,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
       "Call for help, notify the provider, apply an occlusive dressing with 4x4 gauze, and tape on 3 sides only to create a flutter valve.",
     explanation:
       "A three-sided dressing allows air to escape while reducing air entry. This is an emergency response and requires immediate help and provider notification.",
-    evaluationCriteria: [
-      "Calls for help immediately.",
-      "Notifies the provider.",
-      "Applies an occlusive dressing with 4x4 gauze.",
-      "Tapes on 3 sides only.",
-      "States that this creates a flutter valve."
-    ],
     criticalActions: ["Calls for help.", "Uses three-sided occlusive dressing.", "Notifies provider."],
     timerSeconds: 45
   })
@@ -422,11 +317,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "Name the correct code."
     ],
     expectedResponse: "Call Code RUSH.",
-    explanation: "Violent restraint application requires escalation through Code RUSH.",
-    evaluationCriteria: [
-      "States Code RUSH.",
-      "Does not answer Code BERT for violent restraint application."
-    ],
     criticalActions: ["Identifies Code RUSH."]
   }),
   prompt({
@@ -440,11 +330,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State the time requirement."
     ],
     expectedResponse: "The provider must see the patient face-to-face within one hour.",
-    explanation: "Once violent restraints are applied, the provider face-to-face evaluation must occur within one hour.",
-    evaluationCriteria: [
-      "States one hour.",
-      "Connects the one-hour requirement to violent restraint application."
-    ],
     criticalActions: ["States one hour."]
   }),
   prompt({
@@ -458,11 +343,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State the full phrase."
     ],
     expectedResponse: "BERT stands for Behavioral Emergency Response Team.",
-    explanation: "The Code BERT process activates the Behavioral Emergency Response Team for behavioral safety events.",
-    evaluationCriteria: [
-      "States Behavioral Emergency Response Team.",
-      "Does not confuse BERT with Code RUSH."
-    ]
   }),
   prompt({
     id: "code-bert-cancelled-documentation",
@@ -475,11 +355,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State whether documentation is still required."
     ],
     expectedResponse: "Yes. Documentation is still completed on the BERT flow sheet if the BERT is cancelled.",
-    explanation: "A cancelled BERT still requires documentation on the BERT flow sheet.",
-    evaluationCriteria: [
-      "Answers yes.",
-      "States that the BERT flow sheet still requires documentation."
-    ]
   }),
   prompt({
     id: "code-bert-family-member",
@@ -492,11 +367,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "Clarify who Code BERT applies to."
     ],
     expectedResponse: "False. Code BERT is not called on a family member.",
-    explanation: "The provided competency answer identifies this statement as false.",
-    evaluationCriteria: [
-      "Answers false.",
-      "Does not describe Code BERT as the correct response for a family member."
-    ]
   }),
   prompt({
     id: "code-bert-debrief-form",
@@ -509,11 +379,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State where the form is located."
     ],
     expectedResponse: "The debriefing occurs when the BERT has ended. The form is on the Hub.",
-    explanation: "Debriefing is completed after the BERT ends, using the form located on the Hub.",
-    evaluationCriteria: [
-      "States debriefing occurs when the BERT has ended.",
-      "States the form is on the Hub."
-    ]
   }),
   prompt({
     id: "code-bert-call-number",
@@ -526,11 +391,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State the number to call."
     ],
     expectedResponse: "Call 3333.",
-    explanation: "The Code BERT activation number is 3333.",
-    evaluationCriteria: [
-      "States call 3333.",
-      "Does not give an alternate activation number."
-    ],
     criticalActions: ["States 3333."]
   }),
   prompt({
@@ -547,12 +407,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "Activate Code BERT for a patient exhibiting escalating verbal aggression, physical threats, acute disorientation with combativeness, or behaviors that pose an immediate safety risk to themselves or staff.",
     explanation:
       "Code BERT is intended for behavioral emergencies where escalation creates a safety risk for the patient or staff.",
-    evaluationCriteria: [
-      "Names escalating verbal aggression.",
-      "Names physical threats.",
-      "Names acute disorientation with combativeness.",
-      "Identifies immediate safety risk to self or staff as the key trigger."
-    ],
     criticalActions: ["Recognizes immediate safety risk."]
   })
 ];
@@ -601,11 +455,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Safe: stool softener, Accuchek, diuretics, and physical therapy / 14 hours post TNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
     explanation:
       "This activity reinforces post-Tenecteplase restrictions and the need to avoid unnecessary invasive procedures or anticoagulant exposure during the restricted period.",
-    evaluationCriteria: [
-      "Correctly sorts stool softener, Accuchek, diuretics, and physical therapy / 14 hours post TNK as Safe.",
-      "Correctly sorts NGT insertion, blood draw, Foley catheter insertion, and heparin as Unsafe.",
-      "Explains that invasive procedures and anticoagulant exposure increase post-thrombolytic risk."
-    ],
     criticalActions: ["Does not identify heparin or invasive tube insertion as safe during the restricted period."]
   }),
   prompt({
@@ -651,12 +500,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Eligible: last known well 3 hours ago, ischemic stroke, no signs of intracranial hemorrhage, and BP 150/60. Ineligible: 16 years old, major surgery within 2 months, active GI bleeding, and INR 4.5.",
     explanation:
       "This activity reinforces common inclusion and exclusion cues before Tenecteplase administration.",
-    evaluationCriteria: [
-      "Correctly sorts last known well 3 hours ago as Eligible.",
-      "Correctly sorts ischemic stroke as Eligible.",
-      "Correctly sorts no signs of intracranial hemorrhage and BP 150/60 as Eligible.",
-      "Correctly sorts 16 y/o, recent major surgery, active GI bleeding, and INR 4.5 as Ineligible."
-    ],
     criticalActions: ["Does not miss active bleeding, high INR, or age exclusion cues."]
   }),
   prompt({
@@ -673,10 +516,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Blood pressure must be less than 185/110 mmHg before Tenecteplase can be administered.",
     explanation:
       "Tenecteplase should not be administered until blood pressure is below the pre-treatment threshold.",
-    evaluationCriteria: [
-      "States blood pressure must be less than 185/110 mmHg.",
-      "Recognizes this limit applies before Tenecteplase administration."
-    ],
     criticalActions: ["Does not administer Tenecteplase above the pre-treatment BP limit."]
   }),
   prompt({
@@ -693,10 +532,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Blood pressure must remain less than 180/105 mmHg after Tenecteplase administration.",
     explanation:
       "Post-Tenecteplase blood pressure must remain below the stricter post-treatment threshold.",
-    evaluationCriteria: [
-      "States blood pressure must remain less than 180/105 mmHg.",
-      "Recognizes this limit applies after Tenecteplase administration."
-    ],
     criticalActions: ["Escalates post-treatment BP above threshold."]
   }),
   prompt({
@@ -715,15 +550,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Complete vital signs and neurological assessment once within 15 minutes prior to administration, every 15 minutes for the first 2 hours, every 30 minutes for the next 6 hours, and every 1 hour for the next 16 hours for 24 hours total. A full NIHSS must be completed 24 hours after Tenecteplase initiation and documented in the EMR.",
     explanation:
       "The post-Tenecteplase monitoring schedule covers 24 hours and includes a full NIHSS at the 24-hour mark.",
-    evaluationCriteria: [
-      "States assessment once within 15 minutes prior to administration.",
-      "States every 15 minutes for the first 2 hours.",
-      "States every 30 minutes for the next 6 hours.",
-      "States every 1 hour for the next 16 hours.",
-      "States 24 hours total monitoring.",
-      "States full NIHSS at 24 hours after Tenecteplase initiation.",
-      "States documentation in the EMR."
-    ],
     criticalActions: ["Does not miss the 24-hour NIHSS requirement."]
   }),
   prompt({
@@ -740,12 +566,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Monitor for bleeding, neurological changes, angioedema, and anaphylaxis.",
     explanation:
       "These are the priority complications to monitor for after Tenecteplase administration.",
-    evaluationCriteria: [
-      "Names bleeding.",
-      "Names neurological changes.",
-      "Names angioedema.",
-      "Names anaphylaxis."
-    ],
     criticalActions: ["Recognizes neurological change or bleeding as urgent."]
   }),
   prompt({
@@ -762,11 +582,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "An RN must accompany the patient on any transfer or location change for 24 hours following Tenecteplase administration.",
     explanation:
       "For the first 24 hours after Tenecteplase, the patient requires RN accompaniment for transfers or location changes.",
-    evaluationCriteria: [
-      "States an RN must accompany the patient.",
-      "Applies this to any transfer or location change.",
-      "States the requirement lasts for 24 hours after Tenecteplase."
-    ],
     criticalActions: ["Does not allow transfer without RN accompaniment during the 24-hour period."]
   }),
   prompt({
@@ -783,11 +598,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Document individualized stroke education and the plan of care, including the patient's personal stroke risk factors.",
     explanation:
       "Stroke education and care planning should be individualized and documented with patient-specific risk factors.",
-    evaluationCriteria: [
-      "States individualized stroke education must be documented.",
-      "States the plan of care must be documented.",
-      "Includes the patient's personal stroke risk factors."
-    ]
   }),
   prompt({
     id: "stroke-dysphagia-before-po",
@@ -803,12 +613,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "A dysphagia screen must be completed before administering food, fluids, or oral medications.",
     explanation:
       "Stroke patients must be screened for swallowing safety before anything is given by mouth.",
-    evaluationCriteria: [
-      "States dysphagia screen must be completed.",
-      "States this must occur before food.",
-      "States this must occur before fluids.",
-      "States this must occur before oral medications."
-    ],
     criticalActions: ["Does not give anything by mouth before dysphagia screening."]
   }),
   prompt({
@@ -825,10 +629,6 @@ const strokePrompts: CompetencyPrompt[] = [
       "Do not administer antithrombotic medications until 24 hours after Tenecteplase administration.",
     explanation:
       "Antithrombotic medications are held until 24 hours after Tenecteplase administration.",
-    evaluationCriteria: [
-      "States antithrombotic medications are not administered until 24 hours after Tenecteplase.",
-      "Recognizes the restriction applies after Tenecteplase administration."
-    ],
     criticalActions: ["Does not administer antithrombotics before 24 hours."]
   })
 ];
@@ -842,8 +642,6 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     scenario: "How often do you do peri/Foley care?",
     instructions: ["Answer verbally.", "State the routine frequency."],
     expectedResponse: "Peri/Foley care is done once a shift.",
-    explanation: "The expected frequency for peri/Foley care is once a shift.",
-    evaluationCriteria: ["States once a shift."]
   }),
   prompt({
     id: "cauti-clabsi-chg-bath-frequency",
@@ -853,8 +651,6 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     scenario: "How often should you do a CHG bath if the patient has a central line or a Foley?",
     instructions: ["Answer verbally.", "State the routine CHG bath frequency."],
     expectedResponse: "CHG bath should be done every 24 hours if the patient has a central line or a Foley.",
-    explanation: "The expected CHG bath frequency is every 24 hours.",
-    evaluationCriteria: ["States every 24 hours."]
   }),
   prompt({
     id: "clabsi-scrub-the-hub-time",
@@ -864,8 +660,6 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     scenario: "How long do you scrub the hub when accessing the central line?",
     instructions: ["Answer verbally.", "State the minimum scrub time."],
     expectedResponse: "Scrub the hub for 15 seconds when accessing the central line.",
-    explanation: "The expected scrub-the-hub time is 15 seconds.",
-    evaluationCriteria: ["States 15 seconds."]
   }),
   prompt({
     id: "clabsi-central-line-dressing-change",
@@ -875,79 +669,37 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     scenario: "How often do you change the central line dressing?",
     instructions: ["Answer verbally.", "State the routine interval and as-needed condition."],
     expectedResponse: "Change the central line dressing every 7 days or as needed.",
-    explanation: "The expected central line dressing change frequency is every 7 days or as needed.",
-    evaluationCriteria: ["States every 7 days.", "States or as needed."]
   })
 ];
 
 const pressureInjuryPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "pressure-injury-return-assessment",
+    id: "pressure-injury-two-rn-skin-assessment",
     stationId: "pressure-injury-station",
-    type: "scenario-walkthrough",
+    type: "verbal-response",
     title: "",
-    scenario: "Emma returns after being off the unit for 3.5 hours for a procedure.",
+    scenario: "When do you perform 2 RN skin assessments?",
     instructions: [
-      "State what skin assessment is required.",
-      "Explain why the assessment matters after time off unit.",
-      "Identify who should participate."
+      "Answer verbally.",
+      "Name each situation that requires a 2 RN skin assessment."
     ],
     expectedResponse:
-      "Perform a 4-eyes skin assessment after return from the procedure, especially after being off unit for 3.5 hours. Assess pressure points, devices, dressings, and any new skin changes with another qualified staff member per policy.",
-    explanation:
-      "The document asks what assessment should be done after Emma is away for a procedure for 3.5 hours and expects a 4-eyes assessment.",
-    evaluationCriteria: [
-      "States need for 4-eyes assessment.",
-      "Links prolonged time off unit/procedure to skin risk.",
-      "Assesses pressure points and device-related areas.",
-      "Documents findings per policy."
-    ]
+      "Perform 2 RN skin assessments on admission, transfer, and post-procedure when the procedure is longer than 2 hours."
   }),
   prompt({
-    id: "pressure-injury-dti-mepilex",
+    id: "pressure-injury-wound-photography",
     stationId: "pressure-injury-station",
-    type: "practical-assessment",
+    type: "verbal-response",
     title: "",
-    scenario: "The manikin has a deep tissue injury on the buttocks covered with a Mepilex dressing.",
+    scenario: "When do you perform wound photography?",
     instructions: [
-      "Peel back the Mepilex dressing.",
-      "Identify the wound finding.",
-      "State whether the Mepilex use is appropriate.",
-      "Document and escalate the finding."
+      "Answer verbally.",
+      "State event-based wound photography timing.",
+      "State frequency for acute wounds.",
+      "State frequency for chronic wounds."
     ],
     expectedResponse:
-      "Peel back the Mepilex and identify the DTI on the buttocks. Verbalize that Mepilex use over the DTI is inappropriate in this scenario, document the wound, and escalate per pressure injury policy.",
-    explanation:
-      "The document expects learners to peel back Mepilex, identify DTI in buttocks, and verbalize inappropriate use of Mepilex on DTI.",
-    evaluationCriteria: [
-      "Peels back dressing instead of only inspecting externally.",
-      "Identifies DTI on buttocks.",
-      "Verbalizes inappropriate use of Mepilex on DTI in this station.",
-      "Documents and escalates finding."
-    ]
-  }),
-  prompt({
-    id: "pressure-injury-staging",
-    stationId: "pressure-injury-station",
-    type: "practical-assessment",
-    title: "",
-    scenario: "Several numbered moulage wounds are placed for staging identification.",
-    instructions: [
-      "Match wound numbers to wound stages.",
-      "Identify Stage 2, Stage 3, Stage 4, and DTI.",
-      "Explain key visual differences."
-    ],
-    expectedResponse:
-      "Correctly stage the moulage wounds as Stage 2, Stage 3, Stage 4, and DTI, matching each numbered wound to the correct stage and explaining depth/tissue findings.",
-    explanation:
-      "The document states each person matches the number to the wound and stages the moulage wounds: Stage 2, 3, 4, and DTI.",
-    evaluationCriteria: [
-      "Correctly identifies Stage 2.",
-      "Correctly identifies Stage 3.",
-      "Correctly identifies Stage 4.",
-      "Correctly identifies DTI.",
-      "Explains why each stage was selected."
-    ]
+      "Photograph wounds on admission/presentation, with a change in wound condition such as deterioration or improvement, pre and post debridement, and at discharge or transfer. Photograph acute wounds at least weekly. Photograph chronic wounds at least monthly."
   })
 ];
 

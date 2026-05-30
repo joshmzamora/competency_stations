@@ -69,7 +69,7 @@ export function PromptCard({
               Expected response
             </div>
             <p className="text-white/82">{hostPrompt.expectedResponse}</p>
-            <p className="mt-3 text-sm leading-6 text-white/62">{hostPrompt.explanation}</p>
+            {hostPrompt.explanation ? <p className="mt-3 text-sm leading-6 text-white/62">{hostPrompt.explanation}</p> : null}
           </div>
 
           {hostPrompt.notifyProviderWhen?.length ? (

@@ -29,8 +29,8 @@ export type CompetencyPrompt = {
   activity?: PromptActivity;
   answerKey?: ActivityColumn[];
   expectedResponse: string;
-  explanation: string;
-  evaluationCriteria: string[];
+  explanation?: string;
+  evaluationCriteria?: string[];
   criticalActions?: string[];
   notifyProviderWhen?: string[];
   timerSeconds?: number;
