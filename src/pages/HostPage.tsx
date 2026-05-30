@@ -254,6 +254,7 @@ export function HostPage() {
   const questionKeyRef = useRef<string>("");
   const debriefRequestedRef = useRef(false);
   const downloadedDebriefRef = useRef<number | null>(null);
+  const resumeAttemptedRef = useRef(false);
 
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
@@ -355,6 +356,20 @@ export function HostPage() {
   }, []);
 
   useEffect(() => {
+    if (room?.code) {
+      localStorage.setItem("competency-host-room-code", room.code);
+    }
+  }, [room?.code]);
+
+  useEffect(() => {
+    if (status !== "open" || room || resumeAttemptedRef.current) return;
+    const savedCode = localStorage.getItem("competency-host-room-code");
+    if (!savedCode) return;
+    resumeAttemptedRef.current = true;
+    send({ type: "resume-host", code: savedCode });
+  }, [room, send, status]);
+
+  useEffect(() => {
     if (room && !station && preselectedStation) {
       send({ type: "open-station", station: preselectedStation });
     }
@@ -385,9 +400,9 @@ export function HostPage() {
   }, [introKey, introKeySeen]);
 
   useEffect(() => {
-    setNavHidden(introVisible);
+    setNavHidden(introVisible || Boolean(room && room.status !== "lobby"));
     return () => setNavHidden(false);
-  }, [introVisible, setNavHidden]);
+  }, [introVisible, room, setNavHidden]);
 
   useEffect(() => {
     if (room?.introStartedAt) return;

@@ -176,7 +176,8 @@ export type ResultRecord = {
 
 export type ClientMessage =
   | { type: "create-room" }
-  | { type: "join-room"; code: string; names: string[] }
+  | { type: "resume-host"; code: string }
+  | { type: "join-room"; code: string; names: string[]; groupId?: string }
   | { type: "start-session" }
   | { type: "skip-intro" }
   | { type: "start-protocol-assignment" }

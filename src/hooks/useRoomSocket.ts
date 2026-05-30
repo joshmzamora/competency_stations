@@ -48,7 +48,7 @@ export function useRoomSocket() {
 
   const send = useCallback((message: ClientMessage) => {
     const socket = socketRef.current;
-    const canSendWithoutRoom = message.type === "create-room" || message.type === "join-room";
+    const canSendWithoutRoom = message.type === "create-room" || message.type === "resume-host" || message.type === "join-room";
     if (!canSendWithoutRoom && !roomRef.current) return;
     if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));

@@ -82,6 +82,7 @@ type WsClient = {
   role?: ClientRole;
   roomCode?: string;
   names?: string[];
+  groupId?: string;
   connected: boolean;
 };
 
@@ -259,7 +260,7 @@ function connectedPlayers(roomCode: string): PlayerState[] {
     if (client.roomCode === roomCode && client.role === "player") {
       const names = client.names ?? [];
       names.forEach((_, index) => {
-        connectedIds.add(`${client.id}-${index}`);
+        connectedIds.add(`${client.groupId ?? client.id}-${index}`);
       });
     }
   }
@@ -574,6 +575,20 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     return;
   }
 
+  if (message.type === "resume-host") {
+    const code = String(message.code ?? "").trim().toUpperCase();
+    const room = rooms.get(code);
+    if (!room) {
+      sendError(client, "Previous host room was not found. Create a new room on this computer.");
+      return;
+    }
+
+    client.role = "host";
+    client.roomCode = code;
+    sendState(client, room, "room-created");
+    return;
+  }
+
   if (message.type === "join-room") {
     const code = String(message.code ?? "").trim().toUpperCase();
     const room = rooms.get(code);
@@ -582,8 +597,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
+    const groupId = String(message.groupId ?? client.groupId ?? client.id).trim().slice(0, 80) || client.id;
     const existingPlayerClients = connectedPlayerClients(code);
-    if (existingPlayerClients.length >= 1 && !existingPlayerClients.some((existingClient) => existingClient.id === client.id)) {
+    const reconnectingSameLearner = existingPlayerClients.some((existingClient) => existingClient.groupId === groupId);
+    if (existingPlayerClients.length >= 1 && !existingPlayerClients.some((existingClient) => existingClient.id === client.id) && !reconnectingSameLearner) {
       sendError(client, "A learner screen is already connected. This simulation supports one player computer with 2-5 participants.");
       return;
     }
@@ -602,13 +619,15 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.role = "player";
     client.roomCode = code;
     client.names = names;
+    client.groupId = groupId;
     
     // Create player states with formatted names
     room.players = names.map((n, i) => ({
-      id: `${client.id}-${i}`,
+      id: `${groupId}-${i}`,
       name: `Player ${i + 1} (${n})`,
       connected: true,
-      turnCount: 0
+      shape: room.players.find((player) => player.id === `${groupId}-${i}`)?.shape,
+      turnCount: room.players.find((player) => player.id === `${groupId}-${i}`)?.turnCount ?? 0
     }));
     
     sendState(client, room, "room-joined");
@@ -675,6 +694,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           broadcastState(room.code);
         }
       }, 25000);
+      break;
+    }
+    case "skip-protocol-assignment": {
+      if (client.role !== "host") return;
+      room.protocolIntroStartedAt = null;
+      broadcastState(room.code);
       break;
     }
     case "start-selection": {

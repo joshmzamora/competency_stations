@@ -230,8 +230,15 @@ function ActivePromptView({
 export function PlayerPage() {
   const { status, room, error, clientId, send, clearError } = useRoomSocket();
   const { setNavHidden } = useAppChrome();
-  const [code, setCode] = useState("");
-  const [names, setNames] = useState<string[]>(["", ""]);
+  const [code, setCode] = useState(() => localStorage.getItem("competency-player-room-code") ?? "");
+  const [names, setNames] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("competency-player-names") ?? "null") as unknown;
+      return Array.isArray(saved) && saved.length >= 2 ? saved.map(String).slice(0, 5) : ["", ""];
+    } catch {
+      return ["", ""];
+    }
+  });
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
@@ -239,6 +246,15 @@ export function PlayerPage() {
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const stationIdRef = useRef<string>("");
   const questionKeyRef = useRef<string>("");
+  const reconnectAttemptedRef = useRef(false);
+  const groupIdRef = useRef(
+    localStorage.getItem("competency-player-group-id") ??
+      (() => {
+        const id = crypto.randomUUID();
+        localStorage.setItem("competency-player-group-id", id);
+        return id;
+      })()
+  );
 
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
@@ -281,6 +297,23 @@ export function PlayerPage() {
     const timeout = window.setTimeout(() => setEffectVisible(false), 1700);
     return () => window.clearTimeout(timeout);
   }, [currentEvaluation?.evaluatedAt]);
+
+  useEffect(() => {
+    if (status !== "open" || room || reconnectAttemptedRef.current) return;
+    const savedCode = localStorage.getItem("competency-player-room-code");
+    let savedNames: string[] = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem("competency-player-names") ?? "[]") as unknown;
+      savedNames = Array.isArray(parsed) ? parsed.map(String).filter(Boolean).slice(0, 5) : [];
+    } catch {
+      savedNames = [];
+    }
+    if (!savedCode || savedNames.length < 2) return;
+    reconnectAttemptedRef.current = true;
+    setCode(savedCode);
+    setNames(savedNames);
+    send({ type: "join-room", code: savedCode, names: savedNames, groupId: groupIdRef.current });
+  }, [room, send, status]);
 
   useEffect(() => {
     if (!introKey || introKeySeen === introKey) return;
@@ -372,7 +405,9 @@ export function PlayerPage() {
   function join(event: FormEvent) {
     event.preventDefault();
     if (validNames.length < 2 || validNames.length > 5) return;
-    send({ type: "join-room", code, names });
+    localStorage.setItem("competency-player-room-code", code.trim().toUpperCase());
+    localStorage.setItem("competency-player-names", JSON.stringify(validNames));
+    send({ type: "join-room", code, names: validNames, groupId: groupIdRef.current });
   }
 
   return (
