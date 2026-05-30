@@ -774,7 +774,6 @@ export function HostPage() {
         canSkip
         onSkip={() => {
           setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          send({ type: "skip-protocol-assignment" });
           if (!isStrokeStation) send({ type: "start-selection" });
         }}
         onComplete={() => {

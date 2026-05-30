@@ -222,6 +222,35 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   );
 }
 
+function SelectionRoster({ players, activeId }: { players: PlayerState[]; activeId?: string }) {
+  return (
+    <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      {players.map((player, index) => {
+        const active = player.id === activeId;
+        return (
+          <motion.div
+            key={player.id}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: active ? 1 : 0.62, y: 0, scale: active ? 1.04 : 1 }}
+            transition={{ duration: 0.28, delay: index * 0.04 }}
+            className={`rounded-md border bg-black/45 px-3 py-3 ${active ? shapeBorder(player.shape) : "border-white/10"}`}
+          >
+            <div className="flex items-center gap-3">
+              {player.shape && <ShapeIcon shape={player.shape} className={`h-8 w-8 ${shapeColor(player.shape)}`} />}
+              <div className="min-w-0 text-left">
+                <div className="truncate font-display text-sm font-black uppercase text-white">{publicName(player.name)}</div>
+                <div className={`font-display text-[10px] font-bold uppercase tracking-[0.16em] ${active ? "text-scrub" : "text-white/38"}`}>
+                  {active ? "selected" : player.shape ?? "standby"}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SelectionRoulette({
   selection,
   players,
@@ -251,10 +280,24 @@ export function SelectionRoulette({
 
   useEffect(() => {
     if (!selection) return;
+    const scrollY = window.scrollY;
     const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      window.scrollTo(0, scrollY);
     };
   }, [selection]);
 
@@ -359,6 +402,7 @@ export function SelectionRoulette({
                     ? "Prepare to respond or perform the next competency action. The evaluator will proceed from the host panel."
                     : "Observe the selected participant and wait for your shape to be called."}
                 </p>
+                <SelectionRoster players={players} activeId={targetPlayer?.id} />
               </motion.div>
             )}
           </AnimatePresence>

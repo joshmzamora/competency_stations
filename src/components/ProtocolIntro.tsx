@@ -135,6 +135,41 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
   );
 }
 
+function AssignmentSummary({ players }: { players: PlayerState[] }) {
+  return (
+    <motion.div
+      key="assignment-summary"
+      initial={{ opacity: 0, y: 28, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -22, scale: 1.02 }}
+      transition={{ duration: 0.48, ease: "easeOut" }}
+      className="grid w-full max-w-6xl justify-items-center gap-7 text-center"
+    >
+      <div>
+        <div className="font-display text-xs font-bold uppercase tracking-[0.36em] text-scrub">Assignments locked</div>
+        <h3 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-7xl">All Shapes Assigned</h3>
+      </div>
+      <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {players.map((player, index) => (
+          <motion.div
+            key={player.id}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, delay: index * 0.08 }}
+            className={`rounded-md border bg-black/45 p-4 ${shapeRing(player.shape)}`}
+          >
+            {player.shape && <ShapeIcon shape={player.shape} className={`mx-auto h-16 w-16 ${shapeColor(player.shape)}`} />}
+            <div className="mt-3 truncate font-display text-lg font-black uppercase text-white">{publicName(player.name)}</div>
+            <div className={`mt-1 font-display text-xs font-black uppercase tracking-[0.2em] ${player.shape ? shapeColor(player.shape) : "text-white/30"}`}>
+              {player.shape ?? "pending"}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 export function ProtocolIntro({
   open,
   onComplete,
@@ -216,6 +251,14 @@ export function ProtocolIntro({
     () => players.filter((_, index) => elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34).length,
     [elapsed, players]
   );
+  const showSummary = players.length > 0 && elapsed >= totalDurationMs - closingMs;
+
+  function stopAudio() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+  }
 
   return (
     <AnimatePresence>
@@ -238,6 +281,7 @@ export function ProtocolIntro({
                 type="button"
                 onClick={() => {
                   completedRef.current = true;
+                  stopAudio();
                   onSkip?.();
                 }}
                 className="absolute right-5 top-5 z-20 rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:border-trauma/50 hover:bg-trauma/15 hover:text-trauma md:right-7 md:top-7"
@@ -252,7 +296,9 @@ export function ProtocolIntro({
 
             <main className="grid min-h-0 place-items-center py-6">
               <AnimatePresence mode="wait">
-                {!activePlayer ? (
+                {showSummary ? (
+                  <AssignmentSummary players={players} />
+                ) : !activePlayer ? (
                   <motion.div
                     key="opening"
                     initial={{ opacity: 0, scale: 0.94 }}

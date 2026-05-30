@@ -180,7 +180,6 @@ export type ClientMessage =
   | { type: "start-session" }
   | { type: "skip-intro" }
   | { type: "start-protocol-assignment" }
-  | { type: "skip-protocol-assignment" }
   | { type: "start-selection" }
   | { type: "override-selection"; playerId: string }
   | { type: "open-station"; station: CompetencyStation }

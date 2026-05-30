@@ -677,14 +677,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       }, 25000);
       break;
     }
-    case "skip-protocol-assignment": {
-      if (client.role !== "host") return;
-      room.protocolIntroStartedAt = null;
-      broadcastState(room.code);
-      break;
-    }
     case "start-selection": {
       if (client.role !== "host") return;
+      room.protocolIntroStartedAt = null;
       if (!usesParticipantSelection(room)) {
         room.selection = null;
         room.currentParticipantId = null;
