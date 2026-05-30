@@ -1,4 +1,4 @@
-import { Circle as CircleIcon, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle as CircleIcon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ActivityPromptLayout } from "../components/ActivityPromptLayout";
@@ -410,6 +410,14 @@ export function PlayerPage() {
     send({ type: "join-room", code, names: validNames, groupId: groupIdRef.current });
   }
 
+  function leaveRoom() {
+    localStorage.removeItem("competency-player-room-code");
+    localStorage.removeItem("competency-player-names");
+    localStorage.removeItem("competency-player-group-id");
+    reconnectAttemptedRef.current = true;
+    send({ type: "leave-room" });
+  }
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
       {!room ? (
@@ -479,9 +487,15 @@ export function PlayerPage() {
               <div className="font-display text-3xl font-black uppercase text-white">{station?.title ?? "Waiting for station"}</div>
               {station && !isLive && <p className="mt-1 text-sm text-amber">Station loaded. Waiting for the host to start.</p>}
             </div>
-            <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
-              <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
-              <div className="font-display text-3xl font-black text-scrub">{room.code}</div>
+            <div className="flex items-center gap-2">
+              <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
+                <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
+                <div className="font-display text-3xl font-black text-scrub">{room.code}</div>
+              </div>
+              <AnimatedButton variant="ghost" className="min-h-12 px-3" onClick={leaveRoom}>
+                <LogOut className="h-4 w-4" />
+                Leave
+              </AnimatedButton>
             </div>
           </div>
 

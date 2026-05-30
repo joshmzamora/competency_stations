@@ -178,6 +178,7 @@ export type ClientMessage =
   | { type: "create-room" }
   | { type: "resume-host"; code: string }
   | { type: "join-room"; code: string; names: string[]; groupId?: string }
+  | { type: "leave-room" }
   | { type: "start-session" }
   | { type: "skip-intro" }
   | { type: "start-protocol-assignment" }
@@ -203,4 +204,5 @@ export type ServerMessage =
   | { type: "room-created"; room: RoomState }
   | { type: "room-joined"; room: RoomState }
   | { type: "state"; room: RoomState }
+  | { type: "room-left"; reason?: string }
   | { type: "error"; message: string };

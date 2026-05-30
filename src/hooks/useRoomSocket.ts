@@ -37,6 +37,11 @@ export function useRoomSocket() {
         roomRef.current = message.room;
         setRoom(message.room);
       }
+      if (message.type === "room-left") {
+        roomRef.current = null;
+        setRoom(null);
+        if (message.reason) setError(message.reason);
+      }
       if (message.type === "error") setError(message.message);
     });
 

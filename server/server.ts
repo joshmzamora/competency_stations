@@ -97,6 +97,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const clients = new Set<WsClient>();
 const rooms = new Map<string, RoomState>();
 let roomsSaveTimer: NodeJS.Timeout | null = null;
+const hostDisconnectTimers = new Map<string, NodeJS.Timeout>();
 
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -275,6 +276,46 @@ function connectedPlayers(roomCode: string): PlayerState[] {
 
 function connectedPlayerClients(roomCode: string) {
   return [...clients].filter((client) => client.roomCode === roomCode && client.role === "player" && client.connected);
+}
+
+function connectedHostClients(roomCode: string) {
+  return [...clients].filter((client) => client.roomCode === roomCode && client.role === "host" && client.connected);
+}
+
+function detachPlayerClient(client: WsClient, reason?: string, removeSavedParticipants = false) {
+  const roomCode = client.roomCode;
+  const groupId = client.groupId;
+  const room = roomCode ? rooms.get(roomCode) : null;
+
+  if (room && groupId && removeSavedParticipants) {
+    room.players = room.players.filter((player) => !player.id.startsWith(`${groupId}-`));
+    if (room.currentParticipantId?.startsWith(`${groupId}-`)) {
+      room.currentParticipantId = null;
+      room.selection = null;
+    }
+    recalculateStats(room);
+  }
+
+  client.role = undefined;
+  client.roomCode = undefined;
+  client.names = undefined;
+  send(client, { type: "room-left", reason });
+
+  if (roomCode) {
+    scheduleRoomsSave();
+    broadcastState(roomCode);
+  }
+}
+
+function schedulePlayerRemovalIfHostGone(roomCode: string) {
+  if (hostDisconnectTimers.has(roomCode)) clearTimeout(hostDisconnectTimers.get(roomCode));
+  hostDisconnectTimers.set(roomCode, setTimeout(() => {
+    hostDisconnectTimers.delete(roomCode);
+    if (connectedHostClients(roomCode).length > 0) return;
+    for (const playerClient of connectedPlayerClients(roomCode)) {
+      detachPlayerClient(playerClient, "The host is no longer connected to this room. Rejoin after the host opens the room again.");
+    }
+  }, 5000));
 }
 
 function pickBalancedPlayer(room: RoomState): string | null {
@@ -628,6 +669,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const room = createInitialRoom(code);
     rooms.set(code, room);
     scheduleRoomsSave();
+    if (hostDisconnectTimers.has(code)) {
+      clearTimeout(hostDisconnectTimers.get(code));
+      hostDisconnectTimers.delete(code);
+    }
     client.role = "host";
     client.roomCode = code;
     sendState(client, room, "room-created");
@@ -644,7 +689,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
 
     client.role = "host";
     client.roomCode = code;
+    if (hostDisconnectTimers.has(code)) {
+      clearTimeout(hostDisconnectTimers.get(code));
+      hostDisconnectTimers.delete(code);
+    }
     sendState(client, room, "room-created");
+    broadcastState(code);
     return;
   }
 
@@ -653,6 +703,11 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const room = rooms.get(code);
     if (!room) {
       sendError(client, "Room not found. Check the code on the host screen.");
+      return;
+    }
+
+    if (connectedHostClients(code).length === 0) {
+      sendError(client, "The host is not connected to this room. Ask the host to open the room first.");
       return;
     }
 
@@ -706,6 +761,17 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   }
 
   switch (message.type) {
+    case "leave-room": {
+      if (client.role === "player") {
+        detachPlayerClient(client, "You left the room.", true);
+      } else if (client.role === "host") {
+        client.role = undefined;
+        client.roomCode = undefined;
+        send(client, { type: "room-left", reason: "Host left the room." });
+        schedulePlayerRemovalIfHostGone(room.code);
+      }
+      break;
+    }
     case "start-session": {
       if (client.role !== "host") return;
       const playerConnections = connectedPlayerClients(room.code);
@@ -1006,9 +1072,16 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
 }
 
 function removeClient(client: WsClient) {
+  const roomCode = client.roomCode;
+  const role = client.role;
   client.connected = false;
   clients.delete(client);
-  if (client.roomCode) broadcastState(client.roomCode);
+  if (roomCode) {
+    broadcastState(roomCode);
+    if (role === "host" && connectedHostClients(roomCode).length === 0) {
+      schedulePlayerRemovalIfHostGone(roomCode);
+    }
+  }
 }
 
 function acceptWebSocket(request: http.IncomingMessage, socket: net.Socket) {
