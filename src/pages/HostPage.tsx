@@ -4,7 +4,6 @@ import {
   Circle as CircleIcon,
   ClipboardList,
   Copy,
-  Gauge,
   PauseCircle,
   Play,
   Power,
@@ -16,7 +15,6 @@ import {
   Timer,
   Triangle,
   Umbrella,
-  UsersRound,
   X
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,7 +35,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
 import { downloadFile } from "../utils/results";
-import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
+import { playQuestionAdvanceCue } from "../utils/sound";
 
 type ParticipantPerformance = PlayerState & {
   displayName: string;
@@ -271,7 +269,6 @@ export function HostPage() {
   const stationCompletedCount = station ? station.prompts.filter((item) => evaluations[item.id]).length : 0;
   const stationRemaining = Math.max(0, totalPrompts - stationCompletedCount);
   const allPromptsTotal = useMemo(() => stations.reduce((sum, item) => sum + item.prompts.length, 0), []);
-  const sessionRemaining = Math.max(0, allPromptsTotal - evaluationList.length);
   const allStationsComplete = room?.status === "in-progress" && allPromptsTotal > 0 && evaluationList.length >= allPromptsTotal;
   const connectionLabel =
     status === "open" ? "Connected" : status === "connecting" ? "Connecting" : status === "closed" ? "Disconnected" : "Connection issue";
@@ -290,7 +287,7 @@ export function HostPage() {
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
   const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
   const atLastPrompt = (room?.activePromptIndex ?? 0) >= totalPrompts - 1;
-  const canAdvanceQuestion = Boolean(currentEvaluation);
+  const canAdvanceQuestion = room?.status !== "in-progress" || Boolean(currentEvaluation);
   const stationNavigationLocked = Boolean(station && room?.status === "in-progress" && prompt && !currentEvaluation);
   const stationProgress = useMemo(() => {
     return new Map(
@@ -430,14 +427,13 @@ export function HostPage() {
 
     if (!previousStationId || previousStationId === stationId || room?.status !== "in-progress" || introVisible || protocolIntroVisible) return;
 
-    setStationTransitionVisible(true);
-    try {
-      playStationTransitionCue();
-    } catch {
-      // Browsers can block audio until interaction.
-    }
-    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 1700);
-    return () => window.clearTimeout(timeout);
+    setStationTransitionVisible(false);
+    const showId = window.setTimeout(() => setStationTransitionVisible(true), 20);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2200);
+    return () => {
+      window.clearTimeout(showId);
+      window.clearTimeout(timeout);
+    };
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
   useEffect(() => {
@@ -523,68 +519,53 @@ export function HostPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[330px_1fr_380px]">
           <aside className="grid content-start gap-4">
-            <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Local room</div>
-                  <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
-                </div>
-                <StatusChip label={room.status === "in-progress" ? "Live" : "Staging"} tone={room.status === "in-progress" ? "active" : "neutral"} />
-              </div>
-
-              <div className="mt-4 grid gap-2">
-                {launchChecklist.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
-                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
-                    <div className={`flex items-center gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
-                      <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
-                      <span>{item.value}</span>
-                    </div>
+            {room.status === "lobby" && (
+              <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Local room</div>
+                    <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
                   </div>
-                ))}
-              </div>
+                  <StatusChip label="Staging" />
+                </div>
 
-              <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
-                <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner computer URL</div>
-                <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
-              </div>
-              <div className="mt-4 grid grid-cols-[0.85fr_1.15fr] gap-2">
-                <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
-                  <Copy className="h-4 w-4" />
-                  Copy
-                </AnimatedButton>
-                <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
-                  <Play className="h-4 w-4" />
-                  {room.status === "in-progress" ? "Session live" : "Start intro"}
-                </AnimatedButton>
-              </div>
-              {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
-              {station && connectedParticipants < 2 && (
-                <p className="mt-3 text-xs text-amber">The learner computer must join with 2-5 participant names before the intro can start.</p>
-              )}
-              {station && connectedParticipants >= 2 && room.status !== "in-progress" && (
-                <p className="mt-3 text-xs text-scrub">
-                  {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin." : "Ready. The intro plays once, then participant selection begins."}
-                </p>
-              )}
-            </div>
+                <div className="mt-4 grid gap-2">
+                  {launchChecklist.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                      <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
+                      <div className={`flex items-center gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
+                        <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
+                        <span>{item.value}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            <div className="rounded-md border border-trauma/20 bg-black/35 p-4">
-              <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-trauma">Session setup</div>
-              <div className="mt-3 grid gap-2">
-                {!isStrokeStation && (
-                  <AnimatedButton variant="ghost" onClick={() => send({ type: "start-protocol-assignment" })} disabled={room.status !== "in-progress"}>
-                    <UsersRound className="h-4 w-4" />
-                    Show assignments
+                <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner computer URL</div>
+                  <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
+                </div>
+                <div className="mt-4 grid grid-cols-[0.85fr_1.15fr] gap-2">
+                  <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
+                    <Copy className="h-4 w-4" />
+                    Copy
                   </AnimatedButton>
+                  <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
+                    <Play className="h-4 w-4" />
+                    Start intro
+                  </AnimatedButton>
+                </div>
+                {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
+                {station && connectedParticipants < 2 && (
+                  <p className="mt-3 text-xs text-amber">The learner computer must join with 2-5 participant names before the intro can start.</p>
+                )}
+                {station && connectedParticipants >= 2 && (
+                  <p className="mt-3 text-xs text-scrub">
+                    {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin." : "Ready. The intro plays once, then participant selection begins."}
+                  </p>
                 )}
               </div>
-              <div className="mt-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/50">
-                {isStrokeStation
-                  ? "Stroke runs as a guided group activity. The learner screen mirrors here while the answer key stays host-only."
-                  : "Selection stays balanced behind the scenes. Participant cards show engagement without revealing who is mathematically due next."}
-              </div>
-            </div>
+            )}
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
@@ -670,9 +651,9 @@ export function HostPage() {
                   </AnimatedButton>
                 </div>
                 {!currentEvaluation && (
-                  <div className="rounded-md border border-amber/20 bg-amber/10 p-3 text-sm text-amber">
+                  room.status === "in-progress" ? <div className="rounded-md border border-amber/20 bg-amber/10 p-3 text-sm text-amber">
                     Mark this question Correct, Partial, or Incorrect before moving on.
-                  </div>
+                  </div> : null
                 )}
                 {atLastPrompt && currentEvaluation && (
                   <div className="rounded-md border border-monitor/20 bg-monitor/10 p-3 text-sm text-monitor">
@@ -684,24 +665,6 @@ export function HostPage() {
           </main>
 
           <aside className="grid content-start gap-4">
-            <div className="rounded-md border border-white/10 bg-black/35 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Group performance</div>
-                  <div className="mt-0.5 text-xs text-white/40">All 8 stations in this session</div>
-                </div>
-                <Gauge className="h-4 w-4 text-monitor" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <StatTile label="Completed" value={groupStats.answered} />
-                <StatTile label="Accuracy" value={`${groupStats.accuracy}%`} tone="text-scrub" />
-                <StatTile label="Correct" value={groupStats.correct} tone="text-scrub" />
-                <StatTile label="Partial" value={groupStats.partial} tone="text-amber" />
-                <StatTile label="Incorrect" value={groupStats.incorrect} tone="text-trauma" />
-                <StatTile label="Remaining" value={sessionRemaining} tone="text-white" />
-              </div>
-            </div>
-
             <CountdownTimer endsAt={room.timerEndsAt} />
             <div className="grid grid-cols-2 gap-2">
               <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: prompt?.timerSeconds ?? 60 })} disabled={!prompt}>
@@ -809,6 +772,12 @@ export function HostPage() {
         open={protocolIntroVisible}
         startedAt={room?.protocolIntroStartedAt ?? null}
         players={room?.players ?? []}
+        canSkip
+        onSkip={() => {
+          setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
+          send({ type: "skip-protocol-assignment" });
+          if (!isStrokeStation) send({ type: "start-selection" });
+        }}
         onComplete={() => {
           setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
           if (!isStrokeStation) send({ type: "start-selection" });

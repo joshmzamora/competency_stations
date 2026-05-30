@@ -661,6 +661,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       }, 25000);
       break;
     }
+    case "skip-protocol-assignment": {
+      if (client.role !== "host") return;
+      room.protocolIntroStartedAt = null;
+      broadcastState(room.code);
+      break;
+    }
     case "start-selection": {
       if (client.role !== "host") return;
       if (!usesParticipantSelection(room)) {
@@ -730,14 +736,14 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           if (room.status === "in-progress" && selectedStationId(room) === openedStationId && !room.selection) {
             if (startSelection(room)) broadcastState(room.code);
           }
-        }, 1900);
+        }, 2400);
       }
       break;
     }
     case "set-prompt-index": {
       if (client.role !== "host") return;
       const nextIndex = Number(message.index ?? 0);
-      if (nextIndex > room.activePromptIndex && !activeQuestionIsEvaluated(room)) {
+      if (room.status === "in-progress" && nextIndex > room.activePromptIndex && !activeQuestionIsEvaluated(room)) {
         sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to the next question.");
         return;
       }
@@ -752,7 +758,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "next-prompt": {
       if (client.role !== "host") return;
-      if (!activeQuestionIsEvaluated(room)) {
+      if (room.status === "in-progress" && !activeQuestionIsEvaluated(room)) {
         sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to the next question.");
         return;
       }

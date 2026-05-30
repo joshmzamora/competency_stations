@@ -11,7 +11,7 @@ export function StationTransition({ station, visible }: { station?: CompetencySt
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="pointer-events-none fixed inset-0 z-[190] grid place-items-center overflow-hidden bg-[#030406] text-white"
+          className="pointer-events-none fixed inset-0 z-[215] grid place-items-center overflow-hidden bg-[#030406] text-white"
         >
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(110,247,255,0.045)_1px,transparent_1px)] bg-[size:38px_38px]" />
           <motion.div

@@ -138,11 +138,15 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
 export function ProtocolIntro({
   open,
   onComplete,
+  onSkip,
+  canSkip = false,
   startedAt,
   players
 }: {
   open: boolean;
   onComplete: () => void;
+  onSkip?: () => void;
+  canSkip?: boolean;
   startedAt: number | null;
   serverTime?: number;
   players: PlayerState[];
@@ -229,6 +233,18 @@ export function ProtocolIntro({
           <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-trauma/16 to-transparent" />
 
           <div className="relative grid h-screen grid-rows-[auto_1fr_auto] p-5 md:p-7">
+            {canSkip && (
+              <button
+                type="button"
+                onClick={() => {
+                  completedRef.current = true;
+                  onSkip?.();
+                }}
+                className="absolute right-5 top-5 z-20 rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:border-trauma/50 hover:bg-trauma/15 hover:text-trauma md:right-7 md:top-7"
+              >
+                Skip assignment
+              </button>
+            )}
             <header className="text-center">
               <div className="font-display text-xs font-bold uppercase tracking-[0.32em] text-trauma">Shape assignment</div>
               <h2 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-7xl">Choose Your Shape</h2>

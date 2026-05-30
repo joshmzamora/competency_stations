@@ -14,7 +14,7 @@ import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
-import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
+import { playQuestionAdvanceCue } from "../utils/sound";
 
 type PlayerPerformance = PlayerState & {
   displayName: string;
@@ -320,14 +320,13 @@ export function PlayerPage() {
 
     if (!previousStationId || previousStationId === stationId || room?.status !== "in-progress" || introVisible || protocolIntroVisible) return;
 
-    setStationTransitionVisible(true);
-    try {
-      playStationTransitionCue();
-    } catch {
-      // Browsers can block audio until interaction.
-    }
-    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 1700);
-    return () => window.clearTimeout(timeout);
+    setStationTransitionVisible(false);
+    const showId = window.setTimeout(() => setStationTransitionVisible(true), 20);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2200);
+    return () => {
+      window.clearTimeout(showId);
+      window.clearTimeout(timeout);
+    };
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
   useEffect(() => {
