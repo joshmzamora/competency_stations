@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Flag, Medal, PartyPopper, ShieldCheck } from "lucide-react";
+import { Circle, Download, Flag, Medal, PartyPopper, ShieldCheck, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { stations } from "../data/stations";
 import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from "../types";
 import { AnimatedButton } from "./AnimatedButton";
@@ -22,6 +22,48 @@ function statusTone(status: EvaluationStatus) {
   if (status === "correct") return "text-scrub";
   if (status === "partial") return "text-amber";
   return "text-trauma";
+}
+
+const closingShapes = [
+  { label: "triangle", Icon: Triangle, tone: "text-trauma", x: "6%", y: "13%" },
+  { label: "star", Icon: Star, tone: "text-amber", x: "76%", y: "10%" },
+  { label: "umbrella", Icon: Umbrella, tone: "text-white", x: "10%", y: "68%" },
+  { label: "circle", Icon: Circle, tone: "text-scrub", x: "78%", y: "65%" },
+  { label: "square", Icon: Square, tone: "text-monitor", x: "47%", y: "76%" }
+];
+
+function CookieDisk() {
+  return (
+    <div className="relative h-14 w-14 rounded-full border border-[#d49a57] bg-[#b87836] shadow-[inset_-8px_-10px_0_rgba(57,28,10,0.28),0_0_26px_rgba(255,176,32,0.18)]">
+      {[22, 44, 62, 36, 56].map((left, index) => (
+        <span
+          key={index}
+          className="absolute h-2 w-2 rounded-full bg-[#33190e]"
+          style={{ left: `${left}%`, top: `${[30, 48, 34, 68, 70][index]}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ClosingShapeBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {closingShapes.map(({ label, Icon, tone, x, y }, index) => (
+        <motion.div
+          key={label}
+          className="absolute grid h-32 w-32 place-items-center rounded-md border border-white/10 bg-white/[0.035]"
+          style={{ left: x, top: y }}
+          initial={{ opacity: 0, scale: 0.78, rotate: -8 }}
+          animate={{ opacity: 0.82, scale: 1, rotate: 0 }}
+          transition={{ duration: 0.55, delay: 0.12 + index * 0.08 }}
+        >
+          <Icon className={`absolute h-24 w-24 ${tone} opacity-50`} strokeWidth={1.6} />
+          <CookieDisk />
+        </motion.div>
+      ))}
+    </div>
+  );
 }
 
 export function buildMissedQuestionReport(room: RoomState | null) {
@@ -250,6 +292,7 @@ export function SessionDebrief({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
+            <ClosingShapeBackdrop />
             <motion.div
               className="absolute inset-x-0 top-1/2 h-px bg-trauma"
               initial={{ scaleX: 0 }}
@@ -274,9 +317,11 @@ export function SessionDebrief({
               <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold leading-9 text-white/78">
                 Enjoy your squid game cookies.
               </p>
-              <p className="mx-auto mt-4 max-w-2xl text-white/50">
-                Facilitator: distribute cookies, answer final questions, and thank the team for completing the competency stations.
-              </p>
+              {role === "host" && (
+                <p className="mx-auto mt-4 max-w-2xl text-white/50">
+                  Facilitator: distribute cookies, answer final questions, and thank the team for completing the competency stations.
+                </p>
+              )}
               {role === "host" && (
                 <div className="mx-auto mt-7 grid max-w-md gap-2 sm:grid-cols-2">
                   <AnimatedButton variant="ghost" onClick={onDownload}>

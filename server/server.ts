@@ -455,6 +455,32 @@ function broadcastState(roomCode: string) {
   }
 }
 
+function finishRoomSession(room: RoomState) {
+  const roomCode = room.code;
+  room.status = "ended";
+  room.endedAt = room.endedAt ?? new Date().toISOString();
+  room.selection = null;
+  room.currentParticipantId = null;
+  room.timerEndsAt = null;
+  recalculateStats(room);
+
+  for (const client of clients) {
+    if (client.roomCode === roomCode) {
+      send(client, { type: "session-finished" });
+      client.role = undefined;
+      client.roomCode = undefined;
+      client.names = undefined;
+      client.groupId = undefined;
+    }
+  }
+
+  rooms.delete(roomCode);
+  const timer = hostDisconnectTimers.get(roomCode);
+  if (timer) clearTimeout(timer);
+  hostDisconnectTimers.delete(roomCode);
+  scheduleRoomsSave();
+}
+
 async function ensureResultsFile() {
   await fs.mkdir(dataDir, { recursive: true });
   try {
@@ -1042,6 +1068,19 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         });
       }
       broadcastState(room.code);
+      break;
+    }
+    case "finish-session": {
+      if (client.role !== "host") return;
+      const alreadyEnded = Boolean(room.endedAt);
+      room.endedAt = room.endedAt ?? new Date().toISOString();
+      recalculateStats(room);
+      if (!alreadyEnded) {
+        saveRoomResult(room).catch((error) => {
+          console.error("Could not save room result", error);
+        });
+      }
+      finishRoomSession(room);
       break;
     }
     case "end-game": {

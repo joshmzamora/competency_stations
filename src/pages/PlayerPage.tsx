@@ -1,5 +1,6 @@
 import { Circle as CircleIcon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ActivityPromptLayout } from "../components/ActivityPromptLayout";
 import { AnimatedButton } from "../components/AnimatedButton";
@@ -228,7 +229,8 @@ function ActivePromptView({
 }
 
 export function PlayerPage() {
-  const { status, room, error, clientId, send, clearError } = useRoomSocket();
+  const { status, room, error, clientId, finishedAt, send, clearError } = useRoomSocket();
+  const navigate = useNavigate();
   const { setNavHidden } = useAppChrome();
   const [code, setCode] = useState(() => localStorage.getItem("competency-player-room-code") ?? "");
   const [names, setNames] = useState<string[]>(() => {
@@ -295,6 +297,13 @@ export function PlayerPage() {
   useEffect(() => {
     if (clientId) reconnectAttemptedRef.current = false;
   }, [clientId]);
+
+  useEffect(() => {
+    if (!finishedAt) return;
+    localStorage.removeItem("competency-player-room-code");
+    localStorage.removeItem("competency-player-names");
+    navigate("/complete?role=player", { replace: true });
+  }, [finishedAt, navigate]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;

@@ -197,6 +197,8 @@ export type ClientMessage =
   | { type: "adjust-score"; delta: number }
   | { type: "show-debrief" }
   | { type: "show-closing" }
+  | { type: "skip-protocol-assignment" }
+  | { type: "finish-session" }
   | { type: "end-game"; promptIds?: string[] };
 
 export type ServerMessage =
@@ -205,4 +207,5 @@ export type ServerMessage =
   | { type: "room-joined"; room: RoomState }
   | { type: "state"; room: RoomState }
   | { type: "room-left"; reason?: string }
+  | { type: "session-finished" }
   | { type: "error"; message: string };

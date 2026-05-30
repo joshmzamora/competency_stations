@@ -17,6 +17,7 @@ import {
   X
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
@@ -241,7 +242,8 @@ function SessionHud({
 }
 
 export function HostPage() {
-  const { status, room, error, clientId, send, clearError } = useRoomSocket();
+  const { status, room, error, clientId, finishedAt, send, clearError } = useRoomSocket();
+  const navigate = useNavigate();
   const { setNavHidden } = useAppChrome();
   const [participantNotes, setParticipantNotes] = useState<Record<string, string>>({});
   const [effectVisible, setEffectVisible] = useState(false);
@@ -356,6 +358,12 @@ export function HostPage() {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!finishedAt) return;
+    localStorage.removeItem("competency-host-room-code");
+    navigate("/complete?role=host", { replace: true });
+  }, [finishedAt, navigate]);
 
   useEffect(() => {
     if (clientId) resumeAttemptedRef.current = false;
@@ -825,7 +833,7 @@ export function HostPage() {
         role="host"
         onDownload={downloadMissedReport}
         onClosing={() => send({ type: "show-closing" })}
-        onEnd={endSession}
+        onEnd={() => send({ type: "finish-session" })}
       />
     </section>
   );

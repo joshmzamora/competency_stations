@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, AlertTriangle, ClipboardCheck, Gauge, HeartPulse, Monitor, Radio, Stethoscope, UserRound, Volume2 } from "lucide-react";
+import { Activity, ClipboardCheck, FileText, Gauge, HeartPulse, Monitor, Pill, Radio, Stethoscope, UserRound, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 
@@ -37,17 +37,17 @@ type IntroSlide = {
 const slides: IntroSlide[] = [
   {
     kicker: "Simulation Setup",
-    title: "High Fidelity Patient Encounter",
-    subtitle: "The manikin breathes, has a pulse, talks, and has heart sounds. Assess Emma like you would assess a real ICU patient.",
+    title: "Watch Video About Simulation And Debriefing",
+    subtitle: "High fidelity simulation: the manikin breathes, has a pulse, talks, and has heart sounds. Assess Emma like a real patient.",
     image: "/images/intro/medical-mannequin.webp",
     imageAlt: "Clinical team training with a medical simulation manikin",
     visualLabel: "High fidelity simulation manikin",
     icon: HeartPulse,
     cue: {
       readAloud:
-        "Welcome to the high-fidelity simulation. Emma should be treated like a real ICU patient from the first assessment through the final handoff.",
-      pointOut: "Orient the learner to the manikin, monitor, oxygen setup, and bedside assessment tools.",
-      note: "Give them a few seconds to physically look around before the scenario begins."
+        "Watch the simulation and debriefing video first. This is a high-fidelity simulation: the manikin breathes, has a pulse, talks, and has heart sounds.",
+      pointOut: "Tell the team to assess Emma like a real ICU patient. Vital signs and EKG are on the monitor and may change quickly.",
+      note: "Before starting, have them feel the pulse, auscultate heart and lung sounds, and speak to the manikin."
     },
     focus: ["Breathing manikin", "Palpable pulses", "Heart and lung sounds", "Patient can speak"],
     data: [
@@ -163,15 +163,6 @@ const slides: IntroSlide[] = [
   }
 ];
 
-const profile = [
-  ["Patient", "Emma Gonnadye"],
-  ["Age", "67"],
-  ["Gender", "Female"],
-  ["Weight", "90 kg"],
-  ["Diagnosis", "Acute CHF exacerbation, EF 20 percent, COPD, chronic atrial fibrillation"],
-  ["Chief complaint", "Worsening shortness of breath and cough"]
-];
-
 const medications = ["Insulin glargine 20 units HS", "Furosemide 40 mg daily", "Aspirin 81 mg daily", "Eliquis 5 mg BID", "Carvedilol 25 mg BID"];
 
 const report = [
@@ -184,6 +175,64 @@ const report = [
   ["Abdomen", "Soft, non-tender"],
   ["EKG", "Atrial fibrillation"],
   ["Blood glucose", "460 mg/dL"]
+];
+
+const briefingLines = [
+  "Watch video about simulation and debriefing.",
+  "The manikin breathes, has a pulse, talks, and has heart sounds.",
+  "Assess him like you would a real patient.",
+  "Vital signs and EKG are on the monitor.",
+  "Pay attention: ICU vital signs can change fast.",
+  "Each person randomly chooses a shape and is assigned a number; shape and number correspond to random questions.",
+  "Familiarize yourself with the manikin. Feel a pulse. Auscultate heart and lung sounds. He can talk, too.",
+  "Let's get started on the scenario."
+];
+
+const chartSections = [
+  {
+    id: "identity",
+    label: "Identity",
+    Icon: UserRound,
+    rows: [
+      ["Patient", "Emma Gonnadye"],
+      ["Age", "67"],
+      ["Gender", "Female"],
+      ["Weight", "90 kg"],
+      ["Diagnosis", "Acute exacerbation of congestive heart failure (EF 20%), COPD, chronic atrial fibrillation"],
+      ["Chief complaint", "Worsening shortness of breath and cough"]
+    ]
+  },
+  {
+    id: "story",
+    label: "HPI",
+    Icon: FileText,
+    rows: [
+      ["Arrival", "Brought to the emergency department by her husband"],
+      ["Course", "Shortness of breath and cough worsening over the last couple of days"],
+      ["Progression", "Initially short of breath with exertion; now short of breath at rest"]
+    ]
+  },
+  {
+    id: "history",
+    label: "History",
+    Icon: HeartPulse,
+    rows: [
+      ["PMH", "Hypertension, diabetes, CAD with stent, CKD stage III, chronic atrial fibrillation"],
+      ["Risk frame", "Low EF, chronic AFib, CKD, anticoagulation, severe hyperglycemia"]
+    ]
+  },
+  {
+    id: "meds",
+    label: "Meds",
+    Icon: Pill,
+    rows: medications.map((med) => ["Medication", med])
+  },
+  {
+    id: "report",
+    label: "Report",
+    Icon: Monitor,
+    rows: report
+  }
 ];
 
 function MonitorWave({ color = "#24f5c7" }: { color?: string }) {
@@ -261,6 +310,66 @@ function toneClass(tone: DataPoint["tone"]) {
   return "border-white/10 bg-white/[0.045] text-white";
 }
 
+function PatientChart({ activeId, onChange }: { activeId: string; onChange: (id: string) => void }) {
+  const active = chartSections.find((section) => section.id === activeId) ?? chartSections[0];
+  const ActiveIcon = active.Icon;
+
+  return (
+    <div className="rounded-md border border-monitor/20 bg-[#071012] p-4 shadow-[0_0_56px_rgba(110,247,255,0.08)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="font-display text-[10px] font-black uppercase tracking-[0.2em] text-monitor">Interactive patient chart</div>
+          <div className="mt-1 text-sm text-white/54">Tap sections to review Emma before the first station.</div>
+        </div>
+        <div className="grid h-11 w-11 place-items-center rounded-md border border-monitor/25 bg-monitor/10">
+          <ActiveIcon className="h-5 w-5 text-monitor" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-5 gap-1.5">
+        {chartSections.map((section) => {
+          const Icon = section.Icon;
+          const selected = section.id === active.id;
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => onChange(section.id)}
+              className={`grid place-items-center gap-1 rounded-md border px-2 py-2 transition ${
+                selected ? "border-scrub/35 bg-scrub/10 text-scrub" : "border-white/10 bg-white/[0.035] text-white/50 hover:border-white/25"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="font-display text-[9px] font-black uppercase tracking-[0.12em]">{section.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <motion.div
+        key={active.id}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28 }}
+        className="mt-4 grid max-h-[40vh] gap-2 overflow-y-auto pr-1"
+      >
+        {active.rows.map(([label, value], index) => (
+          <motion.div
+            key={`${active.id}-${label}-${index}`}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.22, delay: index * 0.025 }}
+            className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-left"
+          >
+            <div className="font-display text-[10px] font-black uppercase tracking-[0.15em] text-white/38">{label}</div>
+            <div className="mt-1 text-sm font-semibold leading-5 text-white/82">{value}</div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 export function ScenarioIntro({
   open,
   onClose,
@@ -280,6 +389,7 @@ export function ScenarioIntro({
 }) {
   const [elapsed, setElapsed] = useState(0);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [chartSection, setChartSection] = useState("identity");
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const slideIndex = Math.min(slides.length - 1, Math.floor(elapsed / slideMs));
@@ -401,12 +511,38 @@ export function ScenarioIntro({
                         <span className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/58">{slide.kicker}</span>
                       </div>
                       <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/40">
-                        Step {slideIndex + 1} / {slides.length}
+                        Scene {slideIndex + 1} / {slides.length}
                       </div>
                     </div>
 
                     <h3 className="mt-6 max-w-4xl font-display text-4xl font-black uppercase leading-[0.98] md:text-6xl">{slide.title}</h3>
                     <p className="mt-5 max-w-4xl text-xl leading-8 text-white/78">{slide.subtitle}</p>
+                    {slideIndex === 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.12 }}
+                        className="mt-5 overflow-hidden rounded-md border border-scrub/20 bg-[#020707]"
+                      >
+                        <div className="border-b border-white/10 bg-scrub/10 px-4 py-2 font-display text-[10px] font-black uppercase tracking-[0.2em] text-scrub">
+                          Briefing video script
+                        </div>
+                        <div className="grid gap-2 p-4">
+                          {briefingLines.map((line, index) => (
+                            <motion.div
+                              key={line}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.2 + index * 0.08 }}
+                              className="flex gap-3 text-left"
+                            >
+                              <span className="mt-1 h-2 w-2 flex-none rounded-full bg-scrub shadow-[0_0_18px_rgba(34,245,199,0.65)]" />
+                              <span className="text-sm font-semibold leading-6 text-white/82">{line}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
 
                   <div className="grid gap-4">
@@ -470,53 +606,14 @@ export function ScenarioIntro({
                         <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.pointOut}</p>
                       </div>
                       <div>
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Optional facilitator note</div>
+                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Facilitator note</div>
                         <p className="mt-1 text-sm leading-6 text-white/72">{slide.cue.note}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
-                  <div className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
-                    <UserRound className="h-4 w-4" />
-                    Patient card
-                  </div>
-                  <div className="mt-3 grid gap-2">
-                    {profile.map(([label, value]) => (
-                      <div key={label} className="grid grid-cols-[120px_1fr] gap-3 border-b border-white/10 pb-2 last:border-b-0">
-                        <span className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</span>
-                        <span className="text-sm font-semibold leading-5 text-white/82">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
-                  <div className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
-                    <AlertTriangle className="h-4 w-4" />
-                    Report snapshot
-                  </div>
-                  <div className="mt-3 grid gap-2">
-                    {report.map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-4 border-b border-white/10 pb-2 last:border-b-0">
-                        <span className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{label}</span>
-                        <span className="text-right text-sm text-white/78">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-md border border-white/10 bg-[#0b1118] p-4">
-                  <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">Medication review</div>
-                  <div className="mt-3 grid gap-2">
-                    {medications.map((med) => (
-                      <div key={med} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/74">
-                        {med}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <PatientChart activeId={chartSection} onChange={setChartSection} />
               </aside>
             </main>
 
@@ -526,7 +623,7 @@ export function ScenarioIntro({
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/45">
-                  Slide progress {Math.round(slideProgress)} percent - briefing synced to the room clock
+                  Scene progress {Math.round(slideProgress)} percent - briefing synced to the room clock
                 </div>
                 {canSkip ? (
                   <AnimatedButton variant="ghost" onClick={skipIntro}>
