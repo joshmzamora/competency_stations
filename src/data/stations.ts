@@ -12,7 +12,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-unstable-afib",
     stationId: "code-blue",
     type: "timed-emergency",
-    title: "Unstable Atrial Fibrillation",
+    title: "",
     scenario:
       "Emma is pale, cool, mildly diaphoretic, anxious, and in atrial fibrillation with HR 160, BP 78/50, RR 26, and SpO2 on 2 L nasal cannula. What rhythm and instability do you recognize, and what cardioversion preparation is required?",
     instructions: [
@@ -38,7 +38,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-pulseless-vtach",
     stationId: "code-blue",
     type: "timed-emergency",
-    title: "Pulseless Ventricular Tachycardia",
+    title: "",
     scenario: "Emma becomes unresponsive and the rhythm changes to pulseless ventricular tachycardia. What are your immediate assessment, CPR, ventilation, defibrillation, and medication actions?",
     instructions: [
       "Assess pulse and breathing.",
@@ -64,7 +64,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-shock-sequence",
     stationId: "code-blue",
     type: "verbal-response",
-    title: "Defibrillation and CPR Sequence",
+    title: "",
     scenario: "Emma is in pulseless VTACH. What defibrillation energy sequence and CPR timing are listed in the scenario?",
     instructions: [
       "Start at first shock.",
@@ -87,7 +87,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-shockable-rhythm-meds",
     stationId: "code-blue",
     type: "verbal-response",
-    title: "Shockable Rhythm Medications",
+    title: "",
     scenario:
       "During the pulseless VTACH algorithm, what medications, timing, and doses are expected in this station?",
     instructions: [
@@ -112,7 +112,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-reversible-causes",
     stationId: "code-blue",
     type: "verbal-response",
-    title: "Reversible Causes",
+    title: "",
     scenario: "During the code, what H's and T's should the team consider as reversible causes?",
     instructions: [
       "Name the H's and T's from memory.",
@@ -133,7 +133,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-rosc-bradycardia",
     stationId: "code-blue",
     type: "timed-emergency",
-    title: "ROSC With Symptomatic Bradycardia",
+    title: "",
     scenario: "After ROSC, Emma has HR 42, BP 80/50, SpO2 99%, RR 12, and an ETT in place with 100% FiO2. What first-line medication, dose, repeat interval, maximum dose, and next escalation are expected?",
     instructions: [
       "Recognize symptomatic bradycardia after ROSC.",
@@ -158,7 +158,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-transcutaneous-pacing",
     stationId: "code-blue",
     type: "practical-assessment",
-    title: "Transcutaneous Pacing",
+    title: "",
     scenario:
       "Emma remains symptomatically bradycardic after ROSC. What transcutaneous pacing setup must you verbalize on the Zoll?",
     instructions: [
@@ -184,7 +184,7 @@ const codeBluePrompts: CompetencyPrompt[] = [
     id: "code-blue-bradycardia-infusion-options",
     stationId: "code-blue",
     type: "verbal-response",
-    title: "Additional Bradycardia Medical Management",
+    title: "",
     scenario:
       "What other medical management may be used for symptomatic bradycardia after atropine and while preparing pacing?",
     instructions: [
@@ -209,7 +209,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-post-arrest-briefing",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "Post-Arrest Hemodynamic Briefing",
+    title: "",
     scenario:
       "Host reads: Status post cardiac arrest due to pulseless VTACH, status post intubation, and the patient remains hypotensive with BP 80/50. The ICU team has decided there is an emergent need to insert a PA catheter and an arterial line, and possibly a CVC, to obtain intracardiac pressures to guide management of this critically ill patient.",
     instructions: [
@@ -232,7 +232,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-pressure-tubing-setup",
     stationId: "hemodynamics",
     type: "timed-emergency",
-    title: "Timed Pressure Tubing Setup",
+    title: "",
     scenario:
       "Four players continue to follow this patient. Pair up to gather supplies and set up pressure tubing for PA catheter and arterial line insertion. The host checks each setup step before the team moves forward.",
     instructions: [
@@ -256,7 +256,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-pressure-bag-quality-check",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "Pressure Bag and Tubing Quality Check",
+    title: "",
     scenario: "Before advancing, inspect the pressure tubing setup for required safety details.",
     instructions: [
       "Confirm pressure bags are inflated correctly.",
@@ -279,7 +279,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-level-zero-lines",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "Level and Zero Lines",
+    title: "",
     scenario: "Use the leveler to level the lines and identify the mid-point of the AP chest wall against the stopcock before zeroing.",
     instructions: [
       "Use the leveler.",
@@ -301,7 +301,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-insertion-readiness",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "Insertion Readiness",
+    title: "",
     scenario:
       "Once the setup checkpoint is complete, the next step is insertion of the PA catheter. The team must gather supplies for PA catheter and arterial line insertion.",
     instructions: [
@@ -326,7 +326,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-ra-cvp-waveform",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "Right Atrium and CVP Waveform",
+    title: "",
     scenario:
       "Prior to PA catheter insertion, each player is assigned and given a waveform to match a waveform in every chamber of the heart. As the catheter is inserted through the right IJ and passes into the right atrium at approximately 15 cm, you will see the CVP waveform and A, C, and V waves.",
     instructions: [
@@ -348,7 +348,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-a-wave-ekg",
     stationId: "hemodynamics",
     type: "verbal-response",
-    title: "A Wave and EKG Alignment",
+    title: "",
     scenario: "If the A wave stands for atrial contraction, where does it align with the EKG?",
     instructions: ["Answer verbally.", "Connect atrial contraction to the EKG interval."],
     expectedResponse: "The A wave aligns with the PR interval.",
@@ -359,7 +359,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-balloon-inflation",
     stationId: "hemodynamics",
     type: "scenario-walkthrough",
-    title: "Balloon Inflation at 15 cm",
+    title: "",
     scenario:
       "At 15 cm, the advanced provider instructs you to inflate the balloon and lock it into place to help float the catheter through the different chambers of the heart.",
     instructions: [
@@ -380,7 +380,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-rv-vtach-waveform",
     stationId: "hemodynamics",
     type: "troubleshooting",
-    title: "Tricuspid Valve to RV: Waveform Change",
+    title: "",
     scenario:
       "As the catheter passes the tricuspid valve into the right ventricle, the team notices a pressure and waveform change. The waveform appears as VTACH. The player must match the waveform.",
     instructions: [
@@ -402,7 +402,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-rv-pressure",
     stationId: "hemodynamics",
     type: "verbal-response",
-    title: "RV Pressure",
+    title: "",
     scenario: "The catheter is in the right ventricle. What pressure pattern should the learner know for this station?",
     instructions: ["Answer verbally.", "State the high systolic and low diastolic pressure pattern."],
     expectedResponse:
@@ -414,7 +414,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-pa-dicrotic-notch",
     stationId: "hemodynamics",
     type: "verbal-response",
-    title: "PA Waveform and Dicrotic Notch",
+    title: "",
     scenario:
       "As the catheter continues to float from the RV into the PA through the pulmonic valve, the PA waveform appears with a dicrotic notch. What does the dicrotic notch represent?",
     instructions: ["Answer verbally.", "Name the valve event represented by the dicrotic notch."],
@@ -426,7 +426,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-wedge-balloon-deflation",
     stationId: "hemodynamics",
     type: "timed-emergency",
-    title: "Wedge Position and Balloon Deflation",
+    title: "",
     scenario:
       "The catheter eventually wedges into a small vessel against the wall. Some will call this PCWP, PAOP, or LVEDP. The provider tells you to deflate the balloon.",
     instructions: [
@@ -449,7 +449,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-secure-verify-troubleshoot",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "Secure, Verify, and Troubleshoot",
+    title: "",
     scenario:
       "After placement, the provider ensures the catheter is locked in place. The sleeve cover protects the catheter, the dressing is dated, labeled, and initialed, CXR is obtained for line placement, and lines are leveled and zeroed.",
     instructions: [
@@ -475,7 +475,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     id: "hemodynamics-hemosphere-continuous-monitoring",
     stationId: "hemodynamics",
     type: "practical-assessment",
-    title: "HemoSphere Continuous Monitoring",
+    title: "",
     scenario:
       "The final step is HemoSphere setup. The learner is expected to connect cables to the HemoSphere and initiate continuous monitoring.",
     instructions: ["Connect HemoSphere cables.", "Confirm the monitor is ready.", "Initiate continuous monitoring."],
@@ -490,7 +490,7 @@ const pacemakerPrompts: CompetencyPrompt[] = [
     id: "pacemaker-epic-orders",
     stationId: "pacemaker",
     type: "scenario-walkthrough",
-    title: "Transvenous Pacemaker Orders",
+    title: "",
     scenario: "Emma develops symptomatic bradycardia with HR 32 and hypotension. She goes to the cath lab for a transvenous pacemaker.",
     instructions: [
       "Check pacemaker settings against Epic orders.",
@@ -513,7 +513,7 @@ const pacemakerPrompts: CompetencyPrompt[] = [
     id: "pacemaker-connections-markings",
     stationId: "pacemaker",
     type: "practical-assessment",
-    title: "Connections and Catheter Markings",
+    title: "",
     scenario: "The learner assesses the external pacemaker box and transvenous pacing catheter after placement.",
     instructions: [
       "Check all connections.",
@@ -536,7 +536,7 @@ const pacemakerPrompts: CompetencyPrompt[] = [
     id: "pacemaker-capture-sensing",
     stationId: "pacemaker",
     type: "troubleshooting",
-    title: "Capture and Sensing",
+    title: "",
     scenario: "The monitor rhythm strip is handed to the learner. The learner must identify whether capture and sensing are appropriate.",
     instructions: [
       "Assess for capture on the monitor.",
@@ -560,7 +560,7 @@ const pacemakerPrompts: CompetencyPrompt[] = [
     id: "pacemaker-dual-box",
     stationId: "pacemaker",
     type: "practical-assessment",
-    title: "Dual Box Familiarity",
+    title: "",
     scenario: "The dual pacemaker box is brought to the bedside for learner demonstration.",
     instructions: [
       "Orient to the dual box controls.",
@@ -585,7 +585,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-clamping",
     stationId: "chest-tube",
     type: "verbal-response",
-    title: "Safe Clamping",
+    title: "",
     scenario: "Under what circumstance can you clamp a chest tube?",
     instructions: [
       "Answer verbally.",
@@ -605,7 +605,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-subcutaneous-emphysema",
     stationId: "chest-tube",
     type: "verbal-response",
-    title: "Palpation Finding",
+    title: "",
     scenario: "What assessment finding do you expect when palpating around a chest tube site?",
     instructions: ["Answer verbally.", "Include what it feels like, where to assess, and what to do if new."],
     expectedResponse:
@@ -623,7 +623,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-transport-suction",
     stationId: "chest-tube",
     type: "verbal-response",
-    title: "Transport With Suction",
+    title: "",
     scenario: "Your patient is on continuous -20 cmH2O suction and a STAT CT chest is ordered. How would you transport this patient?",
     instructions: ["Answer verbally.", "State how ordered suction is maintained during transport."],
     expectedResponse: "Transport the patient using portable suction so the ordered continuous suction is maintained.",
@@ -634,7 +634,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-suction-indicator",
     stationId: "chest-tube",
     type: "verbal-response",
-    title: "Adequate Suction",
+    title: "",
     scenario: "How do you assess that the chest tube is providing adequate suction to the prescribed rate?",
     instructions: ["Answer verbally.", "Name the visual indicator."],
     expectedResponse: "The orange float in the suction indicator window confirms that the desired suction has been achieved.",
@@ -645,7 +645,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-output-notification",
     stationId: "chest-tube",
     type: "verbal-response",
-    title: "Output Notification",
+    title: "",
     scenario: "In what situation would you notify a physician regarding chest tube output?",
     instructions: ["Answer verbally.", "Include volume, sudden changes, and drainage character."],
     expectedResponse:
@@ -668,7 +668,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-air-leak",
     stationId: "chest-tube",
     type: "troubleshooting",
-    title: "Air Leak Investigation",
+    title: "",
     scenario: "The water seal chamber is bubbling. The learner must determine whether this is expected or requires troubleshooting.",
     instructions: [
       "Assess the water seal chamber.",
@@ -692,7 +692,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-site-assessment",
     stationId: "chest-tube",
     type: "practical-assessment",
-    title: "Insertion Site and Dressing Assessment",
+    title: "",
     scenario: "How do you properly assess a chest tube site?",
     instructions: [
       "Answer verbally.",
@@ -712,7 +712,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     id: "chest-tube-dislodgement",
     stationId: "chest-tube",
     type: "timed-emergency",
-    title: "Dislodged Chest Tube",
+    title: "",
     scenario: "The chest tube becomes dislodged while the patient is being repositioned.",
     instructions: [
       "Call for help.",
@@ -741,7 +741,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-violent-restraints-code-rush",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Violent Restraints Escalation",
+    title: "",
     scenario: "Which code do you call if violent restraints are applied?",
     instructions: [
       "Answer verbally.",
@@ -759,7 +759,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-restraint-face-to-face",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Face-to-Face Requirement",
+    title: "",
     scenario: "How long does the provider have to see the patient face-to-face once violent restraints are applied?",
     instructions: [
       "Answer verbally.",
@@ -777,7 +777,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-acronym",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "BERT Meaning",
+    title: "",
     scenario: "What does BERT stand for?",
     instructions: [
       "Answer verbally.",
@@ -794,7 +794,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-cancelled-documentation",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Cancelled BERT Documentation",
+    title: "",
     scenario: "Do you document anything on the BERT flow sheet if the BERT is cancelled?",
     instructions: [
       "Answer yes or no.",
@@ -811,7 +811,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-family-member",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Family Member Activation",
+    title: "",
     scenario: "You can call a Code BERT on a family member. True or false?",
     instructions: [
       "Answer true or false.",
@@ -828,7 +828,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-debrief-form",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Debrief Timing and Form Location",
+    title: "",
     scenario: "When does the debriefing occur and where do you find the form?",
     instructions: [
       "State when the debrief occurs.",
@@ -845,7 +845,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-call-number",
     stationId: "code-bert",
     type: "verbal-response",
-    title: "Calling Code BERT",
+    title: "",
     scenario: "How do you call a Code BERT?",
     instructions: [
       "Answer verbally.",
@@ -863,7 +863,7 @@ const codeBertPrompts: CompetencyPrompt[] = [
     id: "code-bert-activation-triggers",
     stationId: "code-bert",
     type: "scenario-walkthrough",
-    title: "Activation Triggers",
+    title: "",
     scenario: "What are the primary criteria or triggers for activating a Code BERT?",
     instructions: [
       "Answer verbally.",
@@ -888,7 +888,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-activity-safe-unsafe",
     stationId: "stroke",
     type: "activity",
-    title: "Post-Tenecteplase Safety Sort",
+    title: "",
     scenario: "Sort each post-Tenecteplase action into Safe or Unsafe.",
     instructions: [
       "Review each card on the learner screen.",
@@ -900,9 +900,9 @@ const strokePrompts: CompetencyPrompt[] = [
       itemBankLabel: "Action cards",
       itemBank: [
         "Stool softener",
-        "Accuchek / Diuretics",
-        "Physical therapy",
-        "14 hours post tNK",
+        "Accuchek",
+        "Diuretics",
+        "Physical therapy / 14 hours post TNK",
         "NGT insertion",
         "Blood draw",
         "Foley catheter insertion",
@@ -916,7 +916,7 @@ const strokePrompts: CompetencyPrompt[] = [
     answerKey: [
       {
         title: "Safe",
-        items: ["Stool softener", "Accuchek / Diuretics", "Physical therapy", "14 hours post tNK"]
+        items: ["Stool softener", "Accuchek", "Diuretics", "Physical therapy / 14 hours post TNK"]
       },
       {
         title: "Unsafe",
@@ -924,11 +924,11 @@ const strokePrompts: CompetencyPrompt[] = [
       }
     ],
     expectedResponse:
-      "Safe: stool softener, Accuchek / diuretics, physical therapy, and 14 hours post tNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
+      "Safe: stool softener, Accuchek, diuretics, and physical therapy / 14 hours post TNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
     explanation:
       "This activity reinforces post-Tenecteplase restrictions and the need to avoid unnecessary invasive procedures or anticoagulant exposure during the restricted period.",
     evaluationCriteria: [
-      "Correctly sorts stool softener, Accuchek / diuretics, physical therapy, and 14 hours post tNK as Safe.",
+      "Correctly sorts stool softener, Accuchek, diuretics, and physical therapy / 14 hours post TNK as Safe.",
       "Correctly sorts NGT insertion, blood draw, Foley catheter insertion, and heparin as Unsafe.",
       "Explains that invasive procedures and anticoagulant exposure increase post-thrombolytic risk."
     ],
@@ -938,7 +938,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-activity-eligibility",
     stationId: "stroke",
     type: "activity",
-    title: "Tenecteplase Eligibility Sort",
+    title: "",
     scenario: "Sort each patient factor into Eligible or Ineligible for Tenecteplase consideration.",
     instructions: [
       "Review each eligibility card on the learner screen.",
@@ -989,7 +989,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-pre-tenecteplase-bp-limit",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Pre-Tenecteplase Blood Pressure",
+    title: "",
     scenario: "What is the upper limit of blood pressure allowed prior to Tenecteplase administration?",
     instructions: [
       "Answer verbally.",
@@ -1009,7 +1009,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-post-tenecteplase-bp-limit",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Post-Tenecteplase Blood Pressure",
+    title: "",
     scenario: "What is the upper limit of blood pressure allowed after Tenecteplase administration?",
     instructions: [
       "Answer verbally.",
@@ -1029,7 +1029,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-vital-signs-neuro-assessment-frequency",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Vitals and Neuro Assessment Frequency",
+    title: "",
     scenario: "How often should vital signs and neurological assessments be completed following Tenecteplase administration?",
     instructions: [
       "Answer verbally.",
@@ -1056,7 +1056,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-tenecteplase-adverse-reactions",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Adverse Reaction Monitoring",
+    title: "",
     scenario: "What adverse reactions should be monitored for following Tenecteplase administration?",
     instructions: [
       "Answer verbally.",
@@ -1078,7 +1078,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-rn-transfer-requirement",
     stationId: "stroke",
     type: "verbal-response",
-    title: "RN Transfer Requirement",
+    title: "",
     scenario: "Who must accompany a patient during transfers or location changes after receiving Tenecteplase?",
     instructions: [
       "Answer verbally.",
@@ -1099,7 +1099,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-education-documentation",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Stroke Education and Documentation",
+    title: "",
     scenario: "What education and documentation is required for stroke patients?",
     instructions: [
       "Answer verbally.",
@@ -1119,7 +1119,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-dysphagia-before-po",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Dysphagia Screen Before PO",
+    title: "",
     scenario: "What must be completed before giving a stroke patient anything by mouth?",
     instructions: [
       "Answer verbally.",
@@ -1141,7 +1141,7 @@ const strokePrompts: CompetencyPrompt[] = [
     id: "stroke-antithrombotic-timing",
     stationId: "stroke",
     type: "verbal-response",
-    title: "Antithrombotic Timing",
+    title: "",
     scenario: "When can antithrombotic medications be administered after Tenecteplase administration?",
     instructions: [
       "Answer verbally.",
@@ -1164,7 +1164,7 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     id: "cauti-prevention",
     stationId: "cauti-clabsi-prevention",
     type: "practical-assessment",
-    title: "CAUTI Prevention Bedside Check",
+    title: "",
     scenario: "Emma has a Foley catheter. The learner must inspect the setup for CAUTI prevention.",
     instructions: [
       "Assess drainage bag position.",
@@ -1188,7 +1188,7 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     id: "clabsi-prevention",
     stationId: "cauti-clabsi-prevention",
     type: "practical-assessment",
-    title: "CLABSI Prevention Bedside Check",
+    title: "",
     scenario: "Emma has a central line. The learner must inspect the central line for CLABSI prevention.",
     instructions: [
       "Assess dressing status.",
@@ -1212,7 +1212,7 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     id: "cauti-clabsi-correct-the-room",
     stationId: "cauti-clabsi-prevention",
     type: "troubleshooting",
-    title: "Correct the Room",
+    title: "",
     scenario: "The room is intentionally staged with Foley and central line prevention errors.",
     instructions: [
       "Find all staged CAUTI risks.",
@@ -1238,7 +1238,7 @@ const pressureInjuryPrompts: CompetencyPrompt[] = [
     id: "pressure-injury-return-assessment",
     stationId: "pressure-injury-station",
     type: "scenario-walkthrough",
-    title: "Return From Procedure",
+    title: "",
     scenario: "Emma returns after being off the unit for 3.5 hours for a procedure.",
     instructions: [
       "State what skin assessment is required.",
@@ -1260,7 +1260,7 @@ const pressureInjuryPrompts: CompetencyPrompt[] = [
     id: "pressure-injury-dti-mepilex",
     stationId: "pressure-injury-station",
     type: "practical-assessment",
-    title: "DTI Under Mepilex",
+    title: "",
     scenario: "The manikin has a deep tissue injury on the buttocks covered with a Mepilex dressing.",
     instructions: [
       "Peel back the Mepilex dressing.",
@@ -1283,7 +1283,7 @@ const pressureInjuryPrompts: CompetencyPrompt[] = [
     id: "pressure-injury-staging",
     stationId: "pressure-injury-station",
     type: "practical-assessment",
-    title: "Wound Staging Match",
+    title: "",
     scenario: "Several numbered moulage wounds are placed for staging identification.",
     instructions: [
       "Match wound numbers to wound stages.",
@@ -1326,16 +1326,6 @@ export const stations: CompetencyStation[] = [
     prompts: hemodynamicsPrompts
   },
   {
-    id: "cauti-clabsi-prevention",
-    title: "CAUTI/CLABSI prevention",
-    shortTitle: "CAUTI/CLABSI",
-    description: "Foley and central line maintenance checks focused on infection-prevention details staged at the bedside.",
-    estimatedMinutes: 5,
-    competencyType: "Infection prevention checkoff",
-    accent: "scrub",
-    prompts: cautiClabsiPrompts
-  },
-  {
     id: "pacemaker",
     title: "Pacemaker",
     shortTitle: "Pacemaker",
@@ -1376,12 +1366,22 @@ export const stations: CompetencyStation[] = [
     prompts: strokePrompts
   },
   {
+    id: "cauti-clabsi-prevention",
+    title: "CAUTI/CLABSI prevention",
+    shortTitle: "CAUTI/CLABSI",
+    description: "Foley and central line maintenance checks focused on infection-prevention details staged at the bedside.",
+    estimatedMinutes: 5,
+    competencyType: "Infection prevention checkoff",
+    accent: "scrub",
+    prompts: cautiClabsiPrompts
+  },
+  {
     id: "pressure-injury-station",
-    title: "Skin Integrity",
-    shortTitle: "Skin Integrity",
+    title: "Pressure Injury Station",
+    shortTitle: "Pressure Injury",
     description: "Return-from-procedure skin assessment, 4-eyes assessment, DTI identification, dressing review, and wound staging.",
     estimatedMinutes: 10,
-    competencyType: "Skin integrity assessment",
+    competencyType: "Pressure injury assessment",
     accent: "amber",
     prompts: pressureInjuryPrompts
   }

@@ -175,8 +175,7 @@ export function ActivityPromptLayout({
           ) : null}
         </div>
 
-        <h2 className="mt-5 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h2>
-        <p className="mt-4 text-xl leading-8 text-white/76">{activity.question || prompt.scenario}</p>
+        <p className="mt-5 text-2xl leading-9 text-white/80">{activity.question || prompt.scenario}</p>
 
         <div className="mt-6 rounded-md border border-white/10 bg-white/[0.035] p-4">
           <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">

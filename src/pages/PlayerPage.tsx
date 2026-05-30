@@ -217,8 +217,7 @@ function ActivePromptView({
       ) : (
         <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
           <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario prompt</div>
-          <h3 className="mt-3 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h3>
-          <p className="mt-5 text-2xl leading-10 text-white/82">{prompt.scenario}</p>
+          <p className="mt-4 text-2xl leading-10 text-white/84">{prompt.scenario}</p>
         </div>
       )}
     </motion.div>

@@ -44,8 +44,7 @@ export function PromptCard({
           {prompt.type.replace(/-/g, " ")}
         </span>
       </div>
-      <h2 className="mt-5 font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl">{prompt.title}</h2>
-      <p className="mt-5 text-xl leading-8 text-white/78">{prompt.scenario}</p>
+      <p className="mt-5 text-2xl leading-9 text-white/82">{prompt.scenario}</p>
 
       <div className="mt-6 rounded-md border border-monitor/25 bg-monitor/10 p-4">
         <div className="mb-3 flex items-center gap-2 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">

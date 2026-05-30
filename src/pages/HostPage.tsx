@@ -224,7 +224,7 @@ function SessionHud({
           {prompt ? (
             <div className="mt-3 rounded-md border border-monitor/15 bg-monitor/10 px-3 py-2">
               <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Prompt in progress</div>
-              <div className="mt-1 truncate text-sm font-semibold text-white/78">{prompt.title}</div>
+              <div className="mt-1 text-sm font-semibold text-white/78">Review the scenario below and evaluate the active response.</div>
             </div>
           ) : null}
         </div>

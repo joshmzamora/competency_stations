@@ -121,12 +121,12 @@ The homepage and host page include these station cards:
 
 - Code Blue
 - Hemodynamics
-- CAUTI/CLABSI prevention
 - Pacemaker
 - Chest tube
 - Code BERT
 - Stroke
-- Skin Integrity
+- CAUTI/CLABSI prevention
+- Pressure Injury Station
 
 These stations are based on the 2026 RN Competency scenario document. Chest tube has the most detailed competency content so far; the other stations have been started from the scenario's expected interventions and can be expanded as you refine the checkoff.
 
