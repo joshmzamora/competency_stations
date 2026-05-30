@@ -970,75 +970,48 @@ const strokePrompts: CompetencyPrompt[] = [
 
 const cautiClabsiPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "cauti-prevention",
+    id: "cauti-foley-care-frequency",
     stationId: "cauti-clabsi-prevention",
-    type: "practical-assessment",
+    type: "verbal-response",
     title: "",
-    scenario: "Emma has a Foley catheter. The learner must inspect the setup for CAUTI prevention.",
-    instructions: [
-      "Assess drainage bag position.",
-      "Check for dependent loops.",
-      "Check securement and insertion date sticker.",
-      "Assess bag fullness."
-    ],
-    expectedResponse:
-      "Prevent CAUTI by ensuring no dependent loop, drainage bag is not on the floor, StatLock is in place, bag is not more than half full, and date-of-insertion sticker is present.",
-    explanation:
-      "The document lists no dependent loop, bag not on the floor, StatLock, bag not more than half full, and insertion date sticker.",
-    evaluationCriteria: [
-      "Identifies and corrects dependent loop.",
-      "Keeps drainage bag off the floor.",
-      "Checks StatLock securement.",
-      "Verifies bag is not more than half full.",
-      "Verifies insertion date sticker."
-    ]
+    scenario: "How often do you do peri/Foley care?",
+    instructions: ["Answer verbally.", "State the routine frequency."],
+    expectedResponse: "Peri/Foley care is done once a shift.",
+    explanation: "The expected frequency for peri/Foley care is once a shift.",
+    evaluationCriteria: ["States once a shift."]
   }),
   prompt({
-    id: "clabsi-prevention",
+    id: "cauti-clabsi-chg-bath-frequency",
     stationId: "cauti-clabsi-prevention",
-    type: "practical-assessment",
+    type: "verbal-response",
     title: "",
-    scenario: "Emma has a central line. The learner must inspect the central line for CLABSI prevention.",
-    instructions: [
-      "Assess dressing status.",
-      "Check Curos caps.",
-      "Check dressing date.",
-      "Check tubing labels and tubing change timing."
-    ],
-    expectedResponse:
-      "Prevent CLABSI by confirming the central line dressing is clean and intact, Curos caps are present, dressing has date of insertion or dressing date, today's date is considered, tubing is labeled, and tubing has been changed within 96 hours.",
-    explanation:
-      "The document lists clean and intact dressing, Curos cap, dressing with date of insertion, today's date, tubing labeled, and tubing changed within 96 hours.",
-    evaluationCriteria: [
-      "Checks dressing is clean and intact.",
-      "Verifies Curos caps are present.",
-      "Checks dressing date.",
-      "Checks tubing labels.",
-      "Verifies tubing change is within 96 hours."
-    ]
+    scenario: "How often should you do a CHG bath if the patient has a central line or a Foley?",
+    instructions: ["Answer verbally.", "State the routine CHG bath frequency."],
+    expectedResponse: "CHG bath should be done every 24 hours if the patient has a central line or a Foley.",
+    explanation: "The expected CHG bath frequency is every 24 hours.",
+    evaluationCriteria: ["States every 24 hours."]
   }),
   prompt({
-    id: "cauti-clabsi-correct-the-room",
+    id: "clabsi-scrub-the-hub-time",
     stationId: "cauti-clabsi-prevention",
-    type: "troubleshooting",
+    type: "verbal-response",
     title: "",
-    scenario: "The room is intentionally staged with Foley and central line prevention errors.",
-    instructions: [
-      "Find all staged CAUTI risks.",
-      "Find all staged CLABSI risks.",
-      "Correct what can be corrected immediately.",
-      "Verbalize what must be documented or escalated."
-    ],
-    expectedResponse:
-      "Identify and correct dependent loop, Foley bag on floor, missing StatLock, overfilled bag, missing insertion date, missing Curos cap, compromised dressing, missing dressing date, unlabeled tubing, and tubing outside the 96-hour change window.",
-    explanation:
-      "The station is designed as a demonstration of ways to prevent CAUTI and CLABSI using bedside findings.",
-    evaluationCriteria: [
-      "Finds Foley-related prevention errors.",
-      "Finds central-line-related prevention errors.",
-      "Corrects immediate risks.",
-      "Documents or escalates items requiring follow-up."
-    ]
+    scenario: "How long do you scrub the hub when accessing the central line?",
+    instructions: ["Answer verbally.", "State the minimum scrub time."],
+    expectedResponse: "Scrub the hub for 15 seconds when accessing the central line.",
+    explanation: "The expected scrub-the-hub time is 15 seconds.",
+    evaluationCriteria: ["States 15 seconds."]
+  }),
+  prompt({
+    id: "clabsi-central-line-dressing-change",
+    stationId: "cauti-clabsi-prevention",
+    type: "verbal-response",
+    title: "",
+    scenario: "How often do you change the central line dressing?",
+    instructions: ["Answer verbally.", "State the routine interval and as-needed condition."],
+    expectedResponse: "Change the central line dressing every 7 days or as needed.",
+    explanation: "The expected central line dressing change frequency is every 7 days or as needed.",
+    evaluationCriteria: ["States every 7 days.", "States or as needed."]
   })
 ];
 
