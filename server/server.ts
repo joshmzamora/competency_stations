@@ -715,8 +715,15 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.currentParticipantId = null;
       recalculateStats(room);
       room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
-      if (room.status === "in-progress" && usesParticipantSelection(room)) startSelection(room);
       broadcastState(room.code);
+      if (room.status === "in-progress" && usesParticipantSelection(room)) {
+        const openedStationId = selectedStationId(room);
+        setTimeout(() => {
+          if (room.status === "in-progress" && selectedStationId(room) === openedStationId && !room.selection) {
+            if (startSelection(room)) broadcastState(room.code);
+          }
+        }, 1900);
+      }
       break;
     }
     case "set-prompt-index": {

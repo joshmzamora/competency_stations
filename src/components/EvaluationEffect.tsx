@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, MinusCircle, XCircle } from "lucide-react";
 import { useEffect } from "react";
 import type { EvaluationStatus } from "../types";
+import { playEvaluationCue } from "../utils/sound";
 
 const effectCopy = {
   correct: {
@@ -9,55 +10,23 @@ const effectCopy = {
     detail: "Competency checkpoint met",
     icon: CheckCircle2,
     className: "border-scrub/60 bg-scrub/20 text-scrub shadow-scrub",
-    wash: "bg-scrub/12",
-    tones: [523.25, 659.25, 783.99]
+    wash: "bg-scrub/12"
   },
   partial: {
     label: "Partial Credit",
     detail: "Review and reinforce",
     icon: MinusCircle,
     className: "border-amber/60 bg-amber/20 text-amber",
-    wash: "bg-amber/12",
-    tones: [392, 493.88]
+    wash: "bg-amber/12"
   },
   incorrect: {
     label: "Needs Correction",
     detail: "Stop, coach, and retry",
     icon: XCircle,
     className: "border-trauma/60 bg-trauma/20 text-trauma shadow-alert",
-    wash: "bg-trauma/12",
-    tones: [196, 146.83]
+    wash: "bg-trauma/12"
   }
 };
-
-function playCue(status: EvaluationStatus) {
-  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) return;
-
-  const context = new AudioContextClass();
-  const master = context.createGain();
-  master.gain.setValueAtTime(0.0001, context.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.02);
-  master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.72);
-  master.connect(context.destination);
-
-  const tones = effectCopy[status].tones;
-  tones.forEach((frequency, index) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = status === "incorrect" ? "sawtooth" : "sine";
-    oscillator.frequency.setValueAtTime(frequency, context.currentTime + index * 0.12);
-    gain.gain.setValueAtTime(0.0001, context.currentTime + index * 0.12);
-    gain.gain.exponentialRampToValueAtTime(0.22, context.currentTime + index * 0.12 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + index * 0.12 + 0.16);
-    oscillator.connect(gain);
-    gain.connect(master);
-    oscillator.start(context.currentTime + index * 0.12);
-    oscillator.stop(context.currentTime + index * 0.12 + 0.18);
-  });
-
-  window.setTimeout(() => void context.close(), 900);
-}
 
 export function EvaluationEffect({
   status,
@@ -72,9 +41,9 @@ export function EvaluationEffect({
   const Icon = effect?.icon;
 
   useEffect(() => {
-    if (!visible || !status || subtle) return;
+    if (!visible || !status) return;
     try {
-      playCue(status);
+      playEvaluationCue(status, subtle);
     } catch {
       // Browsers can block audio until the user has interacted with the page.
     }

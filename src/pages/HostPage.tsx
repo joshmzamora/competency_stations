@@ -19,7 +19,7 @@ import {
   UsersRound,
   X
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { CountdownTimer } from "../components/CountdownTimer";
@@ -30,10 +30,12 @@ import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
 import { StationCard } from "../components/StationCard";
+import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
+import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
 
 type ParticipantPerformance = PlayerState & {
   displayName: string;
@@ -245,12 +247,17 @@ export function HostPage() {
   const [participantNotes, setParticipantNotes] = useState<Record<string, string>>({});
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
+  const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const stationIdRef = useRef<string>("");
+  const questionKeyRef = useRef<string>("");
 
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
+  const stationId = station?.id ?? "";
+  const questionKey = stationId ? `${stationId}:${room?.activePromptIndex ?? 0}` : "";
   const isStrokeStation = station?.id === "stroke";
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
@@ -385,6 +392,46 @@ export function HostPage() {
     !introVisible &&
     !room.introStartedAt
   );
+
+  useEffect(() => {
+    if (!stationId) {
+      stationIdRef.current = "";
+      return;
+    }
+
+    const previousStationId = stationIdRef.current;
+    stationIdRef.current = stationId;
+
+    if (!previousStationId || previousStationId === stationId || room?.status !== "in-progress" || introVisible || protocolIntroVisible) return;
+
+    setStationTransitionVisible(true);
+    try {
+      playStationTransitionCue();
+    } catch {
+      // Browsers can block audio until interaction.
+    }
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 1700);
+    return () => window.clearTimeout(timeout);
+  }, [introVisible, protocolIntroVisible, room?.status, stationId]);
+
+  useEffect(() => {
+    if (!questionKey || room?.status !== "in-progress") {
+      questionKeyRef.current = questionKey;
+      return;
+    }
+
+    const previousQuestionKey = questionKeyRef.current;
+    questionKeyRef.current = questionKey;
+    const previousStationId = previousQuestionKey.split(":")[0];
+
+    if (previousQuestionKey && previousQuestionKey !== questionKey && previousStationId === stationId) {
+      try {
+        playQuestionAdvanceCue();
+      } catch {
+        // Browsers can block audio until interaction.
+      }
+    }
+  }, [questionKey, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt || (!room?.currentParticipantId && !isStrokeStation)) return;
@@ -741,6 +788,7 @@ export function HostPage() {
           if (!isStrokeStation) send({ type: "start-selection" });
         }}
       />
+      <StationTransition station={station ?? null} visible={stationTransitionVisible} />
       {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
     </section>
   );

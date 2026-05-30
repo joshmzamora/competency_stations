@@ -174,8 +174,7 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
               <div className="flex items-center gap-3">
                 {focusPlayer.shape && <ShapeIcon shape={focusPlayer.shape} className={`h-9 w-9 ${shapeColor(focusPlayer.shape)}`} />}
                 <div className="min-w-0 text-left">
-                  <div className="truncate font-display text-lg font-black uppercase text-white">{publicName(focusPlayer.name)}</div>
-                  <div className="mt-1 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">Center selection</div>
+                  <div className="truncate font-display text-2xl font-black uppercase leading-none text-white">{publicName(focusPlayer.name)}</div>
                 </div>
               </div>
             </motion.div>
