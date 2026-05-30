@@ -206,282 +206,91 @@ const codeBluePrompts: CompetencyPrompt[] = [
 
 const hemodynamicsPrompts: CompetencyPrompt[] = [
   prompt({
-    id: "hemodynamics-post-arrest-briefing",
+    id: "hemodynamics-cvp-waveform-normal",
     stationId: "hemodynamics",
-    type: "scenario-walkthrough",
+    type: "verbal-response",
     title: "",
     scenario:
-      "Host reads: Status post cardiac arrest due to pulseless VTACH, status post intubation, and the patient remains hypotensive with BP 80/50. The ICU team has decided there is an emergent need to insert a PA catheter and an arterial line, and possibly a CVC, to obtain intracardiac pressures to guide management of this critically ill patient.",
+      "As the PA catheter is inserted through the right IJ and passes into the right atrium at approximately 15 cm, the CVP waveform appears with A, C, and V waves. What is the normal CVP for a healthy individual without valve dysfunction?",
     instructions: [
-      "Listen to the clinical briefing.",
-      "State why invasive monitoring is needed.",
-      "Prepare to work in pairs for pressure tubing setup."
+      "Identify the right atrium/CVP waveform location.",
+      "Recognize A, C, and V waves.",
+      "State the normal CVP range."
     ],
     expectedResponse:
-      "Recognize persistent post-arrest hypotension after pulseless VTACH and intubation. State that a PA catheter, arterial line, and possible CVC are being inserted emergently to obtain intracardiac pressures and guide management.",
-    explanation:
-      "This opening prompt sets the station context before the timed supply and setup checkpoint sequence.",
+      "At approximately 15 cm in the right atrium, the learner should identify the CVP waveform with A, C, and V waves. Normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
+    explanation: "The script states that at about 15 cm in the right atrium, the CVP waveform appears. The listed normal CVP answer is 2-6 mmHg, with some variation up to 0-8 mmHg.",
     evaluationCriteria: [
-      "Identifies post-arrest pulseless VTACH and intubation history.",
-      "States current hypotension around BP 80/50.",
-      "Explains PA catheter and arterial line use for intracardiac pressures and critical management.",
-      "Understands that the team will proceed with emergent invasive line setup."
-    ]
-  }),
-  prompt({
-    id: "hemodynamics-pressure-tubing-setup",
-    stationId: "hemodynamics",
-    type: "timed-emergency",
-    title: "",
-    scenario:
-      "Four players continue to follow this patient. Pair up to gather supplies and set up pressure tubing for PA catheter and arterial line insertion. The host checks each setup step before the team moves forward.",
-    instructions: [
-      "Pair up and gather supplies for PA catheter and arterial line pressure tubing.",
-      "Verbalize supplies as you gather them.",
-      "Pause for host verification before moving to the next setup step."
-    ],
-    expectedResponse:
-      "Pairs gather and verbalize needed supplies for PA catheter and arterial line pressure tubing setup while pausing for host verification at each checkpoint. They prepare pressure bags, pressure tubing, non-vented caps, flush setup, labels, and leveling/zeroing supplies.",
-    explanation:
-      "The station uses facilitator checkpoints. The host can pause the team, verify setup, and then allow the next step.",
-    evaluationCriteria: [
-      "Pairs up and works as a team.",
-      "Verbalizes supplies needed for PA catheter and arterial line pressure tubing.",
-      "Pauses appropriately for host checkpoint verification.",
-      "Prepares pressure tubing setup efficiently within the timed station."
-    ],
-    timerSeconds: 300
-  }),
-  prompt({
-    id: "hemodynamics-pressure-bag-quality-check",
-    stationId: "hemodynamics",
-    type: "practical-assessment",
-    title: "",
-    scenario: "Before advancing, inspect the pressure tubing setup for required safety details.",
-    instructions: [
-      "Confirm pressure bags are inflated correctly.",
-      "Confirm caps, priming, bubble removal, and labels.",
-      "Correct any setup errors before moving forward."
-    ],
-    expectedResponse:
-      "Pressure bags are inflated to 300 mmHg, all end caps are changed to non-vented caps, lines are primed with no bubbles, and tubing is properly labeled.",
-    explanation: "This is the required setup checkpoint before line insertion can proceed.",
-    evaluationCriteria: [
-      "Inflates pressure bag to 300 mmHg.",
-      "Changes all end caps to non-vented caps.",
-      "Primes lines completely with no bubbles.",
-      "Labels tubing appropriately.",
-      "Corrects issues before advancing."
-    ],
-    criticalActions: ["Pressure bag is at 300 mmHg.", "No bubbles remain in primed lines.", "Non-vented caps are used."]
-  }),
-  prompt({
-    id: "hemodynamics-level-zero-lines",
-    stationId: "hemodynamics",
-    type: "practical-assessment",
-    title: "",
-    scenario: "Use the leveler to level the lines and identify the mid-point of the AP chest wall against the stopcock before zeroing.",
-    instructions: [
-      "Use the leveler.",
-      "Identify the mid-point of the AP chest wall.",
-      "Level against the stopcock.",
-      "Zero the lines before proceeding."
-    ],
-    expectedResponse:
-      "Use the leveler to identify the mid-point of the AP chest wall, align against the stopcock, level the system, and zero the lines before use.",
-    explanation: "Accurate invasive pressures require proper leveling and zeroing before interpretation.",
-    evaluationCriteria: [
-      "Uses the leveler correctly.",
-      "Identifies mid-point of AP chest wall.",
-      "Levels against the stopcock.",
-      "Zeros lines before moving forward."
-    ]
-  }),
-  prompt({
-    id: "hemodynamics-insertion-readiness",
-    stationId: "hemodynamics",
-    type: "scenario-walkthrough",
-    title: "",
-    scenario:
-      "Once the setup checkpoint is complete, the next step is insertion of the PA catheter. The team must gather supplies for PA catheter and arterial line insertion.",
-    instructions: [
-      "Gather supplies needed for PA catheter insertion.",
-      "Gather supplies needed for arterial line insertion.",
-      "Obtain consent if able.",
-      "Perform a time out before the procedure."
-    ],
-    expectedResponse:
-      "Gather PA catheter, arterial line, and possible CVC insertion supplies; obtain consent if able; and perform a time out before the procedure.",
-    explanation: "The flow moves from setup to invasive insertion readiness only after host verification is complete.",
-    evaluationCriteria: [
-      "Identifies PA catheter supplies.",
-      "Identifies arterial line supplies.",
-      "Mentions possible CVC supplies if needed.",
-      "Obtains consent if able.",
-      "Performs time out."
-    ],
-    criticalActions: ["Performs time out before procedure."]
-  }),
-  prompt({
-    id: "hemodynamics-ra-cvp-waveform",
-    stationId: "hemodynamics",
-    type: "scenario-walkthrough",
-    title: "",
-    scenario:
-      "Prior to PA catheter insertion, each player is assigned and given a waveform to match a waveform in every chamber of the heart. As the catheter is inserted through the right IJ and passes into the right atrium at approximately 15 cm, you will see the CVP waveform and A, C, and V waves.",
-    instructions: [
-      "Match the CVP waveform.",
-      "Identify A, C, and V waves.",
-      "State the normal CVP for a healthy individual without valve dysfunction."
-    ],
-    expectedResponse:
-      "Match the CVP waveform in the right atrium. Identify A, C, and V waves. State that normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
-    explanation: "At about 15 cm in the right atrium, the PA catheter tracing shows CVP waveform characteristics.",
-    evaluationCriteria: [
-      "Matches the CVP waveform.",
-      "Identifies A, C, and V waves.",
+      "Identifies that the waveform is seen in the right atrium at approximately 15 cm.",
+      "Recognizes the CVP waveform and A, C, and V waves.",
       "States normal CVP as 2-6 mmHg.",
       "Accepts 0-8 mmHg as a stated variation."
     ]
   }),
   prompt({
-    id: "hemodynamics-a-wave-ekg",
+    id: "hemodynamics-a-wave-pr-interval",
     stationId: "hemodynamics",
     type: "verbal-response",
     title: "",
-    scenario: "If the A wave stands for atrial contraction, where does it align with the EKG?",
-    instructions: ["Answer verbally.", "Connect atrial contraction to the EKG interval."],
+    scenario: "The CVP waveform includes an A wave. If the A wave represents atrial contraction, where does the A wave align with the EKG?",
+    instructions: ["Answer verbally.", "Connect atrial contraction to the correct EKG interval."],
     expectedResponse: "The A wave aligns with the PR interval.",
-    explanation: "The A wave represents atrial contraction and aligns with the PR interval on the EKG.",
-    evaluationCriteria: ["States PR interval.", "Connects the A wave with atrial contraction."]
-  }),
-  prompt({
-    id: "hemodynamics-balloon-inflation",
-    stationId: "hemodynamics",
-    type: "scenario-walkthrough",
-    title: "",
-    scenario:
-      "At 15 cm, the advanced provider instructs you to inflate the balloon and lock it into place to help float the catheter through the different chambers of the heart.",
-    instructions: [
-      "State when the balloon is inflated.",
-      "State why the balloon is used.",
-      "Identify that this occurs under advanced provider direction."
-    ],
-    expectedResponse:
-      "At approximately 15 cm, under advanced provider instruction, inflate the balloon and lock it into place so it can float the catheter through the chambers of the heart.",
-    explanation: "The balloon assists catheter flotation during PA catheter insertion and should be inflated under provider direction.",
+    explanation: "The script states that the A wave stands for atrial contraction and asks where it aligns with the EKG. The answer is the PR interval.",
     evaluationCriteria: [
-      "States balloon inflation occurs at approximately 15 cm.",
-      "States it is done under advanced provider direction.",
-      "Explains that balloon inflation helps float the catheter."
+      "States PR interval.",
+      "Connects the A wave with atrial contraction.",
+      "Does not confuse the A wave with ventricular depolarization or the QRS complex."
     ]
   }),
   prompt({
-    id: "hemodynamics-rv-vtach-waveform",
+    id: "hemodynamics-rv-vtach-pressure",
     stationId: "hemodynamics",
     type: "troubleshooting",
     title: "",
     scenario:
-      "As the catheter passes the tricuspid valve into the right ventricle, the team notices a pressure and waveform change. The waveform appears as VTACH. The player must match the waveform.",
+      "At approximately 15 cm, the advanced provider instructs you to inflate the balloon and lock it into place to help float the catheter. As the catheter passes the tricuspid valve into the right ventricle, the pressure and waveform change. What waveform/rhythm appears, and what RV pressure pattern should be recognized?",
     instructions: [
-      "Recognize the rhythm or waveform change.",
-      "Match the VTACH waveform.",
-      "Pause for host feedback before advancing."
+      "State when and why the balloon is inflated.",
+      "Identify the waveform/rhythm change as the catheter enters the RV.",
+      "State the RV pressure pattern from the script."
     ],
     expectedResponse:
-      "Recognize VTACH as the waveform/rhythm change as the catheter passes into the RV, match the correct waveform, and pause for host feedback.",
-    explanation: "The script identifies VTACH as the expected answer during the RV waveform change checkpoint.",
+      "At approximately 15 cm, under advanced provider direction, inflate and lock the balloon to float the catheter. As the catheter passes through the tricuspid valve into the RV, the waveform/rhythm appears as VTACH. The RV has a high systolic and low diastolic pressure pattern, approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
+    explanation:
+      "The script identifies VTACH as the answer during the right ventricular waveform change and lists the RV pressure pattern as 20-30 mmHg over 0-5 mmHg.",
     evaluationCriteria: [
-      "Identifies VTACH.",
-      "Matches the correct waveform.",
-      "Recognizes this as a critical waveform change during catheter advancement."
+      "States balloon inflation occurs at approximately 15 cm under advanced provider direction.",
+      "Explains that the balloon helps float the catheter.",
+      "Identifies VTACH as the waveform/rhythm change in the RV.",
+      "States RV pressure as approximately 20-30 mmHg systolic and 0-5 mmHg diastolic."
     ],
-    criticalActions: ["Identifies VTACH."]
+    criticalActions: ["Identifies VTACH.", "Recognizes the RV pressure pattern."]
   }),
   prompt({
-    id: "hemodynamics-rv-pressure",
-    stationId: "hemodynamics",
-    type: "verbal-response",
-    title: "",
-    scenario: "The catheter is in the right ventricle. What pressure pattern should the learner know for this station?",
-    instructions: ["Answer verbally.", "State the high systolic and low diastolic pressure pattern."],
-    expectedResponse:
-      "The RV has a high systolic pressure pattern. In this station, state approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
-    explanation: "The script gives the pressure range as 20-30 mmHg over 0-5 mmHg during the RV portion of the flow.",
-    evaluationCriteria: ["States high systolic pressure pattern.", "States 20-30 mmHg systolic.", "States 0-5 mmHg diastolic."]
-  }),
-  prompt({
-    id: "hemodynamics-pa-dicrotic-notch",
-    stationId: "hemodynamics",
-    type: "verbal-response",
-    title: "",
-    scenario:
-      "As the catheter continues to float from the RV into the PA through the pulmonic valve, the PA waveform appears with a dicrotic notch. What does the dicrotic notch represent?",
-    instructions: ["Answer verbally.", "Name the valve event represented by the dicrotic notch."],
-    expectedResponse: "The dicrotic notch represents closure of the pulmonic valve.",
-    explanation: "The PA waveform dicrotic notch corresponds with pulmonic valve closure.",
-    evaluationCriteria: ["States closure of the pulmonic valve.", "Identifies this finding on the PA waveform."]
-  }),
-  prompt({
-    id: "hemodynamics-wedge-balloon-deflation",
+    id: "hemodynamics-pa-dicrotic-wedge",
     stationId: "hemodynamics",
     type: "timed-emergency",
     title: "",
     scenario:
-      "The catheter eventually wedges into a small vessel against the wall. Some will call this PCWP, PAOP, or LVEDP. The provider tells you to deflate the balloon.",
+      "As the catheter continues from the RV into the PA through the pulmonic valve, the PA waveform appears with a dicrotic notch. The catheter will eventually wedge into a small vessel against the wall. What does the dicrotic notch represent, and what must happen when the catheter is wedged?",
     instructions: [
-      "Identify the wedge terminology.",
+      "Identify what the dicrotic notch represents.",
+      "Name the wedge terminology.",
       "State the immediate balloon action.",
       "Explain why the balloon must be deflated."
     ],
     expectedResponse:
-      "Recognize the wedge position as PCWP, PAOP, or LVEDP. Deflate the balloon when instructed by the provider to prevent rupture.",
-    explanation: "Once wedged, prolonged balloon inflation can create risk of vessel rupture.",
+      "The PA waveform dicrotic notch represents closure of the pulmonic valve. When the catheter wedges into a small vessel, this may be called PCWP, PAOP, or LVEDP. The provider should instruct balloon deflation at this time to prevent rupture.",
+    explanation:
+      "The script states that the dicrotic notch represents pulmonic valve closure and that once wedged, the balloon must be deflated to prevent rupture.",
     evaluationCriteria: [
-      "Recognizes PCWP, PAOP, or LVEDP terminology.",
-      "States to deflate the balloon.",
-      "States balloon deflation prevents rupture."
+      "States the dicrotic notch represents closure of the pulmonic valve.",
+      "Recognizes wedge terminology: PCWP, PAOP, or LVEDP.",
+      "States to deflate the balloon once wedged.",
+      "Explains balloon deflation is needed to prevent rupture."
     ],
     criticalActions: ["Deflates balloon when wedged.", "Recognizes rupture risk."],
     timerSeconds: 60
-  }),
-  prompt({
-    id: "hemodynamics-secure-verify-troubleshoot",
-    stationId: "hemodynamics",
-    type: "practical-assessment",
-    title: "",
-    scenario:
-      "After placement, the provider ensures the catheter is locked in place. The sleeve cover protects the catheter, the dressing is dated, labeled, and initialed, CXR is obtained for line placement, and lines are leveled and zeroed.",
-    instructions: [
-      "State post-placement securement checks.",
-      "State verification steps.",
-      "Perform or verbalize square wave test.",
-      "Troubleshoot overdamped and underdamped waveforms."
-    ],
-    expectedResponse:
-      "Confirm catheter locked in place, sleeve cover protecting catheter, dressing dated/labeled/initialed, CXR for placement, lines leveled and zeroed, square wave test performed, and ability to troubleshoot overdamped and underdamped waveforms.",
-    explanation:
-      "Post-placement safety includes securement, labeling, x-ray verification, leveling/zeroing, square wave testing, and waveform troubleshooting.",
-    evaluationCriteria: [
-      "Confirms catheter lock and sleeve cover.",
-      "Confirms dressing dated, labeled, and initialed.",
-      "Mentions CXR for line placement.",
-      "Levels and zeroes lines.",
-      "Performs square wave test.",
-      "Troubleshoots overdamped and underdamped waveforms."
-    ]
-  }),
-  prompt({
-    id: "hemodynamics-hemosphere-continuous-monitoring",
-    stationId: "hemodynamics",
-    type: "practical-assessment",
-    title: "",
-    scenario:
-      "The final step is HemoSphere setup. The learner is expected to connect cables to the HemoSphere and initiate continuous monitoring.",
-    instructions: ["Connect HemoSphere cables.", "Confirm the monitor is ready.", "Initiate continuous monitoring."],
-    expectedResponse: "Connect the required cables to the HemoSphere, verify the setup, and initiate continuous monitoring.",
-    explanation: "The script ends with HemoSphere cable connection and initiation of continuous monitoring.",
-    evaluationCriteria: ["Connects cables to HemoSphere.", "Verifies setup readiness.", "Initiates continuous monitoring."]
   })
 ];
 
