@@ -149,7 +149,7 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   const baseIndex = players.length * 2;
   const centerPosition = baseIndex + reelPosition;
   const activeIndex = Math.round(centerPosition);
-  const centerPlayer = repeated[Math.max(0, Math.min(repeated.length - 1, activeIndex))];
+  const focusPlayer = repeated[Math.max(0, Math.min(repeated.length - 1, activeIndex))];
   const translateX = `calc(50% - ${centerPosition * cardStride + cardWidth / 2}px)`;
   const maxTurns = Math.max(1, ...players.map((player) => player.turnCount));
 
@@ -160,6 +160,28 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
       <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[204px] -translate-x-1/2 border-y border-white/10 bg-white/[0.035]" />
       <div className="pointer-events-none absolute left-1/2 top-0 z-40 h-0 w-0 -translate-x-1/2 border-l-[13px] border-r-[13px] border-t-[18px] border-l-transparent border-r-transparent border-t-trauma" />
       <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 h-0 w-0 -translate-x-1/2 border-b-[18px] border-l-[13px] border-r-[13px] border-b-trauma border-l-transparent border-r-transparent" />
+      {focusPlayer && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[35] h-24 w-[204px] -translate-x-1/2 -translate-y-1/2">
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={`${focusPlayer.id}-${activeIndex}`}
+              initial={{ opacity: 0.68, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1.02 }}
+              exit={{ opacity: 0.5, scale: 0.98 }}
+              transition={{ duration: 0.1 }}
+              className={`grid h-full w-full place-items-center rounded-md border bg-[#15181d]/95 px-4 ${shapeBorder(focusPlayer.shape)}`}
+            >
+              <div className="flex items-center gap-3">
+                {focusPlayer.shape && <ShapeIcon shape={focusPlayer.shape} className={`h-9 w-9 ${shapeColor(focusPlayer.shape)}`} />}
+                <div className="min-w-0 text-left">
+                  <div className="truncate font-display text-lg font-black uppercase text-white">{publicName(focusPlayer.name)}</div>
+                  <div className="mt-1 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">Center selection</div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
 
       <div
         className="relative z-20 h-full"
@@ -173,7 +195,7 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
               key={`${player.id}-${index}`}
               style={{
                 left: `${index * cardStride}px`,
-                opacity: 0.26 + focus * 0.74,
+                opacity: 0.22 + focus * 0.36,
                 transform: `translateY(-50%) scale(${0.88 + focus * 0.16})`,
                 transformOrigin: "center",
                 willChange: "left, opacity, transform",
@@ -197,23 +219,6 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
           );
         })}
       </div>
-
-      {centerPlayer && (
-        <div className={`pointer-events-none absolute left-1/2 top-1/2 z-[35] grid h-24 w-[204px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-md border bg-white/[0.11] px-4 ${shapeBorder(centerPlayer.shape)}`}>
-          <div className="flex items-center gap-3">
-            {centerPlayer.shape && <ShapeIcon shape={centerPlayer.shape} className={`h-9 w-9 ${shapeColor(centerPlayer.shape)}`} />}
-            <div className="min-w-0 text-left">
-              <div className="truncate font-display text-lg font-black uppercase text-white">{publicName(centerPlayer.name)}</div>
-              <div className="mt-1 flex items-center gap-2">
-                <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-white/45" style={{ width: `${Math.max(18, (centerPlayer.turnCount / maxTurns) * 100)}%` }} />
-                </div>
-                <div className="font-display text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Engagement</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

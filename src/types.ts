@@ -142,7 +142,6 @@ export type RoomState = {
   stationRouteStartId: string | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
-  trafficLight: "red" | "green" | null;
   liveAnswer: LiveAnswer | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
@@ -187,7 +186,6 @@ export type ClientMessage =
   | { type: "previous-prompt" }
   | { type: "start-timer"; seconds: number }
   | { type: "reset-timer" }
-  | { type: "set-traffic-light"; light: "red" | "green" | null }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
   | { type: "update-activity-card"; promptId: string; item: string; column: string | null }
   | { type: "check-activity"; promptId: string }

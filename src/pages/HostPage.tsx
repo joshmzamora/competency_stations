@@ -1,7 +1,6 @@
 import {
   Check,
   ChevronLeft,
-  ChevronRight,
   Circle as CircleIcon,
   ClipboardList,
   Copy,
@@ -89,12 +88,6 @@ function formatDuration(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function stationRoute(startId?: string | null) {
-  const startIndex = stations.findIndex((station) => station.id === startId);
-  if (startIndex < 0) return stations;
-  return [...stations.slice(startIndex), ...stations.slice(0, startIndex)];
-}
-
 function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "active" | "review" }) {
   const className =
     tone === "active"
@@ -111,56 +104,6 @@ function StatTile({ label, value, tone = "text-white" }: { label: string; value:
     <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
       <div className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
       <div className={`mt-1 font-display text-2xl font-black ${tone}`}>{value}</div>
-    </div>
-  );
-}
-
-function TrafficLightPanel({
-  value,
-  onSet
-}: {
-  value: "red" | "green" | null;
-  onSet: (value: "red" | "green" | null) => void;
-}) {
-  return (
-    <div className="rounded-md border border-white/10 bg-black/35 p-4">
-      <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Red / Green Light</div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={() => onSet("red")}
-          className={`rounded-md border px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] transition ${
-            value === "red" ? "border-trauma/70 bg-trauma/25 text-white shadow-alert" : "border-white/10 bg-white/[0.04] text-trauma hover:bg-trauma/10"
-          }`}
-        >
-          Red
-        </button>
-        <button
-          type="button"
-          onClick={() => onSet("green")}
-          className={`rounded-md border px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] transition ${
-            value === "green" ? "border-scrub/70 bg-scrub/25 text-white shadow-scrub" : "border-white/10 bg-white/[0.04] text-scrub hover:bg-scrub/10"
-          }`}
-        >
-          Green
-        </button>
-        <button
-          type="button"
-          onClick={() => onSet(null)}
-          className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-3 font-display text-xs font-black uppercase tracking-[0.12em] text-white/55 transition hover:bg-white/10"
-        >
-          Clear
-        </button>
-      </div>
-      <div className={`mt-3 rounded-md border px-3 py-2 text-center font-display text-sm font-black uppercase tracking-[0.18em] ${
-        value === "red"
-          ? "border-trauma/45 bg-trauma/15 text-trauma"
-          : value === "green"
-            ? "border-scrub/45 bg-scrub/15 text-scrub"
-            : "border-white/10 bg-white/[0.03] text-white/35"
-      }`}>
-        {value === "red" ? "Stop movement" : value === "green" ? "Proceed" : "No signal"}
-      </div>
     </div>
   );
 }
@@ -242,6 +185,15 @@ function ParticipantCard({
   );
 }
 
+function HudPill({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2">
+      <div className="font-display text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">{label}</div>
+      <div className={`mt-0.5 truncate font-display text-lg font-black uppercase ${tone}`}>{value}</div>
+    </div>
+  );
+}
+
 function SessionHud({
   station,
   prompt,
@@ -262,19 +214,28 @@ function SessionHud({
   duration: string;
 }) {
   return (
-    <div className="grid gap-3 rounded-md border border-white/10 bg-black/35 p-4 md:grid-cols-3 xl:grid-cols-6">
-      <StatTile label="Station" value={station?.shortTitle ?? "Select"} tone="text-white" />
-      <StatTile label="Prompt" value={totalPrompts ? `${promptIndex + 1}/${totalPrompts}` : "-"} tone="text-monitor" />
-      <StatTile label="Active" value={activeParticipant?.displayName ?? "Pending"} tone={activeParticipant ? shapeTone(activeParticipant.shape).text : "text-white/45"} />
-      <StatTile label="Remaining" value={remaining} tone="text-amber" />
-      <StatTile label="Accuracy" value={`${accuracy}%`} tone="text-scrub" />
-      <StatTile label="Duration" value={duration} tone="text-white" />
-      {prompt && (
-        <div className="md:col-span-3 xl:col-span-6 rounded-md border border-monitor/15 bg-monitor/10 px-3 py-2">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Current prompt</div>
-          <div className="mt-1 truncate text-sm text-white/75">{prompt.title}</div>
+    <div className="rounded-md border border-white/10 bg-black/35 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-monitor">Current station</div>
+          <div className="mt-1 truncate font-display text-3xl font-black uppercase leading-none text-white">
+            {station?.shortTitle ?? "Select a station"}
+          </div>
+          {prompt ? (
+            <div className="mt-3 rounded-md border border-monitor/15 bg-monitor/10 px-3 py-2">
+              <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Prompt in progress</div>
+              <div className="mt-1 truncate text-sm font-semibold text-white/78">{prompt.title}</div>
+            </div>
+          ) : null}
         </div>
-      )}
+        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[520px] sm:grid-cols-5">
+          <HudPill label="Prompt" value={totalPrompts ? `${promptIndex + 1}/${totalPrompts}` : "-"} tone="text-monitor" />
+          <HudPill label="Active" value={activeParticipant?.displayName ?? "Pending"} tone={activeParticipant ? shapeTone(activeParticipant.shape).text : "text-white/45"} />
+          <HudPill label="Station left" value={remaining} tone="text-amber" />
+          <HudPill label="Accuracy" value={`${accuracy}%`} tone="text-scrub" />
+          <HudPill label="Duration" value={duration} tone="text-white" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -300,7 +261,9 @@ export function HostPage() {
   const currentEvaluation = prompt ? evaluations[prompt.id] : undefined;
   const connectedParticipants = room?.players.filter((player) => player.connected).length ?? 0;
   const stationCompletedCount = station ? station.prompts.filter((item) => evaluations[item.id]).length : 0;
-  const remaining = Math.max(0, totalPrompts - stationCompletedCount);
+  const stationRemaining = Math.max(0, totalPrompts - stationCompletedCount);
+  const allPromptsTotal = useMemo(() => stations.reduce((sum, item) => sum + item.prompts.length, 0), []);
+  const sessionRemaining = Math.max(0, allPromptsTotal - evaluationList.length);
   const connectionLabel =
     status === "open" ? "Connected" : status === "connecting" ? "Connecting" : status === "closed" ? "Disconnected" : "Connection issue";
   const preselectedStation = useMemo(() => {
@@ -310,8 +273,12 @@ export function HostPage() {
   const learnerUrl = `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
   const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
+  const launchChecklist = [
+    { label: "Station", value: station?.shortTitle ?? "Choose station", ready: Boolean(station) },
+    { label: "Participants", value: `${connectedParticipants}/5 connected`, ready: connectedParticipants >= 2 && connectedParticipants <= 5 },
+    { label: "Intro", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
+  ];
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
-  const orderedStations = useMemo(() => stationRoute(room?.stationRouteStartId ?? station?.id), [room?.stationRouteStartId, station?.id]);
   const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
   const atLastPrompt = (room?.activePromptIndex ?? 0) >= totalPrompts - 1;
   const stationProgress = useMemo(() => {
@@ -486,21 +453,39 @@ export function HostPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[330px_1fr_380px]">
           <aside className="grid content-start gap-4">
-            <div className="rounded-md border border-white/10 bg-black/35 p-4">
-              <div className="font-display text-xs uppercase tracking-[0.2em] text-white/45">Room code</div>
-              <div className="font-display text-5xl font-black text-scrub">{room.code}</div>
+            <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Local room</div>
+                  <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
+                </div>
+                <StatusChip label={room.status === "in-progress" ? "Live" : "Staging"} tone={room.status === "in-progress" ? "active" : "neutral"} />
+              </div>
+
+              <div className="mt-4 grid gap-2">
+                {launchChecklist.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
+                    <div className={`flex items-center gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
+                      <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
+                      <span>{item.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
-                <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner URL</div>
+                <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner computer URL</div>
                 <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-4 grid grid-cols-[0.85fr_1.15fr] gap-2">
                 <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
                   <Copy className="h-4 w-4" />
                   Copy
                 </AnimatedButton>
                 <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
                   <Play className="h-4 w-4" />
-                  {room.status === "in-progress" ? "Live" : "Start"}
+                  {room.status === "in-progress" ? "Session live" : "Start intro"}
                 </AnimatedButton>
               </div>
               {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
@@ -537,7 +522,7 @@ export function HostPage() {
                 Pick the first station before starting. After each station, choose the next station here; scores and results stay in one continuous session.
               </div>
               <div className="grid gap-2">
-                {orderedStations.map((item, index) => {
+                {stations.map((item, index) => {
                   const isActive = item.id === station?.id;
                   const progress = stationProgress.get(item.id);
                   const completedStation = Boolean(progress?.done);
@@ -588,7 +573,7 @@ export function HostPage() {
               promptIndex={room.activePromptIndex ?? 0}
               totalPrompts={totalPrompts}
               activeParticipant={activeParticipant}
-              remaining={remaining}
+              remaining={stationRemaining}
               accuracy={groupStats.accuracy}
               duration={sessionDuration}
             />
@@ -625,7 +610,10 @@ export function HostPage() {
           <aside className="grid content-start gap-4">
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Group performance</div>
+                <div>
+                  <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Group performance</div>
+                  <div className="mt-0.5 text-xs text-white/40">All 8 stations in this session</div>
+                </div>
                 <Gauge className="h-4 w-4 text-monitor" />
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -634,7 +622,7 @@ export function HostPage() {
                 <StatTile label="Correct" value={groupStats.correct} tone="text-scrub" />
                 <StatTile label="Partial" value={groupStats.partial} tone="text-amber" />
                 <StatTile label="Incorrect" value={groupStats.incorrect} tone="text-trauma" />
-                <StatTile label="Remaining" value={remaining} tone="text-white" />
+                <StatTile label="Remaining" value={sessionRemaining} tone="text-white" />
               </div>
             </div>
 
@@ -649,10 +637,6 @@ export function HostPage() {
                 Reset
               </AnimatedButton>
             </div>
-
-            {station?.id === "hemodynamics" && (
-              <TrafficLightPanel value={room.trafficLight} onSet={(light) => send({ type: "set-traffic-light", light })} />
-            )}
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">

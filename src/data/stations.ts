@@ -220,7 +220,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     expectedResponse:
       "Recognize persistent post-arrest hypotension after pulseless VTACH and intubation. State that a PA catheter, arterial line, and possible CVC are being inserted emergently to obtain intracardiac pressures and guide management.",
     explanation:
-      "This opening prompt sets the station context before the timed red/green light supply and setup sequence.",
+      "This opening prompt sets the station context before the timed supply and setup checkpoint sequence.",
     evaluationCriteria: [
       "Identifies post-arrest pulseless VTACH and intubation history.",
       "States current hypotension around BP 80/50.",
@@ -229,25 +229,25 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     ]
   }),
   prompt({
-    id: "hemodynamics-red-green-pressure-tubing",
+    id: "hemodynamics-pressure-tubing-setup",
     stationId: "hemodynamics",
     type: "timed-emergency",
-    title: "Red/Green Light: Pressure Tubing Setup",
+    title: "Timed Pressure Tubing Setup",
     scenario:
-      "Four players continue to follow this patient. Pair up to gather supplies and set up pressure tubing for PA catheter and arterial line insertion. The host uses red light and green light cues to stop or move forward.",
+      "Four players continue to follow this patient. Pair up to gather supplies and set up pressure tubing for PA catheter and arterial line insertion. The host checks each setup step before the team moves forward.",
     instructions: [
       "Pair up and gather supplies for PA catheter and arterial line pressure tubing.",
       "Verbalize supplies as you gather them.",
-      "Move only when the host gives green light; pause when red light is shown."
+      "Pause for host verification before moving to the next setup step."
     ],
     expectedResponse:
-      "Pairs gather and verbalize needed supplies for PA catheter and arterial line pressure tubing setup while following red/green light cues. They prepare pressure bags, pressure tubing, non-vented caps, flush setup, labels, and leveling/zeroing supplies.",
+      "Pairs gather and verbalize needed supplies for PA catheter and arterial line pressure tubing setup while pausing for host verification at each checkpoint. They prepare pressure bags, pressure tubing, non-vented caps, flush setup, labels, and leveling/zeroing supplies.",
     explanation:
-      "The station uses red/green light as an interactive pacing cue. The host can stop the team, verify setup, and then allow the next step.",
+      "The station uses facilitator checkpoints. The host can pause the team, verify setup, and then allow the next step.",
     evaluationCriteria: [
       "Pairs up and works as a team.",
       "Verbalizes supplies needed for PA catheter and arterial line pressure tubing.",
-      "Responds appropriately to red light and green light cues.",
+      "Pauses appropriately for host checkpoint verification.",
       "Prepares pressure tubing setup efficiently within the timed station."
     ],
     timerSeconds: 300
@@ -257,7 +257,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "practical-assessment",
     title: "Pressure Bag and Tubing Quality Check",
-    scenario: "Before the host gives green light, inspect the pressure tubing setup for required safety details.",
+    scenario: "Before advancing, inspect the pressure tubing setup for required safety details.",
     instructions: [
       "Confirm pressure bags are inflated correctly.",
       "Confirm caps, priming, bubble removal, and labels.",
@@ -271,7 +271,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
       "Changes all end caps to non-vented caps.",
       "Primes lines completely with no bubbles.",
       "Labels tubing appropriately.",
-      "Corrects issues before green light."
+      "Corrects issues before advancing."
     ],
     criticalActions: ["Pressure bag is at 300 mmHg.", "No bubbles remain in primed lines.", "Non-vented caps are used."]
   }),
@@ -303,7 +303,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     type: "scenario-walkthrough",
     title: "Insertion Readiness",
     scenario:
-      "Once green light is received, the next step is insertion of the PA catheter. The team must gather supplies for PA catheter and arterial line insertion.",
+      "Once the setup checkpoint is complete, the next step is insertion of the PA catheter. The team must gather supplies for PA catheter and arterial line insertion.",
     instructions: [
       "Gather supplies needed for PA catheter insertion.",
       "Gather supplies needed for arterial line insertion.",
@@ -312,7 +312,7 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     ],
     expectedResponse:
       "Gather PA catheter, arterial line, and possible CVC insertion supplies; obtain consent if able; and perform a time out before the procedure.",
-    explanation: "The flow moves from setup to invasive insertion readiness only after the host gives green light.",
+    explanation: "The flow moves from setup to invasive insertion readiness only after host verification is complete.",
     evaluationCriteria: [
       "Identifies PA catheter supplies.",
       "Identifies arterial line supplies.",
@@ -386,10 +386,10 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     instructions: [
       "Recognize the rhythm or waveform change.",
       "Match the VTACH waveform.",
-      "Pause for host red/green light feedback."
+      "Pause for host feedback before advancing."
     ],
     expectedResponse:
-      "Recognize VTACH as the waveform/rhythm change as the catheter passes into the RV, match the correct waveform, and pause for red/green light feedback.",
+      "Recognize VTACH as the waveform/rhythm change as the catheter passes into the RV, match the correct waveform, and pause for host feedback.",
     explanation: "The script identifies VTACH as the expected answer during the RV waveform change checkpoint.",
     evaluationCriteria: [
       "Identifies VTACH.",
@@ -900,8 +900,7 @@ const strokePrompts: CompetencyPrompt[] = [
       itemBankLabel: "Action cards",
       itemBank: [
         "Stool softener",
-        "Accuchek",
-        "Diuretics",
+        "Accuchek / Diuretics",
         "Physical therapy",
         "14 hours post tNK",
         "NGT insertion",
@@ -917,7 +916,7 @@ const strokePrompts: CompetencyPrompt[] = [
     answerKey: [
       {
         title: "Safe",
-        items: ["Stool softener", "Accuchek", "Diuretics", "Physical therapy", "14 hours post tNK"]
+        items: ["Stool softener", "Accuchek / Diuretics", "Physical therapy", "14 hours post tNK"]
       },
       {
         title: "Unsafe",
@@ -925,11 +924,11 @@ const strokePrompts: CompetencyPrompt[] = [
       }
     ],
     expectedResponse:
-      "Safe: stool softener, Accuchek, diuretics, physical therapy, and 14 hours post tNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
+      "Safe: stool softener, Accuchek / diuretics, physical therapy, and 14 hours post tNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
     explanation:
       "This activity reinforces post-Tenecteplase restrictions and the need to avoid unnecessary invasive procedures or anticoagulant exposure during the restricted period.",
     evaluationCriteria: [
-      "Correctly sorts stool softener, Accuchek, diuretics, physical therapy, and 14 hours post tNK as Safe.",
+      "Correctly sorts stool softener, Accuchek / diuretics, physical therapy, and 14 hours post tNK as Safe.",
       "Correctly sorts NGT insertion, blood draw, Foley catheter insertion, and heparin as Unsafe.",
       "Explains that invasive procedures and anticoagulant exposure increase post-thrombolytic risk."
     ],
@@ -1320,11 +1319,21 @@ export const stations: CompetencyStation[] = [
     id: "hemodynamics",
     title: "Hemodynamics",
     shortTitle: "Hemodynamics",
-    description: "Post-arrest hypotension flow with red/green light pressure tubing setup, PA catheter waveform progression, wedge safety, square wave testing, and HemoSphere monitoring.",
+    description: "Post-arrest hypotension flow with timed pressure tubing setup, PA catheter waveform progression, wedge safety, square wave testing, and HemoSphere monitoring.",
     estimatedMinutes: 20,
     competencyType: "PA catheter and arterial line simulation",
     accent: "monitor",
     prompts: hemodynamicsPrompts
+  },
+  {
+    id: "cauti-clabsi-prevention",
+    title: "CAUTI/CLABSI prevention",
+    shortTitle: "CAUTI/CLABSI",
+    description: "Foley and central line maintenance checks focused on infection-prevention details staged at the bedside.",
+    estimatedMinutes: 5,
+    competencyType: "Infection prevention checkoff",
+    accent: "scrub",
+    prompts: cautiClabsiPrompts
   },
   {
     id: "pacemaker",
@@ -1367,19 +1376,9 @@ export const stations: CompetencyStation[] = [
     prompts: strokePrompts
   },
   {
-    id: "cauti-clabsi-prevention",
-    title: "CAUTI/CLABSI prevention",
-    shortTitle: "CAUTI/CLABSI",
-    description: "Foley and central line maintenance checks focused on infection-prevention details staged at the bedside.",
-    estimatedMinutes: 5,
-    competencyType: "Infection prevention checkoff",
-    accent: "scrub",
-    prompts: cautiClabsiPrompts
-  },
-  {
     id: "pressure-injury-station",
-    title: "Pressure Injury Station",
-    shortTitle: "Pressure Injury",
+    title: "Skin Integrity",
+    shortTitle: "Skin Integrity",
     description: "Return-from-procedure skin assessment, 4-eyes assessment, DTI identification, dressing review, and wound staging.",
     estimatedMinutes: 10,
     competencyType: "Skin integrity assessment",
