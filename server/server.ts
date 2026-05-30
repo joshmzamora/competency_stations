@@ -90,11 +90,13 @@ const rootDir = process.cwd();
 const distDir = path.join(rootDir, "dist");
 const dataDir = path.join(rootDir, "data");
 const resultsPath = path.join(dataDir, "results.json");
+const roomsPath = path.join(dataDir, "rooms.json");
 const port = Number(process.env.PORT ?? 3000);
 const isProduction = process.env.NODE_ENV === "production";
 
 const clients = new Set<WsClient>();
 const rooms = new Map<string, RoomState>();
+let roomsSaveTimer: NodeJS.Timeout | null = null;
 
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -406,6 +408,7 @@ function sendState(client: WsClient, room: RoomState, type: "state" | "room-crea
 function broadcastState(roomCode: string) {
   const room = rooms.get(roomCode);
   if (!room) return;
+  scheduleRoomsSave();
   for (const client of clients) {
     if (client.roomCode === roomCode) sendState(client, room);
   }
@@ -434,6 +437,61 @@ async function appendResult(result: unknown) {
   const results = await readResults();
   results.push(result);
   await fs.writeFile(resultsPath, `${JSON.stringify(results, null, 2)}\n`, "utf8");
+}
+
+function serializableRoom(room: RoomState): RoomState {
+  return {
+    ...room,
+    serverTime: Date.now(),
+    introStartedAt: null,
+    protocolIntroStartedAt: null,
+    selection: null,
+    timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
+    players: room.players.map((player) => ({ ...player, connected: false }))
+  };
+}
+
+async function saveRoomsNow() {
+  await fs.mkdir(dataDir, { recursive: true });
+  const payload = [...rooms.values()].map(serializableRoom);
+  await fs.writeFile(roomsPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+}
+
+function scheduleRoomsSave() {
+  if (roomsSaveTimer) clearTimeout(roomsSaveTimer);
+  roomsSaveTimer = setTimeout(() => {
+    roomsSaveTimer = null;
+    saveRoomsNow().catch((error) => {
+      console.error("Could not save active room progress", error);
+    });
+  }, 120);
+}
+
+async function loadRooms() {
+  try {
+    const file = await fs.readFile(roomsPath, "utf8");
+    const savedRooms = JSON.parse(file) as unknown;
+    if (!Array.isArray(savedRooms)) return;
+    for (const item of savedRooms) {
+      if (!item || typeof item !== "object") continue;
+      const room = item as RoomState;
+      if (!room.code) continue;
+      rooms.set(room.code, {
+        ...room,
+        serverTime: Date.now(),
+        introStartedAt: null,
+        protocolIntroStartedAt: null,
+        selection: null,
+        timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
+        players: Array.isArray(room.players) ? room.players.map((player) => ({ ...player, connected: false })) : [],
+        evaluations: room.evaluations ?? {},
+        activityStates: room.activityStates ?? {},
+        stats: room.stats ?? createInitialRoom(room.code).stats
+      });
+    }
+  } catch {
+    // No active-room progress has been saved yet.
+  }
 }
 
 async function saveRoomResult(room: RoomState) {
@@ -569,6 +627,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const code = createRoomCode();
     const room = createInitialRoom(code);
     rooms.set(code, room);
+    scheduleRoomsSave();
     client.role = "host";
     client.roomCode = code;
     sendState(client, room, "room-created");
@@ -1109,6 +1168,8 @@ function getLocalAddresses() {
   }
   return addresses;
 }
+
+await loadRooms();
 
 const handler = await createRequestHandler();
 const server = http.createServer(handler);
