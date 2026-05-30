@@ -425,7 +425,7 @@ export function PlayerPage() {
           </div>
 
           <CountdownTimer endsAt={room.timerEndsAt} />
-          <TrafficLightSignal value={room.trafficLight} />
+          {station?.id === "hemodynamics" && <TrafficLightSignal value={room.trafficLight} />}
 
           {activePrompt && station && (activeParticipant || isStrokeStation) ? (
             <ActivePromptView

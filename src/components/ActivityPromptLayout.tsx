@@ -150,6 +150,8 @@ export function ActivityPromptLayout({
   const itemResults = activityState?.itemResults;
   const checkCount = activityState?.checkCount ?? 0;
   const correctCount = itemResults ? Object.values(itemResults).filter(Boolean).length : 0;
+  const allCorrect = Boolean(itemResults) && correctCount === activity.itemBank.length;
+  const visibleItemResults = showAnswer ? itemResults : undefined;
   const remainingChecks = Math.max(0, 2 - checkCount);
   const unassignedItems = activity.itemBank.filter((item) => !placements[item]);
 
@@ -194,7 +196,7 @@ export function ActivityPromptLayout({
               <ActivityCard
                 key={item}
                 item={item}
-                result={itemResults?.[item]}
+                result={visibleItemResults?.[item]}
                 readOnly={readOnly}
                 onDragStart={() => undefined}
               />
@@ -216,7 +218,7 @@ export function ActivityPromptLayout({
           <WorkColumns
             columns={activity.columns}
             placements={placements}
-            itemResults={itemResults}
+            itemResults={visibleItemResults}
             readOnly={readOnly}
             onMove={onMoveCard}
           />
@@ -236,8 +238,14 @@ export function ActivityPromptLayout({
               </div>
             </div>
             {itemResults ? (
-              <div className="font-display text-sm font-black uppercase tracking-[0.12em] text-white">
-                {correctCount}/{activity.itemBank.length} correct
+              <div
+                className={`rounded-md border px-5 py-3 text-center font-display text-2xl font-black uppercase tracking-[0.16em] ${
+                  allCorrect
+                    ? "border-scrub/45 bg-scrub/10 text-scrub shadow-[0_0_28px_rgba(34,245,199,0.12)]"
+                    : "border-trauma/45 bg-trauma/10 text-trauma shadow-[0_0_28px_rgba(255,48,77,0.12)]"
+                }`}
+              >
+                {allCorrect ? "Correct" : "Incorrect"}
               </div>
             ) : (
               <div className="text-sm text-white/45">{remainingChecks} checks available</div>

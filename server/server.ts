@@ -765,6 +765,11 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "set-traffic-light": {
       if (client.role !== "host") return;
+      if (selectedStationId(room) !== "hemodynamics") {
+        room.trafficLight = null;
+        broadcastState(room.code);
+        break;
+      }
       room.trafficLight = message.light === "red" || message.light === "green" ? message.light : null;
       broadcastState(room.code);
       break;

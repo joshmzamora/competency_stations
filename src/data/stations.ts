@@ -955,7 +955,7 @@ const strokePrompts: CompetencyPrompt[] = [
         "No signs of intracranial hemorrhage",
         "BP 150/60",
         "16 y/o",
-        "Major surgery within 2 months ~~Intracranial bleeding~~",
+        "Major surgery within 2 months",
         "Active GI bleeding",
         "INR 4.5"
       ],
@@ -971,7 +971,7 @@ const strokePrompts: CompetencyPrompt[] = [
       },
       {
         title: "Ineligible",
-        items: ["16 y/o", "Major surgery within 2 months ~~Intracranial bleeding~~", "Active GI bleeding", "INR 4.5"]
+        items: ["16 y/o", "Major surgery within 2 months", "Active GI bleeding", "INR 4.5"]
       }
     ],
     expectedResponse:

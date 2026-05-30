@@ -299,8 +299,8 @@ export function HostPage() {
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
   const currentEvaluation = prompt ? evaluations[prompt.id] : undefined;
   const connectedParticipants = room?.players.filter((player) => player.connected).length ?? 0;
-  const completed = evaluationList.length;
-  const remaining = Math.max(0, totalPrompts - completed);
+  const stationCompletedCount = station ? station.prompts.filter((item) => evaluations[item.id]).length : 0;
+  const remaining = Math.max(0, totalPrompts - stationCompletedCount);
   const connectionLabel =
     status === "open" ? "Connected" : status === "connecting" ? "Connecting" : status === "closed" ? "Disconnected" : "Connection issue";
   const preselectedStation = useMemo(() => {
@@ -312,9 +312,23 @@ export function HostPage() {
   const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
   const orderedStations = useMemo(() => stationRoute(room?.stationRouteStartId ?? station?.id), [room?.stationRouteStartId, station?.id]);
-  const routeIndex = station ? orderedStations.findIndex((item) => item.id === station.id) : -1;
   const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
   const atLastPrompt = (room?.activePromptIndex ?? 0) >= totalPrompts - 1;
+  const stationProgress = useMemo(() => {
+    return new Map(
+      stations.map((item) => {
+        const completedPrompts = item.prompts.filter((stationPrompt) => evaluations[stationPrompt.id]).length;
+        return [
+          item.id,
+          {
+            completed: completedPrompts,
+            total: item.prompts.length,
+            done: item.prompts.length > 0 && completedPrompts >= item.prompts.length
+          }
+        ];
+      })
+    );
+  }, [evaluations]);
 
   const groupStats = useMemo(() => {
     const correct = evaluationList.filter((item) => item.status === "correct").length;
@@ -525,7 +539,8 @@ export function HostPage() {
               <div className="grid gap-2">
                 {orderedStations.map((item, index) => {
                   const isActive = item.id === station?.id;
-                  const completedStation = routeIndex > index;
+                  const progress = stationProgress.get(item.id);
+                  const completedStation = Boolean(progress?.done);
                   return (
                     <button
                       key={item.id}
@@ -534,12 +549,31 @@ export function HostPage() {
                         isActive
                           ? "border-scrub/50 bg-scrub/10 text-scrub"
                           : completedStation
-                            ? "border-white/10 bg-white/[0.025] text-white/35"
+                            ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
                             : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
                       }`}
                     >
-                      <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
-                      <div className="mt-1 text-xs text-white/45">{item.prompts.length} prompts</div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
+                        {completedStation ? (
+                          <span className="rounded-full border border-scrub/35 bg-scrub/10 px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-[0.12em] text-scrub">
+                            Complete
+                          </span>
+                        ) : isActive ? (
+                          <span className="rounded-full border border-monitor/35 bg-monitor/10 px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-[0.12em] text-monitor">
+                            Live
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className={`h-full rounded-full ${completedStation ? "bg-scrub" : isActive ? "bg-monitor" : "bg-white/35"}`}
+                            style={{ width: `${progress?.total ? Math.round((progress.completed / progress.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="font-display text-[10px] font-black text-white/45">{progress?.completed ?? 0}/{progress?.total ?? item.prompts.length}</div>
+                      </div>
                     </button>
                   );
                 })}
@@ -616,7 +650,9 @@ export function HostPage() {
               </AnimatedButton>
             </div>
 
-            <TrafficLightPanel value={room.trafficLight} onSet={(light) => send({ type: "set-traffic-light", light })} />
+            {station?.id === "hemodynamics" && (
+              <TrafficLightPanel value={room.trafficLight} onSet={(light) => send({ type: "set-traffic-light", light })} />
+            )}
 
             <div className="rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
