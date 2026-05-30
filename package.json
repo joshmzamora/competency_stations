@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.app.json && vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/server.js",
     "preview": "npm run build && npm run start",
+    "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-windows-release.ps1",
     "lint": "eslint ."
   },
   "dependencies": {

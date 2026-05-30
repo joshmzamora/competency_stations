@@ -11,6 +11,42 @@ No Supabase, Firebase, Socket.IO, accounts, cloud database, or outside syncing s
 
 ## Easiest Windows Start
 
+### Best Option: One-Click EXE Package
+
+If you want to give this to a non-technical person, build the Windows package:
+
+```txt
+npm run package:windows
+```
+
+That creates:
+
+```txt
+release\Competency-Stations
+```
+
+Give that whole folder to the host computer user. They only need to double-click:
+
+```txt
+Start Competency Stations.exe
+```
+
+Then they click `Start Game`.
+
+This package includes:
+
+- the compiled website
+- the local Node.js server
+- a portable Node.js runtime
+- the launcher EXE using `icon.png`
+- a simple `README-FIRST.txt`
+
+The host computer does not need Node.js installed when using this packaged folder. Keep the whole folder together; do not move the EXE out by itself.
+
+If Windows SmartScreen blocks the EXE, right-click it, choose `Properties`, check `Unblock` if shown, then click `OK`.
+
+### Developer Folder Option
+
 On the host computer:
 
 1. Make sure Node.js LTS is installed from `https://nodejs.org/`.

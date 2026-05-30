@@ -4,5 +4,8 @@ dist-server/
 data/results.json
 server.log
 server.err.log
+launcher.log
+release/
+.package-cache/
 .env
 .DS_Store
