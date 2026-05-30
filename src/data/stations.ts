@@ -136,7 +136,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     stationId: "chest-tube",
     type: "verbal-response",
     title: "",
-    scenario: "What assessment finding do you expect when palpating around a chest tube site?",
+    scenario: "Give an example of an abnormal assessment finding when palpating around a chest tube site.",
     instructions: ["Answer verbally.", "Include what it feels like, where to assess, and what to do if new."],
     expectedResponse:
       "Assess for subcutaneous emphysema. Physical findings include crepitus, often described as a Rice Krispies sensation. Gently palpate around the insertion site and extend assessment to the neck and upper chest. Mark and document the extent to monitor progression, and notify the physician if this is a new finding.",
@@ -356,7 +356,7 @@ const strokePrompts: CompetencyPrompt[] = [
       itemBank: [
         "Stool softener",
         "Accuchek",
-        "Diuretics",
+        "Tylenol",
         "Physical therapy / 14 hours post TNK",
         "NGT insertion",
         "Blood draw",
@@ -371,7 +371,7 @@ const strokePrompts: CompetencyPrompt[] = [
     answerKey: [
       {
         title: "Safe",
-        items: ["Stool softener", "Accuchek", "Diuretics", "Physical therapy / 14 hours post TNK"]
+        items: ["Stool softener", "Accuchek", "Tylenol", "Physical therapy / 14 hours post TNK"]
       },
       {
         title: "Unsafe",
@@ -379,7 +379,7 @@ const strokePrompts: CompetencyPrompt[] = [
       }
     ],
     expectedResponse:
-      "Safe: stool softener, Accuchek, diuretics, and physical therapy / 14 hours post TNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
+      "Safe: stool softener, Accuchek, Tylenol, and physical therapy / 14 hours post TNK. Unsafe: NGT insertion, blood draw, Foley catheter insertion, and heparin.",
     explanation:
       "This activity reinforces post-Tenecteplase restrictions and the need to avoid unnecessary invasive procedures or anticoagulant exposure during the restricted period.",
     criticalActions: ["Does not identify heparin or invasive tube insertion as safe during the restricted period."]
@@ -500,7 +500,7 @@ const strokePrompts: CompetencyPrompt[] = [
     stationId: "stroke",
     type: "verbal-response",
     title: "",
-    scenario: "Who must accompany a patient during transfers or location changes after receiving Tenecteplase?",
+    scenario: "True or false: An RN must accompany a patient during transfers or location changes after receiving Tenecteplase?",
     instructions: [
       "Answer verbally.",
       "State the required timeframe."
@@ -566,9 +566,9 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
     stationId: "cauti-clabsi-prevention",
     type: "verbal-response",
     title: "",
-    scenario: "How often do you do peri/Foley care?",
+    scenario: "How often do you do peri care/foley care?",
     instructions: ["Answer verbally.", "State the routine frequency."],
-    expectedResponse: "Peri/Foley care is done once a shift.",
+    expectedResponse: "Peri care/foley care is done once a shift.",
   }),
   prompt({
     id: "cauti-clabsi-chg-bath-frequency",
