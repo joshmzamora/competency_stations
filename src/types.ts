@@ -196,7 +196,7 @@ export type ClientMessage =
   | { type: "adjust-score"; delta: number }
   | { type: "show-debrief" }
   | { type: "show-closing" }
-  | { type: "end-game" };
+  | { type: "end-game"; promptIds?: string[] };
 
 export type ServerMessage =
   | { type: "connected"; id: string }

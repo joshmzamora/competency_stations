@@ -8,7 +8,6 @@ import {
   Play,
   Power,
   Radio,
-  RotateCcw,
   SkipForward,
   Square as SquareIcon,
   Star,
@@ -35,7 +34,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
 import { downloadFile } from "../utils/results";
-import { playQuestionAdvanceCue } from "../utils/sound";
+import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
 
 type ParticipantPerformance = PlayerState & {
   displayName: string;
@@ -428,8 +427,15 @@ export function HostPage() {
     if (!previousStationId || previousStationId === stationId || room?.status !== "in-progress" || introVisible || protocolIntroVisible) return;
 
     setStationTransitionVisible(false);
-    const showId = window.setTimeout(() => setStationTransitionVisible(true), 20);
-    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2200);
+    const showId = window.setTimeout(() => {
+      setStationTransitionVisible(true);
+      try {
+        playStationTransitionCue();
+      } catch {
+        // Browsers can block audio until interaction.
+      }
+    }, 20);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2600);
     return () => {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
@@ -474,6 +480,10 @@ export function HostPage() {
   function goPrevious() {
     if (!station || !room) return;
     if (!atFirstPrompt) send({ type: "previous-prompt" });
+  }
+
+  function endSession() {
+    send({ type: "end-game", promptIds: stations.flatMap((item) => item.prompts.map((stationPrompt) => stationPrompt.id)) });
   }
 
   return (
@@ -708,18 +718,7 @@ export function HostPage() {
             </div>
 
             <div className="grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
-              {!isStrokeStation && (
-                <AnimatedButton
-                  variant="ghost"
-                  className="min-h-9 py-1 text-[10px] opacity-70 hover:opacity-100"
-                  onClick={() => send({ type: "start-selection" })}
-                  disabled={!prompt || room.status !== "in-progress"}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Re-run selection
-                </AnimatedButton>
-              )}
-              <AnimatedButton variant="danger" onClick={() => send({ type: "end-game" })}>
+              <AnimatedButton variant="danger" onClick={endSession}>
                 <Power className="h-4 w-4" />
                 End session
               </AnimatedButton>
@@ -790,7 +789,7 @@ export function HostPage() {
         role="host"
         onDownload={downloadMissedReport}
         onClosing={() => send({ type: "show-closing" })}
-        onEnd={() => send({ type: "end-game" })}
+        onEnd={endSession}
       />
     </section>
   );

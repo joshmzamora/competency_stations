@@ -249,6 +249,15 @@ export function SelectionRoulette({
     return () => window.cancelAnimationFrame(frame);
   }, [selection?.startedAt, selection]);
 
+  useEffect(() => {
+    if (!selection) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selection]);
+
   const targetIndex = selection ? players.findIndex((player) => player.id === selection.playerId) : -1;
   const targetPlayer = targetIndex >= 0 ? players[targetIndex] : undefined;
   const progress = selection ? Math.min(elapsed / selection.durationMs, 1) : 0;

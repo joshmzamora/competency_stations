@@ -547,6 +547,22 @@ function evaluatePrompt(room: RoomState, message: WireMessage) {
   room.stats.scoreHistory.push({ at: new Date().toISOString(), score: room.score });
 }
 
+function markMissingPromptsIncorrect(room: RoomState, promptIds: unknown) {
+  if (!Array.isArray(promptIds)) return;
+  const now = new Date().toISOString();
+  for (const value of promptIds) {
+    const id = String(value ?? "");
+    if (!id || room.evaluations[id]) continue;
+    room.evaluations[id] = {
+      promptId: id,
+      status: "incorrect",
+      flagged: false,
+      evaluatedAt: now
+    };
+  }
+  recalculateStats(room);
+}
+
 function handleSocketMessage(client: WsClient, message: WireMessage) {
   if (message.type === "create-room") {
     const code = createRoomCode();
@@ -720,6 +736,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.activePromptIndex = 0;
       room.timerEndsAt = null;
       room.liveAnswer = null;
+      room.selection = null;
       room.debriefStartedAt = null;
       room.closingStartedAt = null;
       if (!wasLive) {
@@ -736,7 +753,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           if (room.status === "in-progress" && selectedStationId(room) === openedStationId && !room.selection) {
             if (startSelection(room)) broadcastState(room.code);
           }
-        }, 2400);
+        }, 2900);
       }
       break;
     }
@@ -887,9 +904,14 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "end-game": {
       if (client.role !== "host") return;
       const alreadyEnded = Boolean(room.endedAt);
+      markMissingPromptsIncorrect(room, message.promptIds);
       room.status = "ended";
       room.endedAt = room.endedAt ?? new Date().toISOString();
       room.timerEndsAt = null;
+      room.selection = null;
+      room.currentParticipantId = null;
+      room.debriefStartedAt = room.debriefStartedAt ?? Date.now();
+      room.closingStartedAt = null;
       recalculateStats(room);
       if (!alreadyEnded) {
         saveRoomResult(room).catch((error) => {
