@@ -9,198 +9,63 @@ function prompt(prompt: CompetencyPrompt): CompetencyPrompt {
 
 const codeBluePrompts: CompetencyPrompt[] = [
   prompt({
-    id: "code-blue-unstable-afib",
-    stationId: "code-blue",
-    type: "timed-emergency",
-    title: "",
-    scenario:
-      "Emma is pale, cool, mildly diaphoretic, anxious, and in atrial fibrillation with HR 160, BP 78/50, RR 26, and SpO2 on 2 L nasal cannula. What rhythm and instability do you recognize, and what cardioversion preparation is required?",
-    instructions: [
-      "Recognize the rhythm and hemodynamic instability.",
-      "Prepare for synchronized cardioversion.",
-      "Gather immediate safety and airway supplies.",
-      "Verbalize pad placement, Zoll setup, sedation considerations, and all-clear process."
-    ],
-    expectedResponse:
-      "Recognize unstable atrial fibrillation and prepare synchronized cardioversion. Gather crash cart, suction, oxygen or nasal cannula, and sedation per provider direction. Place pads correctly, select synchronized cardioversion on the Zoll, choose ordered joules, verify everyone is clear, and deliver therapy safely.",
-    explanation:
-      "The document frames unstable atrial fibrillation as the initial rhythm that progresses into a code situation. The expected intervention is rapid recognition and preparation for cardioversion using correct Zoll function and safety workflow.",
-    evaluationCriteria: [
-      "Identifies unstable atrial fibrillation with hypotension as requiring urgent synchronized cardioversion.",
-      "Gets crash cart, suction, oxygen support, pads, and sedation materials.",
-      "Uses correct pad placement and Zoll synchronized cardioversion function.",
-      "Selects joules per order or protocol and performs an all-clear before shock."
-    ],
-    criticalActions: ["Recognizes instability.", "Uses synchronized cardioversion workflow.", "Maintains shock safety."],
-    timerSeconds: 90
-  }),
-  prompt({
-    id: "code-blue-pulseless-vtach",
-    stationId: "code-blue",
-    type: "timed-emergency",
-    title: "",
-    scenario: "Emma becomes unresponsive and the rhythm changes to pulseless ventricular tachycardia. What are your immediate assessment, CPR, ventilation, defibrillation, and medication actions?",
-    instructions: [
-      "Assess pulse and breathing.",
-      "Start CPR immediately if pulseless.",
-      "Verbalize defibrillation sequence and CPR timing.",
-      "Identify medications used during the shockable rhythm algorithm."
-    ],
-    expectedResponse:
-      "Assess pulse and breathing. With no pulse, start CPR and provide bag-mask ventilation. Defibrillate at 120 J, resume CPR for 2 minutes, repeat defibrillation at 150 J, give epinephrine 1 mg every 3-5 minutes after the second shock, defibrillate at 200 J, and give amiodarone 300 mg then 150 mg or lidocaine 1-1.5 mg/kg then 0.5-0.75 mg/kg.",
-    explanation:
-      "The scenario expects learners to move from rhythm recognition to high-quality CPR, defibrillation, airway support, and ACLS medication sequencing.",
-    evaluationCriteria: [
-      "Checks pulse and breathing before declaring pulseless arrest.",
-      "Starts CPR immediately and uses bag-mask ventilation.",
-      "Verbalizes defibrillation at 120 J, 150 J, then 200 J as written in the scenario.",
-      "Administers epinephrine 1 mg every 3-5 minutes after the second shock.",
-      "Identifies amiodarone or lidocaine dosing options."
-    ],
-    criticalActions: ["Starts CPR without delay.", "Defibrillates shockable rhythm.", "Uses correct medication sequence."],
-    timerSeconds: 120
-  }),
-  prompt({
-    id: "code-blue-shock-sequence",
-    stationId: "code-blue",
-    type: "verbal-response",
-    title: "",
-    scenario: "Emma is in pulseless VTACH. What defibrillation energy sequence and CPR timing are listed in the scenario?",
-    instructions: [
-      "Start at first shock.",
-      "Include CPR timing.",
-      "State the second and third shock energies."
-    ],
-    expectedResponse:
-      "Defibrillate at 120 J, resume CPR for 2 minutes, repeat defibrillation at 150 J, continue CPR, then defibrillate at 200 J.",
-    explanation:
-      "The DOCX gives a staged defibrillation sequence of 120 J, CPR for 2 minutes, 150 J, then 200 J.",
-    evaluationCriteria: [
-      "States first defibrillation at 120 J.",
-      "States CPR for 2 minutes.",
-      "States repeat defibrillation at 150 J.",
-      "States defibrillation at 200 J."
-    ],
-    criticalActions: ["Does not delay CPR between shocks."]
-  }),
-  prompt({
-    id: "code-blue-shockable-rhythm-meds",
-    stationId: "code-blue",
-    type: "verbal-response",
-    title: "",
-    scenario:
-      "During the pulseless VTACH algorithm, what medications, timing, and doses are expected in this station?",
-    instructions: [
-      "State when epinephrine is given.",
-      "State epinephrine dose and interval.",
-      "State amiodarone or lidocaine options."
-    ],
-    expectedResponse:
-      "Administer epinephrine 1 mg every 3-5 minutes only after the second shock. Administer amiodarone 300 mg then 150 mg, or lidocaine 1-1.5 mg/kg followed by 0.5-0.75 mg/kg.",
-    explanation:
-      "The DOCX specifies epinephrine only after the second shock and gives amiodarone and lidocaine dosing options.",
-    evaluationCriteria: [
-      "States epinephrine 1 mg.",
-      "States every 3-5 minutes.",
-      "States epinephrine is given only after the second shock.",
-      "States amiodarone 300 mg then 150 mg.",
-      "States lidocaine 1-1.5 mg/kg then 0.5-0.75 mg/kg as an option."
-    ],
-    criticalActions: ["Does not give epinephrine before the second shock."]
-  }),
-  prompt({
     id: "code-blue-reversible-causes",
     stationId: "code-blue",
     type: "verbal-response",
     title: "",
-    scenario: "During the code, what H's and T's should the team consider as reversible causes?",
+    scenario: "What are some reversible causes of pulseless VTACH? Give examples of the H's and T's.",
     instructions: [
-      "Name the H's and T's from memory.",
-      "Prioritize causes relevant to Emma's clinical picture.",
-      "Explain how the team should use reversible causes during the code."
+      "Give examples of H's.",
+      "Give examples of T's.",
+      "Connect them to reversible causes during pulseless VTACH."
     ],
     expectedResponse:
-      "Consider hypovolemia, hypoxia, hydrogen ion or acidosis, hypo/hyperkalemia, tension pneumothorax, cardiac tamponade, toxins, pulmonary thrombosis, and coronary thrombosis.",
+      "H's include hypovolemia, hypoxia, hydrogen ions or acidosis, and hypo/hyperkalemia. T's include tension pneumothorax, cardiac tamponade, toxins, pulmonary thrombosis, and coronary thrombosis.",
     explanation:
-      "The document lists H's and T's as part of the Code Blue card workflow and suggests using cards with distractors.",
+      "The H's and T's are reversible causes to consider during pulseless VTACH and cardiac arrest.",
     evaluationCriteria: [
-      "Names hypovolemia, hypoxia, hydrogen ion/acidosis, and potassium abnormality.",
-      "Names tension pneumothorax, tamponade, toxins, pulmonary thrombosis, and coronary thrombosis.",
-      "Uses the list to guide team assessment rather than reciting without action."
+      "Names hypovolemia.",
+      "Names hypoxia.",
+      "Names hydrogen ions or acidosis.",
+      "Names hypo/hyperkalemia.",
+      "Names tension pneumothorax.",
+      "Names cardiac tamponade.",
+      "Names toxins.",
+      "Names pulmonary thrombosis and/or coronary thrombosis."
     ]
   }),
   prompt({
-    id: "code-blue-rosc-bradycardia",
-    stationId: "code-blue",
-    type: "timed-emergency",
-    title: "",
-    scenario: "After ROSC, Emma has HR 42, BP 80/50, SpO2 99%, RR 12, and an ETT in place with 100% FiO2. What first-line medication, dose, repeat interval, maximum dose, and next escalation are expected?",
-    instructions: [
-      "Recognize symptomatic bradycardia after ROSC.",
-      "Select the appropriate first-line medication and dose.",
-      "Verbalize maximum dose and next escalation."
-    ],
-    expectedResponse:
-      "Recognize symptomatic bradycardia. Give atropine 1 mg every 3-5 minutes to a maximum of 3 mg. Prepare for transcutaneous pacing if unstable. Additional medical management may include epinephrine infusion at 2-10 mcg/min or dopamine at 5-20 mcg/kg/min.",
-    explanation:
-      "The scenario expects learners to choose correct medication from distractors, identify dosing, and recognize need for transcutaneous pacing.",
-    evaluationCriteria: [
-      "Recognizes symptomatic bradycardia with hypotension.",
-      "Selects atropine 1 mg as first-line medication.",
-      "States repeat interval every 3-5 minutes and maximum 3 mg.",
-      "Identifies epinephrine or dopamine infusion as additional management.",
-      "Prepares for transcutaneous pacing if instability persists."
-    ],
-    criticalActions: ["Does not choose incorrect medication or incorrect dose.", "Escalates to pacing."],
-    timerSeconds: 90
-  }),
-  prompt({
-    id: "code-blue-transcutaneous-pacing",
-    stationId: "code-blue",
-    type: "practical-assessment",
-    title: "",
-    scenario:
-      "Emma remains symptomatically bradycardic after ROSC. What transcutaneous pacing setup must you verbalize on the Zoll?",
-    instructions: [
-      "Recognize the need for transcutaneous pacemaker.",
-      "Select output and rate.",
-      "Verbalize 100% capture.",
-      "Explain the 4:1 button on the Zoll machine."
-    ],
-    expectedResponse:
-      "Recognize the need for transcutaneous pacing. Select the output in milliamps and the rate, verbalize 100% capture, and be knowledgeable about the 4:1 button on the Zoll machine.",
-    explanation:
-      "The DOCX specifically expects learners to recognize TCP need, select output and rate, verbalize 100% capture, and know the 4:1 button.",
-    evaluationCriteria: [
-      "Recognizes need for transcutaneous pacing.",
-      "Selects output in mA.",
-      "Selects pacing rate.",
-      "Verbalizes 100% capture.",
-      "Explains or identifies the 4:1 Zoll function."
-    ],
-    criticalActions: ["Recognizes pacing need.", "Confirms capture."]
-  }),
-  prompt({
-    id: "code-blue-bradycardia-infusion-options",
+    id: "code-blue-atropine-max-dose",
     stationId: "code-blue",
     type: "verbal-response",
     title: "",
-    scenario:
-      "What other medical management may be used for symptomatic bradycardia after atropine and while preparing pacing?",
-    instructions: [
-      "State epinephrine infusion dose range.",
-      "State dopamine infusion dose range.",
-      "Connect both options to symptomatic bradycardia management."
-    ],
-    expectedResponse:
-      "Additional medical management for symptomatic bradycardia includes epinephrine infusion at 2-10 mcg/min and dopamine infusion at 5-20 mcg/kg/min.",
-    explanation:
-      "The DOCX lists epinephrine 2-10 mcg/min and dopamine 5-20 mcg/kg/min as other medical management for symptomatic bradycardia.",
-    evaluationCriteria: [
-      "States epinephrine infusion 2-10 mcg/min.",
-      "States dopamine infusion 5-20 mcg/kg/min.",
-      "Identifies these as symptomatic bradycardia management options."
-    ]
+    scenario: "What is the maximum dose of Atropine?",
+    instructions: ["Answer verbally.", "State the maximum total dose."],
+    expectedResponse: "The maximum dose of Atropine is 3 mg.",
+    explanation: "The expected maximum total Atropine dose is 3 mg.",
+    evaluationCriteria: ["States 3 mg."]
+  }),
+  prompt({
+    id: "code-blue-advanced-airway-breathing",
+    stationId: "code-blue",
+    type: "verbal-response",
+    title: "",
+    scenario: "Once an advanced airway is in place, how often should you give breaths? Give 1 breath every ___ seconds.",
+    instructions: ["Answer verbally.", "State the seconds between breaths."],
+    expectedResponse: "Once an advanced airway is in place, give 1 breath every 6 seconds.",
+    explanation: "The expected ventilation rate with an advanced airway in place is 1 breath every 6 seconds.",
+    evaluationCriteria: ["States 1 breath every 6 seconds."]
+  }),
+  prompt({
+    id: "code-blue-pulseless-vtach-drug-therapy",
+    stationId: "code-blue",
+    type: "verbal-response",
+    title: "",
+    scenario: "What is the drug therapy for pulseless VTACH?",
+    instructions: ["Answer verbally.", "Name the medication options."],
+    expectedResponse: "Drug therapy for pulseless VTACH includes epinephrine, amiodarone, and lidocaine.",
+    explanation: "The expected medication therapies for pulseless VTACH are epinephrine, amiodarone, and lidocaine.",
+    evaluationCriteria: ["Names epinephrine.", "Names amiodarone.", "Names lidocaine."]
   })
 ];
 
