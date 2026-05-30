@@ -56,6 +56,8 @@ type RoomState = {
   introStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
+  debriefStartedAt: number | null;
+  closingStartedAt: number | null;
   selection: { playerId: string; startedAt: number; durationMs: number } | null;
   currentParticipantId: string | null;
   sessionStartedAt: number | null;
@@ -111,6 +113,8 @@ function createInitialRoom(code: string): RoomState {
     introStartedAt: null,
     introCompletedAt: null,
     protocolIntroStartedAt: null,
+    debriefStartedAt: null,
+    closingStartedAt: null,
     selection: null,
     currentParticipantId: null,
     sessionStartedAt: null,
@@ -621,6 +625,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
       room.protocolIntroStartedAt = null;
       room.selection = null;
+      room.debriefStartedAt = null;
+      room.closingStartedAt = null;
       broadcastState(room.code);
       break;
     }
@@ -708,6 +714,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.activePromptIndex = 0;
       room.timerEndsAt = null;
       room.liveAnswer = null;
+      room.debriefStartedAt = null;
+      room.closingStartedAt = null;
       if (!wasLive) {
         room.evaluations = {};
         room.activityStates = {};
@@ -840,15 +848,48 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
-    case "end-game": {
+    case "show-debrief": {
       if (client.role !== "host") return;
-      room.status = "ended";
-      room.endedAt = new Date().toISOString();
+      room.debriefStartedAt = room.debriefStartedAt ?? Date.now();
+      room.closingStartedAt = null;
+      room.selection = null;
+      room.currentParticipantId = null;
       room.timerEndsAt = null;
       recalculateStats(room);
-      saveRoomResult(room).catch((error) => {
-        console.error("Could not save room result", error);
-      });
+      broadcastState(room.code);
+      break;
+    }
+    case "show-closing": {
+      if (client.role !== "host") return;
+      const alreadyEnded = Boolean(room.endedAt);
+      room.debriefStartedAt = room.debriefStartedAt ?? Date.now();
+      room.closingStartedAt = room.closingStartedAt ?? Date.now();
+      room.status = "ended";
+      room.endedAt = room.endedAt ?? new Date().toISOString();
+      room.selection = null;
+      room.currentParticipantId = null;
+      room.timerEndsAt = null;
+      recalculateStats(room);
+      if (!alreadyEnded) {
+        saveRoomResult(room).catch((error) => {
+          console.error("Could not save room result", error);
+        });
+      }
+      broadcastState(room.code);
+      break;
+    }
+    case "end-game": {
+      if (client.role !== "host") return;
+      const alreadyEnded = Boolean(room.endedAt);
+      room.status = "ended";
+      room.endedAt = room.endedAt ?? new Date().toISOString();
+      room.timerEndsAt = null;
+      recalculateStats(room);
+      if (!alreadyEnded) {
+        saveRoomResult(room).catch((error) => {
+          console.error("Could not save room result", error);
+        });
+      }
       broadcastState(room.code);
       break;
     }

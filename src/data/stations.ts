@@ -216,7 +216,7 @@ const chestTubePrompts: CompetencyPrompt[] = [
     stationId: "chest-tube",
     type: "timed-emergency",
     title: "",
-    scenario: "The chest tube becomes dislodged while the patient is being repositioned.",
+    scenario: "The chest tube becomes dislodged while the patient is being repositioned. What do you do?",
     instructions: [
       "Call for help.",
       "Protect the insertion site.",

@@ -9,6 +9,7 @@ import { Modal } from "../components/Modal";
 import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
+import { SessionDebrief } from "../components/SessionDebrief";
 import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
@@ -487,6 +488,7 @@ export function PlayerPage() {
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
       {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      <SessionDebrief room={room ?? null} role="player" />
     </section>
   );
 }

@@ -29,12 +29,14 @@ import { PromptCard } from "../components/PromptCard";
 import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
+import { buildMissedQuestionReport, SessionDebrief } from "../components/SessionDebrief";
 import { StationCard } from "../components/StationCard";
 import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
+import { downloadFile } from "../utils/results";
 import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
 
 type ParticipantPerformance = PlayerState & {
@@ -253,6 +255,8 @@ export function HostPage() {
   const [now, setNow] = useState(Date.now());
   const stationIdRef = useRef<string>("");
   const questionKeyRef = useRef<string>("");
+  const debriefRequestedRef = useRef(false);
+  const downloadedDebriefRef = useRef<number | null>(null);
 
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
@@ -268,6 +272,7 @@ export function HostPage() {
   const stationRemaining = Math.max(0, totalPrompts - stationCompletedCount);
   const allPromptsTotal = useMemo(() => stations.reduce((sum, item) => sum + item.prompts.length, 0), []);
   const sessionRemaining = Math.max(0, allPromptsTotal - evaluationList.length);
+  const allStationsComplete = room?.status === "in-progress" && allPromptsTotal > 0 && evaluationList.length >= allPromptsTotal;
   const connectionLabel =
     status === "open" ? "Connected" : status === "connecting" ? "Connecting" : status === "closed" ? "Disconnected" : "Connection issue";
   const preselectedStation = useMemo(() => {
@@ -339,6 +344,15 @@ export function HostPage() {
 
   const activeParticipant = participantStats.find((player) => player.id === room?.currentParticipantId);
 
+  const downloadMissedReport = useCallback(() => {
+    const report = buildMissedQuestionReport(room ?? null);
+    const code = room?.code ?? "session";
+    downloadFile(`competency-missed-questions-${code}.json`, report.json, "application/json");
+    window.setTimeout(() => {
+      downloadFile(`competency-missed-questions-${code}.csv`, report.csv, "text/csv");
+    }, 250);
+  }, [room]);
+
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
@@ -349,6 +363,18 @@ export function HostPage() {
       send({ type: "open-station", station: preselectedStation });
     }
   }, [preselectedStation, room, send, station]);
+
+  useEffect(() => {
+    if (!allStationsComplete || room?.debriefStartedAt || room?.closingStartedAt || debriefRequestedRef.current) return;
+    debriefRequestedRef.current = true;
+    send({ type: "show-debrief" });
+  }, [allStationsComplete, room?.closingStartedAt, room?.debriefStartedAt, send]);
+
+  useEffect(() => {
+    if (!room?.debriefStartedAt || room.closingStartedAt || downloadedDebriefRef.current === room.debriefStartedAt) return;
+    downloadedDebriefRef.current = room.debriefStartedAt;
+    downloadMissedReport();
+  }, [downloadMissedReport, room?.closingStartedAt, room?.debriefStartedAt]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
@@ -790,6 +816,13 @@ export function HostPage() {
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
       {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      <SessionDebrief
+        room={room ?? null}
+        role="host"
+        onDownload={downloadMissedReport}
+        onClosing={() => send({ type: "show-closing" })}
+        onEnd={() => send({ type: "end-game" })}
+      />
     </section>
   );
 }

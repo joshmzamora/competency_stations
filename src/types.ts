@@ -134,6 +134,8 @@ export type RoomState = {
   introStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
+  debriefStartedAt: number | null;
+  closingStartedAt: number | null;
   selection: SelectionState | null;
   currentParticipantId: string | null;
   sessionStartedAt: number | null;
@@ -191,6 +193,8 @@ export type ClientMessage =
   | { type: "check-activity"; promptId: string }
   | { type: "evaluate-prompt"; promptId: string; playerId?: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }
+  | { type: "show-debrief" }
+  | { type: "show-closing" }
   | { type: "end-game" };
 
 export type ServerMessage =
