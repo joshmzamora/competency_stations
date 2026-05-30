@@ -430,12 +430,8 @@ export function HostPage() {
   }, [introKey, send]);
 
   const skipIntro = useCallback(() => {
-    send({ type: "skip-intro" });
-    setIntroKeySeen(introKey);
-    setIntroVisible(false);
-    setProtocolIntroSeenAt(null);
-    send({ type: "start-protocol-assignment" });
-  }, [introKey, send]);
+    send({ type: "skip-intro-to-patient-review", elapsedMs: 45000 });
+  }, [send]);
 
   const protocolIntroVisible = Boolean(
     room?.protocolIntroStartedAt &&

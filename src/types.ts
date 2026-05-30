@@ -181,6 +181,7 @@ export type ClientMessage =
   | { type: "leave-room" }
   | { type: "start-session" }
   | { type: "skip-intro" }
+  | { type: "skip-intro-to-patient-review"; elapsedMs: number }
   | { type: "start-protocol-assignment" }
   | { type: "start-selection" }
   | { type: "override-selection"; playerId: string }

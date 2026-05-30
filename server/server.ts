@@ -821,6 +821,16 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
+    case "skip-intro-to-patient-review": {
+      if (client.role !== "host") return;
+      const elapsedMs = Math.max(0, Math.min(120000, Number(message.elapsedMs ?? 45000)));
+      room.introStartedAt = Date.now() - elapsedMs;
+      room.introCompletedAt = null;
+      room.protocolIntroStartedAt = null;
+      room.selection = null;
+      broadcastState(room.code);
+      break;
+    }
     case "start-protocol-assignment": {
       if (client.role !== "host") return;
       const playerConnections = connectedPlayerClients(room.code);
