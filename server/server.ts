@@ -174,7 +174,7 @@ function selectedStationId(room: RoomState) {
 }
 
 function usesParticipantSelection(room: RoomState) {
-  return selectedStationId(room) !== "stroke";
+  return String(objectField(activePrompt(room), "type") ?? "") !== "activity";
 }
 
 function findPrompt(room: RoomState, id: string) {
@@ -896,7 +896,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           if (room.status === "in-progress" && selectedStationId(room) === openedStationId && !room.selection) {
             if (startSelection(room)) broadcastState(room.code);
           }
-        }, 2900);
+        }, 3400);
       }
       break;
     }

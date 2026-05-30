@@ -247,6 +247,7 @@ export function HostPage() {
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
+  const [debriefPromptVisible, setDebriefPromptVisible] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -261,6 +262,7 @@ export function HostPage() {
   const stationId = station?.id ?? "";
   const questionKey = stationId ? `${stationId}:${room?.activePromptIndex ?? 0}` : "";
   const isStrokeStation = station?.id === "stroke";
+  const promptUsesSelection = Boolean(prompt && prompt.type !== "activity");
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
@@ -382,8 +384,8 @@ export function HostPage() {
   useEffect(() => {
     if (!allStationsComplete || room?.debriefStartedAt || room?.closingStartedAt || debriefRequestedRef.current) return;
     debriefRequestedRef.current = true;
-    send({ type: "show-debrief" });
-  }, [allStationsComplete, room?.closingStartedAt, room?.debriefStartedAt, send]);
+    setDebriefPromptVisible(true);
+  }, [allStationsComplete, room?.closingStartedAt, room?.debriefStartedAt]);
 
   useEffect(() => {
     if (!room?.debriefStartedAt || room.closingStartedAt || downloadedDebriefRef.current === room.debriefStartedAt) return;
@@ -416,16 +418,16 @@ export function HostPage() {
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
     setIntroVisible(false);
-    if (!isStrokeStation) send({ type: "start-protocol-assignment" });
-  }, [introKey, isStrokeStation, send]);
+    send({ type: "start-protocol-assignment" });
+  }, [introKey, send]);
 
   const skipIntro = useCallback(() => {
     send({ type: "skip-intro" });
     setIntroKeySeen(introKey);
     setIntroVisible(false);
     setProtocolIntroSeenAt(null);
-    if (!isStrokeStation) send({ type: "start-protocol-assignment" });
-  }, [introKey, isStrokeStation, send]);
+    send({ type: "start-protocol-assignment" });
+  }, [introKey, send]);
 
   const protocolIntroVisible = Boolean(
     room?.protocolIntroStartedAt &&
@@ -481,8 +483,8 @@ export function HostPage() {
   }, [questionKey, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
-    if (!prompt || (!room?.currentParticipantId && !isStrokeStation)) return;
-    const playerId = isStrokeStation ? undefined : room?.currentParticipantId ?? undefined;
+    if (!prompt || (promptUsesSelection && !room?.currentParticipantId)) return;
+    const playerId = promptUsesSelection ? room?.currentParticipantId ?? undefined : undefined;
     send({ type: "evaluate-prompt", promptId: prompt.id, playerId, status: statusValue, flagged: false });
   }
 
@@ -590,7 +592,7 @@ export function HostPage() {
                 )}
                 {station && connectedParticipants >= 2 && (
                   <p className="mt-3 text-xs text-scrub">
-                    {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin." : "Ready. The intro plays once, then participant selection begins."}
+                  {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. The intro plays once, then participant selection begins."}
                   </p>
                 )}
               </div>
@@ -716,20 +718,20 @@ export function HostPage() {
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Evaluating</div>
                   <div className="mt-1 font-display text-xl font-black uppercase text-white">{activeParticipant.displayName}</div>
                 </div>
-              ) : isStrokeStation ? (
+              ) : !promptUsesSelection ? (
                 <div className="mb-3 rounded-md border border-monitor/25 bg-monitor/10 p-3 text-xs leading-5 text-monitor">
-                  Stroke is scored as a group activity. No random participant selection is required.
+                  This prompt is scored as a group activity. No random participant selection is required.
                 </div>
               ) : null}
               <div className="mt-3 grid gap-2">
-                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
+                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
                   <Check className="h-4 w-4" />
                   Correct
                 </AnimatedButton>
-                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
+                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
                   Partial
                 </AnimatedButton>
-                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt || (!activeParticipant && !isStrokeStation)}>
+                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
                   <X className="h-4 w-4" />
                   Incorrect
                 </AnimatedButton>
@@ -762,7 +764,7 @@ export function HostPage() {
                   player={player}
                   active={player.id === room.currentParticipantId}
                   selecting={room.selection?.playerId === player.id}
-                  disabled={room.status !== "in-progress" || isStrokeStation}
+                  disabled={room.status !== "in-progress" || !promptUsesSelection}
                   onSelect={() => send({ type: "override-selection", playerId: player.id })}
                   note={participantNotes[player.id] ?? ""}
                   onNoteChange={(value) => setParticipantNotes((current) => ({ ...current, [player.id]: value }))}
@@ -793,15 +795,31 @@ export function HostPage() {
         canSkip
         onSkip={() => {
           setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          if (!isStrokeStation) send({ type: "start-selection" });
+          if (promptUsesSelection) send({ type: "start-selection" });
         }}
         onComplete={() => {
           setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          if (!isStrokeStation) send({ type: "start-selection" });
+          if (promptUsesSelection) send({ type: "start-selection" });
         }}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
-      {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      <Modal open={debriefPromptVisible} title="Debrief ready" onClose={() => setDebriefPromptVisible(false)}>
+        <div className="grid gap-4">
+          <p className="text-white/75">
+            All station prompts are complete. Start the debrief when the room is ready.
+          </p>
+          <AnimatedButton
+            variant="secondary"
+            onClick={() => {
+              setDebriefPromptVisible(false);
+              send({ type: "show-debrief" });
+            }}
+          >
+            Start Debrief
+          </AnimatedButton>
+        </div>
+      </Modal>
       <SessionDebrief
         room={room ?? null}
         role="host"

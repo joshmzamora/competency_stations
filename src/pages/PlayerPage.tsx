@@ -163,7 +163,7 @@ function ActivePromptView({
   onCheckActivity: () => void;
 }) {
   const tone = shapeTone(activeParticipant?.shape);
-  const usesSelection = station.id !== "stroke";
+  const usesSelection = prompt.type !== "activity";
 
   return (
     <motion.div
@@ -263,6 +263,7 @@ export function PlayerPage() {
   const isStrokeStation = station?.id === "stroke";
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
+  const activePromptUsesSelection = Boolean(activePrompt && activePrompt.type !== "activity");
   const activeParticipant = useMemo(() => room?.players.find((player) => player.id === room.currentParticipantId), [room?.currentParticipantId, room?.players]);
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
@@ -505,7 +506,7 @@ export function PlayerPage() {
 
           <CountdownTimer endsAt={room.timerEndsAt} />
 
-          {activePrompt && station && (activeParticipant || isStrokeStation) ? (
+          {activePrompt && station && (activeParticipant || !activePromptUsesSelection) ? (
             <ActivePromptView
               prompt={activePrompt}
               station={station}
@@ -523,7 +524,9 @@ export function PlayerPage() {
               <p className="mt-3 text-white/70">
                 {station
                   ? isStrokeStation
-                    ? "The host will advance the Stroke activity when ready."
+                    ? activePromptUsesSelection
+                      ? "The host will run the selection animation before the next Stroke question appears."
+                      : "The host will advance the Stroke activity when ready."
                     : "The host will run the selection animation before the next question appears."
                   : "The host will select a competency station and start the session."}
               </p>
@@ -546,7 +549,7 @@ export function PlayerPage() {
         onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
-      {!isStrokeStation && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
       <SessionDebrief room={room ?? null} role="player" />
     </section>
   );
