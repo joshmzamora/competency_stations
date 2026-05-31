@@ -111,3 +111,22 @@ export function playFileClickCue() {
   playTone(context, 1200, now + 0.05, 0.1, 0.4, "sine");
   closeLater(context, 400);
 }
+
+export function playTimerTickCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 1000, now, 0.05, 0.1, "square");
+  closeLater(context, 200);
+}
+
+export function playTimerUrgentCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 1200, now, 0.1, 0.2, "sawtooth");
+  playTone(context, 1400, now + 0.1, 0.1, 0.2, "sawtooth");
+  closeLater(context, 400);
+}

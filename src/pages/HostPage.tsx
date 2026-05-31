@@ -136,9 +136,8 @@ function ParticipantCard({
       whileHover={{ y: -3 }}
       onClick={onSelect}
       disabled={disabled}
-      className={`group grid w-full gap-3 rounded-md border p-4 text-left transition ${
-        active ? `${tone.border} ${tone.bg} ${tone.ring}` : "border-white/10 bg-black/35 hover:border-white/25"
-      } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${selecting ? "animate-pulse" : ""}`}
+      className={`group grid w-full gap-3 rounded-md border p-4 text-left transition ${active ? `${tone.border} ${tone.bg} ${tone.ring}` : "border-white/10 bg-black/35 hover:border-white/25"
+        } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${selecting ? "animate-pulse" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -585,7 +584,7 @@ export function HostPage() {
                 )}
                 {station && connectedParticipants >= 2 && (
                   <p className="mt-3 text-xs text-scrub">
-                  {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. The intro plays once, then participant selection begins."}
+                    {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. The intro plays once, then participant selection begins."}
                   </p>
                 )}
               </div>
@@ -609,13 +608,12 @@ export function HostPage() {
                         if (completedStation) return;
                         send({ type: "open-station", station: item });
                       }}
-                      className={`rounded-md border px-3 py-3 text-left transition ${
-                        isActive
+                      className={`rounded-md border px-3 py-3 text-left transition ${isActive
                           ? "border-scrub/50 bg-scrub/10 text-scrub"
                           : completedStation
                             ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
                             : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
-                      } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
+                        } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
@@ -692,11 +690,22 @@ export function HostPage() {
           </main>
 
           <aside className="grid content-start gap-4">
-            <CountdownTimer endsAt={room.timerEndsAt} />
+            <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} />
+            <div className="grid grid-cols-3 gap-2">
+              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
+                15s
+              </AnimatedButton>
+              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 30 })} disabled={!prompt}>
+                30s
+              </AnimatedButton>
+              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 60 })} disabled={!prompt}>
+                60s
+              </AnimatedButton>
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: prompt?.timerSeconds ?? 60 })} disabled={!prompt}>
+              <AnimatedButton variant="ghost" onClick={() => send({ type: "start-timer", seconds: prompt?.timerSeconds ?? 60 })} disabled={!prompt}>
                 <Timer className="h-4 w-4" />
-                Timer
+                Custom
               </AnimatedButton>
               <AnimatedButton variant="ghost" onClick={() => send({ type: "reset-timer" })}>
                 <PauseCircle className="h-4 w-4" />

@@ -499,7 +499,7 @@ export function PlayerPage() {
             </div>
           </div>
 
-          <CountdownTimer endsAt={room.timerEndsAt} />
+          <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} />
 
           {activePrompt && station && (activeParticipant || !activePromptUsesSelection) ? (
             <ActivePromptView

@@ -70,6 +70,7 @@ type RoomState = {
   stationRouteStartId: string | null;
   activePromptIndex: number;
   timerEndsAt: number | null;
+  timerStartedAt: number | null;
   liveAnswer: { playerId: string; answer: string; submittedAt: string; responseTimeMs?: number } | null;
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
@@ -135,6 +136,7 @@ function createInitialRoom(code: string): RoomState {
     stationRouteStartId: null,
     activePromptIndex: 0,
     timerEndsAt: null,
+    timerStartedAt: null,
     liveAnswer: null,
     players: [],
     evaluations: {},
@@ -338,13 +340,13 @@ function pickBalancedPlayer(room: RoomState): string | null {
 
   // Find minimum turn count
   const minTurns = Math.min(...players.map(p => p.turnCount));
-  
+
   // Players who haven't had a turn or have the lowest turns
   let candidates = players.filter(p => p.turnCount === minTurns);
   if (candidates.length > 1 && room.currentParticipantId) {
     candidates = candidates.filter((player) => player.id !== room.currentParticipantId);
   }
-  
+
   // Randomly pick from the fairest candidates
   const selected = candidates[Math.floor(Math.random() * candidates.length)];
   return selected.id;
@@ -386,7 +388,7 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
 function assignShapesToRoom(room: RoomState) {
   const priorityShapes = ["triangle", "star", "umbrella", "circle", "square"];
   const shapes = priorityShapes.slice(0, Math.max(0, Math.min(room.players.length, priorityShapes.length)));
-  
+
   // Shuffle the priority pool so assignments stay random while keeping square for a fifth participant.
   for (let i = shapes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -777,7 +779,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.roomCode = code;
     client.names = names;
     client.groupId = groupId;
-    
+
     // Create player states with formatted names
     room.players = names.map((n, i) => ({
       id: `${groupId}-${i}`,
@@ -786,7 +788,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       shape: room.players.find((player) => player.id === `${groupId}-${i}`)?.shape,
       turnCount: room.players.find((player) => player.id === `${groupId}-${i}`)?.turnCount ?? 0
     }));
-    
+
     sendState(client, room, "room-joined");
     broadcastState(code);
     if (connectedHostClients(code).length === 0) {
@@ -1041,13 +1043,15 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       const prompt = activePrompt(room);
       const defaultSeconds = Number(objectField(prompt, "timerSeconds") ?? 60);
       const seconds = Math.max(5, Math.min(600, Number(message.seconds ?? defaultSeconds)));
-      room.timerEndsAt = Date.now() + seconds * 1000;
+      room.timerStartedAt = Date.now();
+      room.timerEndsAt = room.timerStartedAt + seconds * 1000;
       broadcastState(room.code);
       break;
     }
     case "reset-timer": {
       if (client.role !== "host") return;
       room.timerEndsAt = null;
+      room.timerStartedAt = null;
       broadcastState(room.code);
       break;
     }
