@@ -9,7 +9,7 @@ const totalDurationMs = 22000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.46;
 const fadeOutMs = 2200;
-const openingMs = 2600;
+const openingMs = 5200;
 const closingMs = 1600;
 
 function segmentMs(playerCount: number) {
@@ -122,9 +122,8 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
         initial={{ scale: 0.72, rotate: -18, opacity: 0 }}
         animate={{ scale: revealShape ? 1 : 0.82, rotate: revealShape ? 0 : [0, 8, -8, 0], opacity: revealShape ? 1 : 0.38 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className={`mt-12 grid h-72 w-72 place-items-center rounded-md border bg-black/45 md:h-96 md:w-96 ${
-          revealShape ? shapeRing(shape) : "border-white/10"
-        }`}
+        className={`mt-12 grid h-72 w-72 place-items-center rounded-md border bg-black/45 md:h-96 md:w-96 ${revealShape ? shapeRing(shape) : "border-white/10"
+          }`}
       >
         <ShapeIcon shape={displayedShape} className={`h-44 w-44 md:h-64 md:w-64 ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
       </motion.div>
