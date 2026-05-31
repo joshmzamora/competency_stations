@@ -351,6 +351,12 @@ export function PlayerPage() {
     !room.introStartedAt
   );
 
+  const completeProtocolIntro = useCallback(() => {
+    setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
+    setStationTransitionVisible(true);
+    window.setTimeout(() => setStationTransitionVisible(false), 2800);
+  }, [room?.protocolIntroStartedAt]);
+
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
     setIntroVisible(false);
@@ -550,12 +556,21 @@ export function PlayerPage() {
         <p className="text-white/75">{error}</p>
       </Modal>
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
-      <ScenarioIntro open={introVisible} role="player" startedAt={room?.introStartedAt} serverTime={room?.serverTime} onClose={closeIntro} />
+      <ScenarioIntro
+        open={introVisible}
+        role="player"
+        startedAt={room?.introStartedAt}
+        serverTime={room?.serverTime}
+        patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
+        patientReviewActiveFileId={room?.patientReviewActiveFileId}
+        onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
+        onClose={closeIntro}
+      />
       <ProtocolIntro
         open={protocolIntroVisible}
         startedAt={room?.protocolIntroStartedAt ?? null}
         players={room?.players ?? []}
-        onComplete={() => setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null)}
+        onComplete={completeProtocolIntro}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
       {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}

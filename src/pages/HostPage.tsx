@@ -440,6 +440,15 @@ export function HostPage() {
     !room.introStartedAt
   );
 
+  const completeProtocolIntro = useCallback(() => {
+    setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
+    setStationTransitionVisible(true);
+    window.setTimeout(() => {
+      setStationTransitionVisible(false);
+      if (promptUsesSelection) send({ type: "start-selection" });
+    }, 2800);
+  }, [promptUsesSelection, room?.protocolIntroStartedAt, send]);
+
   useEffect(() => {
     if (!stationId) {
       stationIdRef.current = "";
@@ -788,6 +797,9 @@ export function HostPage() {
         role="host"
         startedAt={room?.introStartedAt}
         serverTime={room?.serverTime}
+        patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
+        patientReviewActiveFileId={room?.patientReviewActiveFileId}
+        onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
         canSkip
         onClose={closeIntro}
         onSkip={skipIntro}
@@ -798,12 +810,10 @@ export function HostPage() {
         players={room?.players ?? []}
         canSkip
         onSkip={() => {
-          setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          if (promptUsesSelection) send({ type: "start-selection" });
+          completeProtocolIntro();
         }}
         onComplete={() => {
-          setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-          if (promptUsesSelection) send({ type: "start-selection" });
+          completeProtocolIntro();
         }}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />

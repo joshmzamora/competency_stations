@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { PatientCaseReview } from "./PatientCaseReview";
+import { PhaseBrief } from "./PhaseBrief";
 
 const durationMs = 45000;
 const sceneMs = durationMs / 6;
@@ -89,31 +90,6 @@ const scenes: IntroScene[] = [
   }
 ];
 
-function MonitorWave({ color = "#24f5c7", compact = false }: { color?: string; compact?: boolean }) {
-  return (
-    <svg viewBox="0 0 720 160" className="h-full w-full" aria-hidden="true">
-      <rect width="720" height="160" rx="18" fill="#061011" stroke="rgba(110,247,255,.18)" />
-      {Array.from({ length: 13 }).map((_, index) => (
-        <line key={`v-${index}`} x1={index * 60} x2={index * 60} y1="0" y2="160" stroke="rgba(110,247,255,.06)" />
-      ))}
-      {Array.from({ length: 5 }).map((_, index) => (
-        <line key={`h-${index}`} x1="0" x2="720" y1={index * 40} y2={index * 40} stroke="rgba(110,247,255,.06)" />
-      ))}
-      <motion.polyline
-        initial={{ pathLength: 0, opacity: 0.45 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: compact ? 2.2 : 3.4, repeat: Infinity, ease: "linear" }}
-        fill="none"
-        stroke={color}
-        strokeWidth={compact ? "4" : "5"}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points="0,82 60,82 74,46 92,122 112,82 172,82 190,66 210,100 232,82 315,82 333,26 355,136 378,82 455,82 474,64 496,101 520,82 720,82"
-      />
-    </svg>
-  );
-}
-
 function ShapeConstellation() {
   const shapeItems = [
     { label: "Triangle", Icon: Triangle, tone: "text-trauma", delay: 0 },
@@ -124,18 +100,17 @@ function ShapeConstellation() {
   ];
 
   return (
-    <div className="grid h-full min-h-[360px] place-items-center rounded-md border border-white/10 bg-[#08090b] p-6">
-      <div className="grid w-full max-w-xl grid-cols-5 gap-3">
-        {shapeItems.map(({ label, Icon, tone, delay }, index) => (
+    <div className="grid h-full min-h-[520px] place-items-center rounded-md border border-white/10 bg-[#08090b] p-8">
+      <div className="grid w-full max-w-4xl grid-cols-5 gap-5">
+        {shapeItems.map(({ label, Icon, tone, delay }) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, y: 28, rotate: -8 }}
-            animate={{ opacity: 1, y: index % 2 ? 24 : 0, rotate: 0 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
             transition={{ delay, duration: 0.55, ease: "easeOut" }}
-            className="grid aspect-[0.74] place-items-center rounded-md border border-white/10 bg-white/[0.04]"
+            className="grid aspect-square place-items-center rounded-md border border-white/10 bg-white/[0.04]"
           >
-            <Icon className={`h-11 w-11 ${tone}`} strokeWidth={1.8} />
-            <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/45">{index + 1}</div>
+            <Icon className={`h-24 w-24 xl:h-32 xl:w-32 ${tone}`} strokeWidth={1.8} />
           </motion.div>
         ))}
       </div>
@@ -147,33 +122,19 @@ function SceneVisual({ scene }: { scene: IntroScene }) {
   if (scene.visual === "shapes") return <ShapeConstellation />;
 
   return (
-    <div className="relative min-h-[360px] overflow-hidden rounded-md border border-white/10 bg-[#090d10] shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
+    <div className="relative min-h-[520px] overflow-hidden rounded-md border border-white/10 bg-[#090d10] shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
       {scene.image ? (
         <motion.img
           key={scene.image}
           src={scene.image}
           alt=""
-          className="h-full min-h-[360px] w-full object-cover"
+          className="h-full min-h-[520px] w-full object-cover"
           initial={{ scale: 1.09, opacity: 0 }}
           animate={{ scale: 1.01, opacity: 1 }}
           transition={{ duration: 0.9, ease: "easeOut" }}
         />
       ) : null}
       <div className="absolute inset-0 bg-gradient-to-t from-[#050607] via-[#050607]/22 to-transparent" />
-      <motion.div
-        className="absolute inset-x-5 bottom-5 overflow-hidden rounded-md border border-monitor/20 bg-black/72 p-3 backdrop-blur-md"
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.45 }}
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-monitor">Live monitor strip</div>
-          <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-trauma">ICU watch</div>
-        </div>
-        <div className="h-20">
-          <MonitorWave compact color={scene.visual === "launch" ? "#ff304d" : "#24f5c7"} />
-        </div>
-      </motion.div>
     </div>
   );
 }
@@ -184,6 +145,9 @@ export function ScenarioIntro({
   onSkip,
   canSkip = false,
   role,
+  patientReviewReviewedFileIds,
+  patientReviewActiveFileId,
+  onReviewPatientFile,
   startedAt,
   serverTime
 }: {
@@ -192,14 +156,19 @@ export function ScenarioIntro({
   onSkip?: () => void;
   canSkip?: boolean;
   role: "host" | "player";
+  patientReviewReviewedFileIds?: string[];
+  patientReviewActiveFileId?: string | null;
+  onReviewPatientFile?: (fileId: string) => void;
   startedAt?: number | null;
   serverTime?: number;
 }) {
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState<"scenes" | "patient">("scenes");
+  const [patientBriefVisible, setPatientBriefVisible] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const patientBriefShownRef = useRef(false);
   const sceneIndex = Math.min(scenes.length - 1, Math.floor(elapsed / sceneMs));
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
@@ -209,6 +178,7 @@ export function ScenarioIntro({
 
   useEffect(() => {
     if (!open) return;
+    patientBriefShownRef.current = false;
     offsetRef.current = serverTime ? Date.now() - serverTime : 0;
     const getElapsed = () => (startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0);
     const initialElapsed = Math.min(durationMs, getElapsed());
@@ -226,6 +196,14 @@ export function ScenarioIntro({
     }, 120);
     return () => window.clearInterval(interval);
   }, [open, serverTime, startedAt]);
+
+  useEffect(() => {
+    if (!open || phase !== "patient" || patientBriefShownRef.current) return;
+    patientBriefShownRef.current = true;
+    setPatientBriefVisible(true);
+    const timeout = window.setTimeout(() => setPatientBriefVisible(false), 2400);
+    return () => window.clearTimeout(timeout);
+  }, [open, phase]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -289,9 +267,29 @@ export function ScenarioIntro({
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(255,255,255,0.025)_50%)] bg-[length:100%_4px]" />
 
           {phase === "patient" ? (
-            <PatientCaseReview role={role} onContinue={onClose} />
+            <>
+              <PatientCaseReview
+                role={role}
+                reviewedFileIds={patientReviewReviewedFileIds ?? []}
+                activeFileId={patientReviewActiveFileId}
+                onOpenFile={(fileId) => onReviewPatientFile?.(fileId)}
+                onContinue={onClose}
+              />
+              <PhaseBrief
+                visible={patientBriefVisible}
+                label="Next phase"
+                title="Patient Intel"
+                subtitle="The learner opens all seven patient files. Once every file is reviewed, the host can enter the simulation."
+              />
+            </>
           ) : (
             <div className="relative grid h-screen grid-rows-[auto_1fr_auto] p-4 md:p-6">
+              <PhaseBrief
+                visible={elapsed < 2400}
+                label="Starting"
+                title="Briefing"
+                subtitle="Six quick scenes explain how the simulation works before patient intel opens."
+              />
               <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
                   <motion.div
@@ -322,7 +320,7 @@ export function ScenarioIntro({
                 </div>
               </header>
 
-              <main className="grid min-h-0 gap-6 py-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(420px,0.75fr)]">
+              <main className="grid min-h-0 gap-6 py-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(520px,0.75fr)]">
                 <AnimatePresence mode="wait">
                   <motion.section
                     key={scene.title}
@@ -330,7 +328,7 @@ export function ScenarioIntro({
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     exit={{ opacity: 0, y: -18, filter: "blur(8px)" }}
                     transition={{ duration: 0.48, ease: "easeOut" }}
-                    className="grid content-center rounded-md border border-white/10 bg-black/35 p-6 shadow-[0_26px_80px_rgba(0,0,0,0.42)] md:p-10"
+                    className="grid min-h-full content-center rounded-md border border-white/10 bg-black/35 p-8 shadow-[0_26px_80px_rgba(0,0,0,0.42)] md:p-12"
                   >
                     <motion.div
                       initial={{ opacity: 0, x: -16 }}
@@ -344,32 +342,23 @@ export function ScenarioIntro({
                       initial={{ opacity: 0, y: 22 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.16, duration: 0.45 }}
-                      className="mt-7 max-w-5xl font-display text-5xl font-black uppercase leading-[0.92] md:text-7xl"
+                      className="mt-8 max-w-5xl font-display text-6xl font-black uppercase leading-[0.9] md:text-8xl"
                     >
                       {scene.title}
                     </motion.h2>
-                    <div className="mt-7 grid gap-3">
+                    <div className="mt-10 grid gap-6">
                       {scene.lines.map((line, index) => (
                         <motion.p
                           key={line}
                           initial={{ opacity: 0, y: 18 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.28 + index * 0.12, duration: 0.42 }}
-                          className="max-w-4xl text-2xl font-semibold leading-9 text-white/84 md:text-3xl md:leading-[2.8rem]"
+                          className="max-w-5xl text-4xl font-semibold leading-[3rem] text-white/88 md:text-5xl md:leading-[4rem]"
                         >
                           {line}
                         </motion.p>
                       ))}
                     </div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.54, duration: 0.42 }}
-                      className="mt-8 rounded-md border border-white/10 bg-white/[0.04] p-4"
-                    >
-                      <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-white/38">Clinical cue</div>
-                      <div className="mt-2 text-lg font-semibold leading-7 text-white/72">{scene.purpose}</div>
-                    </motion.div>
                   </motion.section>
                 </AnimatePresence>
 

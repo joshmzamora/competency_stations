@@ -134,6 +134,8 @@ export type RoomState = {
   introStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
+  patientReviewActiveFileId: string | null;
+  patientReviewReviewedFileIds: string[];
   debriefStartedAt: number | null;
   closingStartedAt: number | null;
   selection: SelectionState | null;
@@ -182,6 +184,7 @@ export type ClientMessage =
   | { type: "start-session" }
   | { type: "skip-intro" }
   | { type: "skip-intro-to-patient-review"; elapsedMs: number }
+  | { type: "review-patient-file"; fileId: string }
   | { type: "start-protocol-assignment" }
   | { type: "start-selection" }
   | { type: "override-selection"; playerId: string }

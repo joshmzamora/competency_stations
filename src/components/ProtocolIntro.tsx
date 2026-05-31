@@ -313,8 +313,11 @@ export function ProtocolIntro({
                     >
                       <ShapeIcon shape={openingShape} className={`h-28 w-28 ${shapeColor(openingShape)}`} />
                     </motion.div>
-                    <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Preparing participant identifiers</div>
-                    <div className="mt-3 font-display text-5xl font-black uppercase md:text-7xl">Stand By</div>
+                    <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Next phase</div>
+                    <div className="mt-3 font-display text-5xl font-black uppercase md:text-7xl">Shape Selection</div>
+                    <p className="mt-4 max-w-3xl text-2xl font-semibold leading-9 text-white/68">
+                      Each participant receives a shape. That shape will be used for random question selection during stations.
+                    </p>
                   </motion.div>
                 ) : (
                   <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={elapsed} playerCount={players.length} />

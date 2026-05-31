@@ -56,6 +56,8 @@ type RoomState = {
   introStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
+  patientReviewActiveFileId: string | null;
+  patientReviewReviewedFileIds: string[];
   debriefStartedAt: number | null;
   closingStartedAt: number | null;
   selection: { playerId: string; startedAt: number; durationMs: number } | null;
@@ -117,6 +119,8 @@ function createInitialRoom(code: string): RoomState {
     introStartedAt: null,
     introCompletedAt: null,
     protocolIntroStartedAt: null,
+    patientReviewActiveFileId: null,
+    patientReviewReviewedFileIds: [],
     debriefStartedAt: null,
     closingStartedAt: null,
     selection: null,
@@ -512,6 +516,8 @@ function serializableRoom(room: RoomState): RoomState {
     serverTime: Date.now(),
     introStartedAt: null,
     protocolIntroStartedAt: null,
+    patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
+    patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
     selection: null,
     timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
     players: room.players.map((player) => ({ ...player, connected: false }))
@@ -548,6 +554,8 @@ async function loadRooms() {
         serverTime: Date.now(),
         introStartedAt: null,
         protocolIntroStartedAt: null,
+        patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
+        patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
         selection: null,
         timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
         players: Array.isArray(room.players) ? room.players.map((player) => ({ ...player, connected: false })) : [],
@@ -808,6 +816,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
       room.protocolIntroStartedAt = null;
+      room.patientReviewActiveFileId = "identity";
+      room.patientReviewReviewedFileIds = ["identity"];
       room.selection = null;
       room.debriefStartedAt = null;
       room.closingStartedAt = null;
@@ -827,7 +837,21 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.introStartedAt = Date.now() - elapsedMs;
       room.introCompletedAt = null;
       room.protocolIntroStartedAt = null;
+      room.patientReviewActiveFileId = "identity";
+      room.patientReviewReviewedFileIds = ["identity"];
       room.selection = null;
+      broadcastState(room.code);
+      break;
+    }
+    case "review-patient-file": {
+      if (client.role !== "player") return;
+      const fileId = String(message.fileId ?? "").trim();
+      const allowed = new Set(["identity", "complaint", "hpi", "history", "meds", "report", "diagnostics"]);
+      if (!allowed.has(fileId)) return;
+      room.patientReviewActiveFileId = fileId;
+      const reviewed = new Set(room.patientReviewReviewedFileIds ?? []);
+      reviewed.add(fileId);
+      room.patientReviewReviewedFileIds = [...reviewed];
       broadcastState(room.code);
       break;
     }
@@ -843,6 +867,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.introStartedAt = null;
       room.introCompletedAt = room.introCompletedAt ?? Date.now();
       room.protocolIntroStartedAt = Date.now();
+      room.patientReviewActiveFileId = null;
+      room.patientReviewReviewedFileIds = [];
       room.selection = null;
       const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
