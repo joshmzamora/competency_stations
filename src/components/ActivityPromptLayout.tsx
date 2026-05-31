@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, ClipboardList, MoveRight, RotateCcw } from "lucide-react";
 import type { ActivityColumn, ActivityState, CompetencyPrompt, PlayerPrompt } from "../types";
+import { playActivityCheckCue, playActivityDropCue } from "../utils/sound";
 
 function FormattedText({ text }: { text: string }) {
   const parts = text.split(/(~~.*?~~)/g);
@@ -70,7 +71,10 @@ function WorkColumns({
           onDrop={(event) => {
             event.preventDefault();
             const item = event.dataTransfer.getData("text/plain");
-            if (item) onMove?.(item, column.title);
+            if (item) {
+              playActivityDropCue();
+              onMove?.(item, column.title);
+            }
           }}
           className="min-h-[170px] rounded-md border border-white/10 bg-black/30 p-4"
         >
@@ -187,7 +191,10 @@ export function ActivityPromptLayout({
             onDrop={(event) => {
               event.preventDefault();
               const item = event.dataTransfer.getData("text/plain");
-              if (item) onMoveCard?.(item, null);
+              if (item) {
+                playActivityDropCue();
+                onMoveCard?.(item, null);
+              }
             }}
             className="flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-white/10 bg-black/20 p-3"
           >
@@ -251,7 +258,10 @@ export function ActivityPromptLayout({
             )}
             <button
               type="button"
-              onClick={onCheck}
+              onClick={() => {
+                playActivityCheckCue();
+                onCheck?.();
+              }}
               disabled={!onCheck || remainingChecks <= 0}
               className="inline-flex min-h-10 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15 disabled:cursor-not-allowed disabled:opacity-35"
             >

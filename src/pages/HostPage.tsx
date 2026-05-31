@@ -35,7 +35,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
 import { downloadFile } from "../utils/results";
-import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
+import { playStationTransitionCue } from "../utils/sound";
 
 type ParticipantPerformance = PlayerState & {
   displayName: string;
@@ -250,11 +250,11 @@ export function HostPage() {
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
   const [debriefPromptVisible, setDebriefPromptVisible] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const stationIdRef = useRef<string>("");
-  const questionKeyRef = useRef<string>("");
   const debriefRequestedRef = useRef(false);
   const downloadedDebriefRef = useRef<number | null>(null);
   const resumeAttemptedRef = useRef(false);
@@ -262,7 +262,6 @@ export function HostPage() {
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
   const stationId = station?.id ?? "";
-  const questionKey = stationId ? `${stationId}:${room?.activePromptIndex ?? 0}` : "";
   const isStrokeStation = station?.id === "stroke";
   const promptUsesSelection = Boolean(prompt && prompt.type !== "activity");
   const totalPrompts = station?.prompts.length ?? 0;
@@ -446,7 +445,7 @@ export function HostPage() {
     window.setTimeout(() => {
       setStationTransitionVisible(false);
       if (promptUsesSelection) send({ type: "start-selection" });
-    }, 2800);
+    }, 3600);
   }, [promptUsesSelection, room?.protocolIntroStartedAt, send]);
 
   useEffect(() => {
@@ -469,31 +468,12 @@ export function HostPage() {
         // Browsers can block audio until interaction.
       }
     }, 20);
-    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2600);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
     return () => {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
-
-  useEffect(() => {
-    if (!questionKey || room?.status !== "in-progress") {
-      questionKeyRef.current = questionKey;
-      return;
-    }
-
-    const previousQuestionKey = questionKeyRef.current;
-    questionKeyRef.current = questionKey;
-    const previousStationId = previousQuestionKey.split(":")[0];
-
-    if (previousQuestionKey && previousQuestionKey !== questionKey && previousStationId === stationId) {
-      try {
-        playQuestionAdvanceCue();
-      } catch {
-        // Browsers can block audio until interaction.
-      }
-    }
-  }, [questionKey, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt || (promptUsesSelection && !room?.currentParticipantId)) return;
@@ -624,15 +604,18 @@ export function HostPage() {
                   return (
                     <button
                       key={item.id}
-                      disabled={stationNavigationLocked}
-                      onClick={() => send({ type: "open-station", station: item })}
+                      disabled={stationNavigationLocked || completedStation}
+                      onClick={() => {
+                        if (completedStation) return;
+                        send({ type: "open-station", station: item });
+                      }}
                       className={`rounded-md border px-3 py-3 text-left transition ${
                         isActive
                           ? "border-scrub/50 bg-scrub/10 text-scrub"
                           : completedStation
                             ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
                             : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
-                      } ${stationNavigationLocked ? "cursor-not-allowed opacity-45" : ""}`}
+                      } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
@@ -752,7 +735,7 @@ export function HostPage() {
             </div>
 
             <div className="grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
-              <AnimatedButton variant="danger" onClick={endSession}>
+              <AnimatedButton variant="danger" onClick={() => setEndConfirmOpen(true)}>
                 <Power className="h-4 w-4" />
                 End session
               </AnimatedButton>
@@ -834,12 +817,34 @@ export function HostPage() {
           </AnimatedButton>
         </div>
       </Modal>
+      <Modal open={endConfirmOpen} title="End session?" onClose={() => setEndConfirmOpen(false)}>
+        <div className="grid gap-4">
+          <p className="text-white/75">
+            This will mark any remaining station questions as missed and move the room into the debrief.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <AnimatedButton variant="ghost" onClick={() => setEndConfirmOpen(false)}>
+              Cancel
+            </AnimatedButton>
+            <AnimatedButton
+              variant="danger"
+              onClick={() => {
+                setEndConfirmOpen(false);
+                endSession();
+              }}
+            >
+              End session
+            </AnimatedButton>
+          </div>
+        </div>
+      </Modal>
       <SessionDebrief
         room={room ?? null}
         role="host"
         onDownload={downloadMissedReport}
         onClosing={() => send({ type: "show-closing" })}
         onEnd={() => send({ type: "finish-session" })}
+        onDebriefViewChange={(view) => send({ type: "set-debrief-view", ...view })}
       />
     </section>
   );

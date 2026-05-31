@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
+import { PhaseBrief } from "./PhaseBrief";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square"];
 const totalDurationMs = 22000;
@@ -111,24 +112,24 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 1.04, y: -24 }}
       transition={{ duration: 0.48, ease: "easeOut" }}
-      className="grid w-full max-w-4xl justify-items-center text-center"
+      className="grid w-full max-w-5xl justify-items-center text-center"
     >
-      <div className="font-display text-xs font-bold uppercase tracking-[0.34em] text-trauma">Participant {index + 1}</div>
-      <h3 className="mt-3 font-display text-6xl font-black uppercase leading-none text-white md:text-8xl">{publicName(player.name)}</h3>
+      <div className="font-display text-sm font-bold uppercase tracking-[0.34em] text-trauma">Participant {index + 1}</div>
+      <h3 className="mt-4 font-display text-7xl font-black uppercase leading-none text-white md:text-9xl">{publicName(player.name)}</h3>
 
       <motion.div
         key={revealShape ? `${player.id}-${shape}` : displayedShape}
         initial={{ scale: 0.72, rotate: -18, opacity: 0 }}
         animate={{ scale: revealShape ? 1 : 0.82, rotate: revealShape ? 0 : [0, 8, -8, 0], opacity: revealShape ? 1 : 0.38 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className={`mt-10 grid h-56 w-56 place-items-center rounded-md border bg-black/45 md:h-72 md:w-72 ${
+        className={`mt-12 grid h-72 w-72 place-items-center rounded-md border bg-black/45 md:h-96 md:w-96 ${
           revealShape ? shapeRing(shape) : "border-white/10"
         }`}
       >
-        <ShapeIcon shape={displayedShape} className={`h-32 w-32 md:h-44 md:w-44 ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
+        <ShapeIcon shape={displayedShape} className={`h-44 w-44 md:h-64 md:w-64 ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
       </motion.div>
 
-      <div className={`mt-8 font-display text-4xl font-black uppercase tracking-[0.24em] md:text-5xl ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
+      <div className={`mt-9 font-display text-5xl font-black uppercase tracking-[0.24em] md:text-7xl ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
         {revealShape ? shape ?? "pending" : "assigning"}
       </div>
     </motion.div>
@@ -309,12 +310,12 @@ export function ProtocolIntro({
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 3.2, repeat: Infinity, ease: "linear" }}
-                      className="grid h-52 w-52 place-items-center rounded-full border border-trauma/55 bg-trauma/10 shadow-[0_0_64px_rgba(255,48,77,0.24)]"
+                      className="grid h-72 w-72 place-items-center rounded-full border border-trauma/55 bg-trauma/10 shadow-[0_0_64px_rgba(255,48,77,0.24)]"
                     >
-                      <ShapeIcon shape={openingShape} className={`h-28 w-28 ${shapeColor(openingShape)}`} />
+                      <ShapeIcon shape={openingShape} className={`h-44 w-44 ${shapeColor(openingShape)}`} />
                     </motion.div>
                     <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Next phase</div>
-                    <div className="mt-3 font-display text-5xl font-black uppercase md:text-7xl">Shape Selection</div>
+                    <div className="mt-3 font-display text-6xl font-black uppercase md:text-8xl">Shape Selection</div>
                     <p className="mt-4 max-w-3xl text-2xl font-semibold leading-9 text-white/68">
                       Each participant receives a shape. That shape will be used for random question selection during stations.
                     </p>
@@ -349,6 +350,12 @@ export function ProtocolIntro({
             </button>
           )}
           <audio ref={audioRef} src={introAudioSrc} preload="auto" />
+          <PhaseBrief
+            visible={elapsed < 2400}
+            label="Next phase"
+            title="Shape Selection"
+            subtitle="Each participant receives a game shape before the first station begins."
+          />
         </motion.div>
       )}
     </AnimatePresence>

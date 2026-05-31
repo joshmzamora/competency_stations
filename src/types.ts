@@ -137,6 +137,8 @@ export type RoomState = {
   patientReviewActiveFileId: string | null;
   patientReviewReviewedFileIds: string[];
   debriefStartedAt: number | null;
+  debriefFocusedPromptId: string | null;
+  debriefMissedExpanded: boolean;
   closingStartedAt: number | null;
   selection: SelectionState | null;
   currentParticipantId: string | null;
@@ -200,6 +202,7 @@ export type ClientMessage =
   | { type: "evaluate-prompt"; promptId: string; playerId?: string; status: EvaluationStatus; note?: string; flagged?: boolean }
   | { type: "adjust-score"; delta: number }
   | { type: "show-debrief" }
+  | { type: "set-debrief-view"; promptId?: string | null; missedExpanded?: boolean }
   | { type: "show-closing" }
   | { type: "skip-protocol-assignment" }
   | { type: "finish-session" }

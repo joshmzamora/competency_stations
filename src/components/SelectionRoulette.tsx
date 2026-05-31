@@ -3,8 +3,8 @@ import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
-const cardWidth = 204;
-const cardGap = 16;
+const cardWidth = 280;
+const cardGap = 20;
 const cardStride = cardWidth + cardGap;
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
@@ -151,17 +151,15 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
   const activeIndex = Math.round(centerPosition);
   const focusPlayer = repeated[Math.max(0, Math.min(repeated.length - 1, activeIndex))];
   const translateX = `calc(50% - ${centerPosition * cardStride + cardWidth / 2}px)`;
-  const maxTurns = Math.max(1, ...players.map((player) => player.turnCount));
-
   return (
-    <div className="relative h-36 w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#05070a] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+    <div className="relative h-52 w-full max-w-6xl overflow-hidden rounded-md border border-white/10 bg-[#05070a] shadow-[0_30px_110px_rgba(0,0,0,0.46)]">
       <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-[#05070a] via-transparent to-[#05070a]" />
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[228px] -translate-x-1/2 border-x-4 border-trauma/85 bg-trauma/[0.04] shadow-[0_0_44px_rgba(255,48,77,0.24)]" />
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[204px] -translate-x-1/2 border-y border-white/10 bg-white/[0.035]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 z-40 h-0 w-0 -translate-x-1/2 border-l-[13px] border-r-[13px] border-t-[18px] border-l-transparent border-r-transparent border-t-trauma" />
-      <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 h-0 w-0 -translate-x-1/2 border-b-[18px] border-l-[13px] border-r-[13px] border-b-trauma border-l-transparent border-r-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[316px] -translate-x-1/2 border-x-4 border-trauma/90 bg-trauma/[0.04] shadow-[0_0_58px_rgba(255,48,77,0.32)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-30 w-[280px] -translate-x-1/2 border-y border-white/10 bg-white/[0.035]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 z-40 h-0 w-0 -translate-x-1/2 border-l-[18px] border-r-[18px] border-t-[26px] border-l-transparent border-r-transparent border-t-trauma" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 h-0 w-0 -translate-x-1/2 border-b-[26px] border-l-[18px] border-r-[18px] border-b-trauma border-l-transparent border-r-transparent" />
       {focusPlayer && (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[35] h-24 w-[204px] -translate-x-1/2 -translate-y-1/2">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[35] h-36 w-[280px] -translate-x-1/2 -translate-y-1/2">
           <AnimatePresence mode="popLayout">
             <motion.div
               key={`${focusPlayer.id}-${activeIndex}`}
@@ -169,12 +167,12 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
               animate={{ opacity: 1, scale: 1.02 }}
               exit={{ opacity: 0.5, scale: 0.98 }}
               transition={{ duration: 0.1 }}
-              className={`grid h-full w-full place-items-center rounded-md border bg-[#15181d]/95 px-4 ${shapeBorder(focusPlayer.shape)}`}
+              className={`grid h-full w-full place-items-center rounded-md border bg-[#15181d]/95 px-5 ${shapeBorder(focusPlayer.shape)}`}
             >
-              <div className="flex items-center gap-3">
-                {focusPlayer.shape && <ShapeIcon shape={focusPlayer.shape} className={`h-9 w-9 ${shapeColor(focusPlayer.shape)}`} />}
+              <div className="flex items-center gap-4">
+                {focusPlayer.shape && <ShapeIcon shape={focusPlayer.shape} className={`h-14 w-14 ${shapeColor(focusPlayer.shape)}`} />}
                 <div className="min-w-0 text-left">
-                  <div className="truncate font-display text-2xl font-black uppercase leading-none text-white">{publicName(focusPlayer.name)}</div>
+                  <div className="truncate font-display text-4xl font-black uppercase leading-none text-white">{publicName(focusPlayer.name)}</div>
                 </div>
               </div>
             </motion.div>
@@ -200,18 +198,12 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
                 willChange: "left, opacity, transform",
                 zIndex: Math.round(focus * 4)
               }}
-              className="absolute top-1/2 grid h-24 w-[204px] place-items-center rounded-md border border-white/10 bg-white/[0.025] px-4 transition-colors"
+                className="absolute top-1/2 grid h-36 w-[280px] place-items-center rounded-md border border-white/10 bg-white/[0.025] px-5 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                {player.shape && <ShapeIcon shape={player.shape} className={`h-9 w-9 ${shapeColor(player.shape)}`} />}
+              <div className="flex items-center gap-4">
+                {player.shape && <ShapeIcon shape={player.shape} className={`h-12 w-12 ${shapeColor(player.shape)}`} />}
                 <div className="min-w-0 text-left">
-                  <div className="truncate font-display text-lg font-black uppercase text-white">{publicName(player.name)}</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full rounded-full bg-white/35" style={{ width: `${Math.max(18, (player.turnCount / maxTurns) * 100)}%` }} />
-                    </div>
-                    <div className="font-display text-[9px] font-bold uppercase tracking-[0.16em] text-white/35">Engagement</div>
-                  </div>
+                  <div className="truncate font-display text-2xl font-black uppercase text-white">{publicName(player.name)}</div>
                 </div>
               </div>
             </div>
@@ -347,11 +339,11 @@ export function SelectionRoulette({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="grid w-full justify-items-center gap-7"
+                className="grid w-full justify-items-center gap-10"
               >
                 <div className="text-center">
-                  <div className="font-display text-xs font-bold uppercase tracking-[0.36em] text-trauma">Random participant selection</div>
-                  <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none md:text-6xl">Selecting</h2>
+                  <div className="font-display text-sm font-bold uppercase tracking-[0.36em] text-trauma">Random participant selection</div>
+                  <h2 className="mt-4 font-display text-6xl font-black uppercase leading-none md:text-8xl">Selecting</h2>
                 </div>
 
                 <RouletteBar players={players} reelPosition={reelPosition} />
@@ -367,11 +359,11 @@ export function SelectionRoulette({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", stiffness: 230, damping: 22 }}
-                className="grid justify-items-center gap-5 text-center"
+                className="grid w-full justify-items-center gap-7 text-center"
               >
                 <div>
-                  <div className="font-display text-xs font-bold uppercase tracking-[0.38em] text-amber">Selection locked</div>
-                  <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none md:text-7xl">
+                  <div className="font-display text-sm font-bold uppercase tracking-[0.38em] text-amber">Selection locked</div>
+                  <h2 className="mt-4 font-display text-6xl font-black uppercase leading-none md:text-9xl">
                     {amISelected ? "You Are Up" : "Stand By"}
                   </h2>
                 </div>
@@ -379,7 +371,7 @@ export function SelectionRoulette({
                 <motion.div
                   animate={{ y: [0, -5, 0] }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                  className={`w-[min(86vw,380px)] rounded-md border bg-white/[0.045] p-7 ${shapeBorder(targetPlayer?.shape)}`}
+                  className={`w-[min(88vw,560px)] rounded-md border bg-white/[0.045] p-10 ${shapeBorder(targetPlayer?.shape)}`}
                 >
                   {targetPlayer?.shape && (
                     <motion.div
@@ -388,11 +380,11 @@ export function SelectionRoulette({
                       transition={{ type: "spring", stiffness: 260, damping: 20 }}
                       className={`mx-auto flex justify-center ${shapeColor(targetPlayer.shape)}`}
                     >
-                      <ShapeIcon shape={targetPlayer.shape} className="h-28 w-28" />
+                      <ShapeIcon shape={targetPlayer.shape} className="h-44 w-44" />
                     </motion.div>
                   )}
-                  <div className="mt-5 font-display text-3xl font-black uppercase text-white">{publicName(targetPlayer?.name)}</div>
-                  <div className={`mt-2 font-display text-lg font-black uppercase tracking-[0.2em] ${shapeColor(targetPlayer?.shape)}`}>
+                  <div className="mt-7 font-display text-6xl font-black uppercase text-white">{publicName(targetPlayer?.name)}</div>
+                  <div className={`mt-3 font-display text-2xl font-black uppercase tracking-[0.2em] ${shapeColor(targetPlayer?.shape)}`}>
                     {targetPlayer?.shape ?? "unassigned"}
                   </div>
                 </motion.div>

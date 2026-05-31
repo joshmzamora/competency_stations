@@ -15,7 +15,7 @@ import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
-import { playQuestionAdvanceCue, playStationTransitionCue } from "../utils/sound";
+import { playStationTransitionCue } from "../utils/sound";
 
 type PlayerPerformance = PlayerState & {
   displayName: string;
@@ -244,10 +244,10 @@ export function PlayerPage() {
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const stationIdRef = useRef<string>("");
-  const questionKeyRef = useRef<string>("");
   const reconnectAttemptedRef = useRef(false);
   const groupIdRef = useRef(
     localStorage.getItem("competency-player-group-id") ??
@@ -261,7 +261,6 @@ export function PlayerPage() {
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
   const stationId = station?.id ?? "";
-  const questionKey = stationId ? `${stationId}:${room?.activePromptIndex ?? 0}` : "";
   const isStrokeStation = station?.id === "stroke";
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
@@ -354,7 +353,7 @@ export function PlayerPage() {
   const completeProtocolIntro = useCallback(() => {
     setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
     setStationTransitionVisible(true);
-    window.setTimeout(() => setStationTransitionVisible(false), 2800);
+    window.setTimeout(() => setStationTransitionVisible(false), 3600);
   }, [room?.protocolIntroStartedAt]);
 
   const closeIntro = useCallback(() => {
@@ -382,31 +381,12 @@ export function PlayerPage() {
         // Browsers can block audio until interaction.
       }
     }, 20);
-    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 2600);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
     return () => {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
-
-  useEffect(() => {
-    if (!questionKey || room?.status !== "in-progress") {
-      questionKeyRef.current = questionKey;
-      return;
-    }
-
-    const previousQuestionKey = questionKeyRef.current;
-    questionKeyRef.current = questionKey;
-    const previousStationId = previousQuestionKey.split(":")[0];
-
-    if (previousQuestionKey && previousQuestionKey !== questionKey && previousStationId === stationId) {
-      try {
-        playQuestionAdvanceCue();
-      } catch {
-        // Browsers can block audio until interaction.
-      }
-    }
-  }, [questionKey, room?.status, stationId]);
 
   function updateName(index: number, value: string) {
     const next = [...names];
@@ -512,7 +492,7 @@ export function PlayerPage() {
                 <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
                 <div className="font-display text-3xl font-black text-scrub">{room.code}</div>
               </div>
-              <AnimatedButton variant="ghost" className="min-h-12 px-3" onClick={leaveRoom}>
+              <AnimatedButton variant="ghost" className="min-h-12 px-3" onClick={() => setLeaveConfirmOpen(true)}>
                 <LogOut className="h-4 w-4" />
                 Leave
               </AnimatedButton>
@@ -554,6 +534,27 @@ export function PlayerPage() {
 
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
+      </Modal>
+      <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>
+        <div className="grid gap-4">
+          <p className="text-white/75">
+            This learner computer will leave the room. You can rejoin later with the room code if the host is still connected.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <AnimatedButton variant="ghost" onClick={() => setLeaveConfirmOpen(false)}>
+              Stay
+            </AnimatedButton>
+            <AnimatedButton
+              variant="danger"
+              onClick={() => {
+                setLeaveConfirmOpen(false);
+                leaveRoom();
+              }}
+            >
+              Leave room
+            </AnimatedButton>
+          </div>
+        </div>
       </Modal>
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
       <ScenarioIntro

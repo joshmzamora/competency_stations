@@ -68,6 +68,28 @@ export function playQuestionAdvanceCue() {
   closeLater(context, 600);
 }
 
+export function playActivityDropCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 220, now, 0.1, 0.035, "triangle");
+  playTone(context, 330, now + 0.04, 0.12, 0.045, "sine");
+  closeLater(context, 420);
+}
+
+export function playActivityCheckCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 174.61, now, 0.18, 0.05, "sawtooth");
+  [349.23, 523.25, 698.46].forEach((frequency, index) => {
+    playTone(context, frequency, now + 0.11 + index * 0.075, 0.18, 0.07, "triangle");
+  });
+  closeLater(context, 780);
+}
+
 export function playStationTransitionCue() {
   const context = getAudioContext();
   if (!context) return;

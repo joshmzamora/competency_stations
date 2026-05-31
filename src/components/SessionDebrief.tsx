@@ -79,8 +79,11 @@ export function buildMissedQuestionReport(room: RoomState | null) {
       const match = promptMap.get(evaluation.promptId);
       const player = evaluation.playerId ? playerMap.get(evaluation.playerId) : undefined;
       return {
+        id: evaluation.promptId,
         station: match?.station.title ?? "Unknown station",
         question: match?.prompt.scenario ?? evaluation.promptId,
+        answer: match?.prompt.expectedResponse ?? "No answer key available.",
+        explanation: match?.prompt.explanation,
         status: evaluation.status,
         participant: player ? publicName(player.name) : "Group activity",
         shape: shapeLabel(player?.shape),
@@ -158,17 +161,21 @@ export function SessionDebrief({
   role,
   onDownload,
   onClosing,
-  onEnd
+  onEnd,
+  onDebriefViewChange
 }: {
   room: RoomState | null;
   role: "host" | "player";
   onDownload?: () => void;
   onClosing?: () => void;
   onEnd?: () => void;
+  onDebriefViewChange?: (view: { promptId?: string | null; missedExpanded?: boolean }) => void;
 }) {
   const debriefOpen = Boolean(room?.debriefStartedAt && !room.closingStartedAt);
   const closingOpen = Boolean(room?.closingStartedAt);
   const report = buildMissedQuestionReport(room);
+  const focusedMiss = report.missed.find((item) => item.id === room?.debriefFocusedPromptId);
+  const missedExpanded = Boolean(room?.debriefMissedExpanded);
 
   return (
     <>
@@ -203,16 +210,27 @@ export function SessionDebrief({
                 </div>
               </motion.div>
 
-              <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <div className={`grid gap-6 ${missedExpanded ? "xl:grid-cols-[1.55fr_0.45fr]" : "xl:grid-cols-[1.05fr_0.95fr]"}`}>
                 <motion.div
                   initial={{ opacity: 0, x: -18 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: 0.1 }}
                   className="rounded-md border border-white/10 bg-black/45 p-5"
                 >
-                  <div className="mb-4 flex items-center gap-2">
-                    <Flag className="h-5 w-5 text-trauma" />
-                    <h3 className="font-display text-2xl font-black uppercase">Missed Questions</h3>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Flag className="h-5 w-5 text-trauma" />
+                      <h3 className="font-display text-2xl font-black uppercase">Missed Questions</h3>
+                    </div>
+                    {role === "host" && report.missed.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => onDebriefViewChange?.({ missedExpanded: !missedExpanded })}
+                        className="rounded-md border border-monitor/25 bg-monitor/10 px-3 py-2 font-display text-[10px] font-black uppercase tracking-[0.16em] text-monitor transition hover:bg-monitor/15"
+                      >
+                        {missedExpanded ? "Compact" : "Expand"}
+                      </button>
+                    ) : null}
                   </div>
                   <div className="grid max-h-[52vh] gap-3 overflow-y-auto pr-1">
                     {report.missed.length === 0 ? (
@@ -222,12 +240,18 @@ export function SessionDebrief({
                       </div>
                     ) : (
                       report.missed.map((item, index) => (
-                        <motion.div
+                        <motion.button
+                          type="button"
                           key={`${item.station}-${index}`}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.28, delay: 0.15 + index * 0.04 }}
-                          className="rounded-md border border-white/10 bg-white/[0.04] p-4"
+                          onClick={() => role === "host" && onDebriefViewChange?.({ promptId: item.id })}
+                          className={`rounded-md border p-4 text-left transition ${
+                            focusedMiss?.id === item.id
+                              ? "border-monitor/45 bg-monitor/10 shadow-[0_0_34px_rgba(110,247,255,0.1)]"
+                              : "border-white/10 bg-white/[0.04]"
+                          } ${role === "host" ? "hover:border-monitor/35" : ""}`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-monitor">{item.station}</div>
@@ -235,10 +259,23 @@ export function SessionDebrief({
                           </div>
                           <p className="mt-2 text-lg font-semibold leading-7 text-white/85">{item.question}</p>
                           <div className="mt-3 text-xs text-white/45">{item.participant} / {item.shape}</div>
-                        </motion.div>
+                        </motion.button>
                       ))
                     )}
                   </div>
+                  {focusedMiss ? (
+                    <motion.div
+                      key={focusedMiss.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.28 }}
+                      className="mt-4 rounded-md border border-scrub/25 bg-scrub/10 p-5"
+                    >
+                      <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-scrub">Correct answer</div>
+                      <p className="mt-3 text-xl font-semibold leading-8 text-white/88">{focusedMiss.answer}</p>
+                      {focusedMiss.explanation ? <p className="mt-3 text-sm leading-6 text-white/58">{focusedMiss.explanation}</p> : null}
+                    </motion.div>
+                  ) : null}
                 </motion.div>
 
                 <motion.div
@@ -293,18 +330,7 @@ export function SessionDebrief({
             exit={{ opacity: 0 }}
           >
             <ClosingShapeBackdrop />
-            <motion.div
-              className="absolute inset-x-0 top-1/2 h-px bg-trauma"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute inset-y-0 left-1/2 w-px bg-scrub/75"
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ duration: 0.8, ease: "easeInOut", delay: 0.18 }}
-            />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,176,32,0.12),transparent_34%),radial-gradient(circle_at_50%_75%,rgba(110,247,255,0.08),transparent_42%)]" />
             <motion.div
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -314,8 +340,13 @@ export function SessionDebrief({
               <ShieldCheck className="mx-auto h-12 w-12 text-scrub" />
               <div className="mt-5 font-display text-xs font-black uppercase tracking-[0.32em] text-monitor">Simulation complete</div>
               <h2 className="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Debrief Finished</h2>
+              <div className="mx-auto mt-5 flex justify-center">
+                <motion.div animate={{ rotate: [0, -4, 4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+                  <CookieDisk />
+                </motion.div>
+              </div>
               <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold leading-9 text-white/78">
-                Enjoy your squid game cookies.
+                Enjoy your Squid Game cookies.
               </p>
               {role === "host" && (
                 <p className="mx-auto mt-4 max-w-2xl text-white/50">

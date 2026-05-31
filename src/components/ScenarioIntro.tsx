@@ -330,19 +330,11 @@ export function ScenarioIntro({
                     transition={{ duration: 0.48, ease: "easeOut" }}
                     className="grid min-h-full content-center rounded-md border border-white/10 bg-black/35 p-8 shadow-[0_26px_80px_rgba(0,0,0,0.42)] md:p-12"
                   >
-                    <motion.div
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.08, duration: 0.35 }}
-                      className="inline-flex w-fit items-center gap-2 rounded-full border border-monitor/25 bg-monitor/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.18em] text-monitor"
-                    >
-                      {scene.eyebrow}
-                    </motion.div>
                     <motion.h2
                       initial={{ opacity: 0, y: 22 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.16, duration: 0.45 }}
-                      className="mt-8 max-w-5xl font-display text-6xl font-black uppercase leading-[0.9] md:text-8xl"
+                      className="max-w-5xl font-display text-6xl font-black uppercase leading-[0.9] md:text-8xl"
                     >
                       {scene.title}
                     </motion.h2>

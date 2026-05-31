@@ -59,6 +59,8 @@ type RoomState = {
   patientReviewActiveFileId: string | null;
   patientReviewReviewedFileIds: string[];
   debriefStartedAt: number | null;
+  debriefFocusedPromptId: string | null;
+  debriefMissedExpanded: boolean;
   closingStartedAt: number | null;
   selection: { playerId: string; startedAt: number; durationMs: number } | null;
   currentParticipantId: string | null;
@@ -122,6 +124,8 @@ function createInitialRoom(code: string): RoomState {
     patientReviewActiveFileId: null,
     patientReviewReviewedFileIds: [],
     debriefStartedAt: null,
+    debriefFocusedPromptId: null,
+    debriefMissedExpanded: false,
     closingStartedAt: null,
     selection: null,
     currentParticipantId: null,
@@ -171,6 +175,12 @@ function promptId(prompt: unknown) {
 function activeQuestionIsEvaluated(room: RoomState) {
   const id = promptId(activePrompt(room));
   return Boolean(!id || room.evaluations[id]);
+}
+
+function restoreParticipantForActivePrompt(room: RoomState) {
+  const id = promptId(activePrompt(room));
+  room.selection = null;
+  room.currentParticipantId = id ? room.evaluations[id]?.playerId ?? null : null;
 }
 
 function selectedStationId(room: RoomState) {
@@ -518,6 +528,8 @@ function serializableRoom(room: RoomState): RoomState {
     protocolIntroStartedAt: null,
     patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
     patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
+    debriefFocusedPromptId: room.debriefFocusedPromptId ?? null,
+    debriefMissedExpanded: Boolean(room.debriefMissedExpanded),
     selection: null,
     timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
     players: room.players.map((player) => ({ ...player, connected: false }))
@@ -556,6 +568,8 @@ async function loadRooms() {
         protocolIntroStartedAt: null,
         patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
         patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
+        debriefFocusedPromptId: room.debriefFocusedPromptId ?? null,
+        debriefMissedExpanded: Boolean(room.debriefMissedExpanded),
         selection: null,
         timerEndsAt: room.timerEndsAt && room.timerEndsAt > Date.now() ? room.timerEndsAt : null,
         players: Array.isArray(room.players) ? room.players.map((player) => ({ ...player, connected: false })) : [],
@@ -928,6 +942,15 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "open-station": {
       if (client.role !== "host") return;
       const wasLive = room.status === "in-progress";
+      const nextStationPrompts = stationPrompts(message.station);
+      const nextStationComplete =
+        wasLive &&
+        nextStationPrompts.length > 0 &&
+        nextStationPrompts.every((prompt) => Boolean(room.evaluations[promptId(prompt)]));
+      if (nextStationComplete) {
+        sendError(client, "That station is already complete.");
+        return;
+      }
       if (wasLive && !activeQuestionIsEvaluated(room)) {
         sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to another station.");
         return;
@@ -943,6 +966,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.liveAnswer = null;
       room.selection = null;
       room.debriefStartedAt = null;
+      room.debriefFocusedPromptId = null;
+      room.debriefMissedExpanded = false;
       room.closingStartedAt = null;
       if (!wasLive) {
         room.evaluations = {};
@@ -958,19 +983,24 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           if (room.status === "in-progress" && selectedStationId(room) === openedStationId && !room.selection) {
             if (startSelection(room)) broadcastState(room.code);
           }
-        }, 3400);
+        }, 4300);
       }
       break;
     }
     case "set-prompt-index": {
       if (client.role !== "host") return;
       const nextIndex = Number(message.index ?? 0);
-      if (room.status === "in-progress" && nextIndex > room.activePromptIndex && !activeQuestionIsEvaluated(room)) {
+      const currentIndex = room.activePromptIndex;
+      if (room.status === "in-progress" && nextIndex > currentIndex && !activeQuestionIsEvaluated(room)) {
         sendError(client, "Mark the current question Correct, Partial, or Incorrect before moving to the next question.");
         return;
       }
       const moved = movePrompt(room, nextIndex);
-      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (moved && usesParticipantSelection(room) && nextIndex > currentIndex && !activeQuestionIsEvaluated(room)) {
+        startSelection(room);
+      } else if (moved) {
+        restoreParticipantForActivePrompt(room);
+      }
       if (!usesParticipantSelection(room)) {
         room.selection = null;
         room.currentParticipantId = null;
@@ -985,7 +1015,11 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         return;
       }
       const moved = movePrompt(room, room.activePromptIndex + 1);
-      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (moved && usesParticipantSelection(room) && !activeQuestionIsEvaluated(room)) {
+        startSelection(room);
+      } else if (moved) {
+        restoreParticipantForActivePrompt(room);
+      }
       if (!usesParticipantSelection(room)) {
         room.selection = null;
         room.currentParticipantId = null;
@@ -996,7 +1030,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "previous-prompt": {
       if (client.role !== "host") return;
       const moved = movePrompt(room, room.activePromptIndex - 1);
-      if (moved && usesParticipantSelection(room)) startSelection(room);
+      if (moved) restoreParticipantForActivePrompt(room);
       if (!usesParticipantSelection(room)) {
         room.selection = null;
         room.currentParticipantId = null;
@@ -1079,11 +1113,24 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "show-debrief": {
       if (client.role !== "host") return;
       room.debriefStartedAt = room.debriefStartedAt ?? Date.now();
+      room.debriefFocusedPromptId = null;
+      room.debriefMissedExpanded = false;
       room.closingStartedAt = null;
       room.selection = null;
       room.currentParticipantId = null;
       room.timerEndsAt = null;
       recalculateStats(room);
+      broadcastState(room.code);
+      break;
+    }
+    case "set-debrief-view": {
+      if (client.role !== "host") return;
+      if (typeof message.promptId === "string" || message.promptId === null) {
+        room.debriefFocusedPromptId = message.promptId;
+      }
+      if (typeof message.missedExpanded === "boolean") {
+        room.debriefMissedExpanded = message.missedExpanded;
+      }
       broadcastState(room.code);
       break;
     }
