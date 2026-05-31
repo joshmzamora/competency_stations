@@ -21,7 +21,7 @@ import { PhaseBrief } from "./PhaseBrief";
 const durationMs = 45000;
 const sceneMs = durationMs / 6;
 const fadeOutMs = 6000;
-const maxIntroVolume = 0.72;
+const maxIntroVolume = 0.15;
 const introAudioSrc = "/audio/squid_game_intro.mp3";
 
 type IntroScene = {

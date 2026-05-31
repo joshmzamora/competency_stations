@@ -37,7 +37,7 @@ export function playEvaluationCue(status: EvaluationStatus, subtle = false) {
   if (!context) return;
 
   const now = context.currentTime;
-  const volume = subtle ? 0.045 : 0.12;
+  const volume = subtle ? 0.15 : 0.4;
   const sequence =
     status === "correct"
       ? [523.25, 659.25, 783.99, 1046.5]
@@ -51,7 +51,7 @@ export function playEvaluationCue(status: EvaluationStatus, subtle = false) {
   });
 
   if (status === "incorrect") {
-    playTone(context, 98, now + 0.04, 0.42, subtle ? 0.025 : 0.06, "square");
+    playTone(context, 98, now + 0.04, 0.42, subtle ? 0.1 : 0.2, "square");
   }
 
   closeLater(context, 950);
@@ -63,7 +63,7 @@ export function playQuestionAdvanceCue() {
   const now = context.currentTime;
 
   [330, 440, 587.33].forEach((frequency, index) => {
-    playTone(context, frequency, now + index * 0.055, 0.14, 0.055, "triangle");
+    playTone(context, frequency, now + index * 0.055, 0.14, 0.2, "triangle");
   });
   closeLater(context, 600);
 }
@@ -73,8 +73,8 @@ export function playActivityDropCue() {
   if (!context) return;
   const now = context.currentTime;
 
-  playTone(context, 220, now, 0.1, 0.035, "triangle");
-  playTone(context, 330, now + 0.04, 0.12, 0.045, "sine");
+  playTone(context, 220, now, 0.1, 0.15, "triangle");
+  playTone(context, 330, now + 0.04, 0.12, 0.18, "sine");
   closeLater(context, 420);
 }
 
@@ -83,9 +83,9 @@ export function playActivityCheckCue() {
   if (!context) return;
   const now = context.currentTime;
 
-  playTone(context, 174.61, now, 0.18, 0.05, "sawtooth");
+  playTone(context, 174.61, now, 0.18, 0.2, "sawtooth");
   [349.23, 523.25, 698.46].forEach((frequency, index) => {
-    playTone(context, frequency, now + 0.11 + index * 0.075, 0.18, 0.07, "triangle");
+    playTone(context, frequency, now + 0.11 + index * 0.075, 0.18, 0.25, "triangle");
   });
   closeLater(context, 780);
 }
@@ -96,8 +96,18 @@ export function playStationTransitionCue() {
   const now = context.currentTime;
 
   [130.81, 196, 261.63, 392].forEach((frequency, index) => {
-    playTone(context, frequency, now + index * 0.11, 0.26, 0.065, index === 0 ? "sawtooth" : "sine");
+    playTone(context, frequency, now + index * 0.11, 0.26, 0.25, index === 0 ? "sawtooth" : "sine");
   });
-  playTone(context, 65.41, now, 0.62, 0.028, "triangle");
+  playTone(context, 65.41, now, 0.62, 0.1, "triangle");
   closeLater(context, 1000);
+}
+
+export function playFileClickCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 880, now, 0.08, 0.5, "sine");
+  playTone(context, 1200, now + 0.05, 0.1, 0.4, "sine");
+  closeLater(context, 400);
 }

@@ -7,7 +7,7 @@ import { PhaseBrief } from "./PhaseBrief";
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square"];
 const totalDurationMs = 22000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
-const maxVolume = 0.46;
+const maxVolume = 0.15;
 const fadeOutMs = 2200;
 const openingMs = 5200;
 const closingMs = 1600;

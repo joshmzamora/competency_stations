@@ -1030,10 +1030,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "previous-prompt": {
       if (client.role !== "host") return;
       const moved = movePrompt(room, room.activePromptIndex - 1);
-      if (moved) restoreParticipantForActivePrompt(room);
-      if (!usesParticipantSelection(room)) {
-        room.selection = null;
-        room.currentParticipantId = null;
+      if (moved) {
+        restoreParticipantForActivePrompt(room);
       }
       broadcastState(room.code);
       break;

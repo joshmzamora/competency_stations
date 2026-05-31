@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
+import { playFileClickCue } from "../utils/sound";
 
 const caseAudioSrc = "/audio/cinematic_tension.mp3";
 
@@ -164,13 +165,12 @@ function CaseFileCard({
       onClick={() => {
         if (!readOnly) onOpen();
       }}
-      className={`group relative min-h-[210px] overflow-hidden rounded-md border p-6 text-left shadow-[0_18px_44px_rgba(0,0,0,0.28)] transition ${
-        active
-          ? "border-scrub/55 bg-[#071817] shadow-[0_0_46px_rgba(34,245,199,0.18)]"
-          : reviewed
-            ? "border-scrub/35 bg-scrub/[0.075] shadow-[0_0_26px_rgba(34,245,199,0.1)]"
+      className={`group relative min-h-[210px] overflow-hidden rounded-md border p-6 text-left shadow-[0_18px_44px_rgba(0,0,0,0.28)] transition ${active
+        ? "border-scrub/55 bg-[#071817] shadow-[0_0_46px_rgba(34,245,199,0.18)]"
+        : reviewed
+          ? "border-scrub/35 bg-scrub/[0.075] shadow-[0_0_26px_rgba(34,245,199,0.1)]"
           : "border-white/10 bg-[#090d12] hover:border-monitor/35 hover:shadow-[0_0_34px_rgba(110,247,255,0.1)]"
-      }`}
+        }`}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-monitor to-transparent opacity-70" />
       <motion.div
@@ -249,8 +249,8 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
 
         <div className="relative z-[1] mt-6 rounded-md border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/40">
-              <KeyRound className="h-3.5 w-3.5 text-monitor" />
-              Patient ID Strip
+            <KeyRound className="h-3.5 w-3.5 text-monitor" />
+            Patient ID Strip
           </div>
           <div className="mt-3 grid grid-cols-3 gap-3">
             {["Emma G.", "67F", "90 kg"].map((item) => (
@@ -270,9 +270,8 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.24 }}
-                className={`rounded-md border p-6 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${
-                  critical ? "border-trauma/30 bg-trauma/10" : "border-white/10 bg-white/[0.055]"
-                }`}
+                className={`rounded-md border p-6 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${critical ? "border-trauma/30 bg-trauma/10" : "border-white/10 bg-white/[0.055]"
+                  }`}
               >
                 <div>
                   <div className="font-display text-sm font-black uppercase tracking-[0.16em] text-white/44">{label}</div>
@@ -325,15 +324,26 @@ export function PatientCaseReview({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.volume = 0.34;
+    audio.volume = 0.15;
     audio.loop = true;
     const promise = audio.play();
     if (promise) {
       promise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
     }
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
+      if (!audio) return;
+      const fadeOutDuration = 800;
+      const fadeInterval = 40;
+      const volumeStep = audio.volume / (fadeOutDuration / fadeInterval);
+      const fade = setInterval(() => {
+        if (audio.volume > volumeStep) {
+          audio.volume -= volumeStep;
+        } else {
+          clearInterval(fade);
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      }, fadeInterval);
     };
   }, []);
 
@@ -344,7 +354,10 @@ export function PatientCaseReview({
   }
 
   function openFile(id: string) {
-    if (role === "player") onOpenFile(id);
+    if (role === "player") {
+      playFileClickCue();
+      onOpenFile(id);
+    }
   }
 
   return (

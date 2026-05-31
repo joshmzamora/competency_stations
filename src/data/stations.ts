@@ -500,16 +500,16 @@ const strokePrompts: CompetencyPrompt[] = [
     stationId: "stroke",
     type: "verbal-response",
     title: "",
-    scenario: "True or false: An RN must accompany a patient during transfers or location changes after receiving Tenecteplase?",
+    scenario: "What is the time to treatment window for Tenecteplase?",
     instructions: [
       "Answer verbally.",
-      "State the required timeframe."
+      "State the time window in hours."
     ],
     expectedResponse:
-      "An RN must accompany the patient on any transfer or location change for 24 hours following Tenecteplase administration.",
+      "The time to treatment window for Tenecteplase is up to 4.5 hours from the last known well time.",
     explanation:
-      "For the first 24 hours after Tenecteplase, the patient requires RN accompaniment for transfers or location changes.",
-    criticalActions: ["Does not allow transfer without RN accompaniment during the 24-hour period."]
+      "Tenecteplase can be administered up to 4.5 hours after the patient was last known to be at their baseline.",
+    criticalActions: ["Recognizes the 4.5-hour treatment window."]
   }),
   prompt({
     id: "stroke-education-documentation",
