@@ -331,19 +331,8 @@ export function PatientCaseReview({
       promise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
     }
     return () => {
-      if (!audio) return;
-      const fadeOutDuration = 800;
-      const fadeInterval = 40;
-      const volumeStep = audio.volume / (fadeOutDuration / fadeInterval);
-      const fade = setInterval(() => {
-        if (audio.volume > volumeStep) {
-          audio.volume -= volumeStep;
-        } else {
-          clearInterval(fade);
-          audio.pause();
-          audio.currentTime = 0;
-        }
-      }, fadeInterval);
+      audio.pause();
+      audio.currentTime = 0;
     };
   }, []);
 
@@ -351,6 +340,28 @@ export function PatientCaseReview({
     const audio = audioRef.current;
     if (!audio) return;
     audio.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
+  }
+
+  function handleContinue() {
+    const audio = audioRef.current;
+    if (!audio) {
+      onContinue();
+      return;
+    }
+
+    const fadeOutDuration = 800;
+    const fadeInterval = 40;
+    const volumeStep = audio.volume / (fadeOutDuration / fadeInterval);
+    const fade = setInterval(() => {
+      if (audio.volume > volumeStep) {
+        audio.volume -= volumeStep;
+      } else {
+        clearInterval(fade);
+        audio.pause();
+        audio.currentTime = 0;
+        onContinue();
+      }
+    }, fadeInterval);
   }
 
   function openFile(id: string) {
@@ -436,7 +447,7 @@ export function PatientCaseReview({
             </AnimatedButton>
           )}
           {role === "host" ? (
-            <AnimatedButton variant="secondary" onClick={onContinue} disabled={!ready}>
+            <AnimatedButton variant="secondary" onClick={handleContinue} disabled={!ready}>
               {ready ? "Enter Simulation" : "Review All 7 Files"}
             </AnimatedButton>
           ) : (
