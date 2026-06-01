@@ -112,6 +112,16 @@ export function playFileClickCue() {
   closeLater(context, 400);
 }
 
+export function playTimesUpCue() {
+  const context = getAudioContext();
+  if (!context) return;
+  const now = context.currentTime;
+
+  playTone(context, 220, now, 0.15, 0.3, "sawtooth");
+  playTone(context, 180, now + 0.15, 0.3, 0.3, "sawtooth");
+  closeLater(context, 800);
+}
+
 export function playTimerTickCue() {
   const context = getAudioContext();
   if (!context) return;

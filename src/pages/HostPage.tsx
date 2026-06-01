@@ -35,7 +35,8 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
 import { downloadFile } from "../utils/results";
-import { playStationTransitionCue } from "../utils/sound";
+import { playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type ParticipantPerformance = PlayerState & {
   displayName: string;
@@ -253,6 +254,7 @@ export function HostPage() {
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [timesUpVisible, setTimesUpVisible] = useState(false);
   const stationIdRef = useRef<string>("");
   const debriefRequestedRef = useRef(false);
   const downloadedDebriefRef = useRef<number | null>(null);
@@ -405,6 +407,14 @@ export function HostPage() {
     const timeout = window.setTimeout(() => setEffectVisible(false), 1300);
     return () => window.clearTimeout(timeout);
   }, [currentEvaluation?.evaluatedAt]);
+
+  useEffect(() => {
+    if (!room?.timerEndsAt || room.timerEndsAt > now) return;
+    setTimesUpVisible(true);
+    playTimesUpCue();
+    const timeout = window.setTimeout(() => setTimesUpVisible(false), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [room?.timerEndsAt, now]);
 
   useEffect(() => {
     if (!introKey || introKeySeen === introKey) return;
@@ -609,10 +619,10 @@ export function HostPage() {
                         send({ type: "open-station", station: item });
                       }}
                       className={`rounded-md border px-3 py-3 text-left transition ${isActive
-                          ? "border-scrub/50 bg-scrub/10 text-scrub"
-                          : completedStation
-                            ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
-                            : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
+                        ? "border-scrub/50 bg-scrub/10 text-scrub"
+                        : completedStation
+                          ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
+                          : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/25"
                         } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -783,6 +793,7 @@ export function HostPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
+      <TimesUpEffect visible={timesUpVisible} />
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle />
       <ScenarioIntro
         open={introVisible}

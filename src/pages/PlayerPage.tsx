@@ -15,7 +15,8 @@ import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
-import { playStationTransitionCue } from "../utils/sound";
+import { playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type PlayerPerformance = PlayerState & {
   displayName: string;
@@ -101,9 +102,8 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
             <motion.div
               key={player.id}
               layout
-              className={`rounded-md border p-3 transition ${
-                active ? `${tone.border} ${tone.bg} ${tone.shadow}` : "border-white/10 bg-white/[0.035] opacity-75"
-              }`}
+              className={`rounded-md border p-3 transition ${active ? `${tone.border} ${tone.bg} ${tone.shadow}` : "border-white/10 bg-white/[0.035] opacity-75"
+                }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -115,9 +115,8 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
                     <div className={`mt-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] ${tone.text}`}>{player.shape ?? "shape pending"}</div>
                   </div>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.14em] ${
-                  active ? "border-scrub/35 bg-scrub/10 text-scrub" : "border-white/10 bg-white/[0.04] text-white/45"
-                }`}>
+                <span className={`rounded-full border px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.14em] ${active ? "border-scrub/35 bg-scrub/10 text-scrub" : "border-white/10 bg-white/[0.04] text-white/45"
+                  }`}>
                   {status}
                 </span>
               </div>
@@ -247,15 +246,17 @@ export function PlayerPage() {
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [timesUpVisible, setTimesUpVisible] = useState(false);
   const stationIdRef = useRef<string>("");
   const reconnectAttemptedRef = useRef(false);
   const groupIdRef = useRef(
     localStorage.getItem("competency-player-group-id") ??
-      (() => {
-        const id = crypto.randomUUID();
-        localStorage.setItem("competency-player-group-id", id);
-        return id;
-      })()
+    (() => {
+      const id = crypto.randomUUID();
+      localStorage.setItem("competency-player-group-id", id);
+      return id;
+    })()
   );
 
   const station = room?.selectedStation as PlayerStation | null | undefined;
@@ -310,6 +311,14 @@ export function PlayerPage() {
     const timeout = window.setTimeout(() => setEffectVisible(false), 1700);
     return () => window.clearTimeout(timeout);
   }, [currentEvaluation?.evaluatedAt]);
+
+  useEffect(() => {
+    if (!room?.timerEndsAt || room.timerEndsAt > now) return;
+    setTimesUpVisible(true);
+    playTimesUpCue();
+    const timeout = window.setTimeout(() => setTimesUpVisible(false), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [room?.timerEndsAt, now]);
 
   useEffect(() => {
     if (status !== "open" || room || reconnectAttemptedRef.current) return;
@@ -535,6 +544,7 @@ export function PlayerPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
+      <TimesUpEffect visible={timesUpVisible} />
       <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">
@@ -556,26 +566,26 @@ export function PlayerPage() {
           </div>
         </div>
       </Modal>
-      <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
-      <ScenarioIntro
-        open={introVisible}
-        role="player"
-        startedAt={room?.introStartedAt}
-        serverTime={room?.serverTime}
-        patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
-        patientReviewActiveFileId={room?.patientReviewActiveFileId}
-        onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
-        onClose={closeIntro}
-      />
-      <ProtocolIntro
-        open={protocolIntroVisible}
-        startedAt={room?.protocolIntroStartedAt ?? null}
-        players={room?.players ?? []}
-        onComplete={completeProtocolIntro}
-      />
-      <StationTransition station={station ?? null} visible={stationTransitionVisible} />
-      {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
-      <SessionDebrief room={room ?? null} role="player" />
+        <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
+        <ScenarioIntro
+          open={introVisible}
+          role="player"
+          startedAt={room?.introStartedAt}
+          serverTime={room?.serverTime}
+          patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
+          patientReviewActiveFileId={room?.patientReviewActiveFileId}
+          onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
+          onClose={closeIntro}
+        />
+        <ProtocolIntro
+          open={protocolIntroVisible}
+          startedAt={room?.protocolIntroStartedAt ?? null}
+          players={room?.players ?? []}
+          onComplete={completeProtocolIntro}
+        />
+        <StationTransition station={station ?? null} visible={stationTransitionVisible} />
+        {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+        <SessionDebrief room={room ?? null} role="player" />
     </section>
   );
 }
