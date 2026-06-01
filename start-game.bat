@@ -33,10 +33,22 @@ function Get-LocalIPv4 {
 }
 
 function Get-LocalIPv4Addresses {
-  $addresses = [System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList |
-    Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
-    ForEach-Object { $_.IPAddressToString } |
-    Where-Object { $_ -ne "127.0.0.1" -and $_ -notlike "169.254.*" }
+  $addresses = @()
+  try {
+    $addresses = @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+      Where-Object { $_.IPAddress -ne "127.0.0.1" -and $_.IPAddress -notlike "169.254.*" -and $_.AddressState -eq "Preferred" } |
+      Sort-Object @{ Expression = { if ($_.InterfaceAlias -like "*Wi-Fi*") { 0 } elseif ($_.InterfaceAlias -like "*Ethernet*") { 1 } else { 2 } } }, InterfaceAlias |
+      Select-Object -ExpandProperty IPAddress)
+  } catch {
+    $addresses = @()
+  }
+
+  if ($addresses.Count -eq 0) {
+    $addresses = [System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList |
+      Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
+      ForEach-Object { $_.IPAddressToString } |
+      Where-Object { $_ -ne "127.0.0.1" -and $_ -notlike "169.254.*" }
+  }
 
   $private = @($addresses | Where-Object { $_ -like "192.168.*" -or $_ -like "10.*" -or $_ -match "^172\.(1[6-9]|2[0-9]|3[0-1])\." })
   $other = @($addresses | Where-Object { $private -notcontains $_ })
@@ -102,25 +114,165 @@ function Test-ServerHealthy {
   }
 }
 
+function Get-ListenerDiagnostic {
+  try {
+    $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+    if ($listeners.Count -eq 0) {
+      return [pscustomobject]@{
+        Status = "FAIL"
+        Text = "No process is listening on port $port."
+      }
+    }
+
+    $addresses = @($listeners | Select-Object -ExpandProperty LocalAddress -Unique)
+    $lanReady = $addresses -contains "0.0.0.0" -or $addresses -contains "::" -or ($addresses | Where-Object { $_ -notlike "127.*" -and $_ -ne "::1" }).Count -gt 0
+    return [pscustomobject]@{
+      Status = if ($lanReady) { "PASS" } else { "WARN" }
+      Text = if ($lanReady) {
+        "Listening for LAN connections on: $($addresses -join ', ')"
+      } else {
+        "Listening only on local-only address: $($addresses -join ', '). Learners cannot reach that."
+      }
+    }
+  } catch {
+    return [pscustomobject]@{
+      Status = "WARN"
+      Text = "Could not inspect the port listener: $($_.Exception.Message)"
+    }
+  }
+}
+
+function Get-NetworkProfileDiagnostic {
+  try {
+    $profiles = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue)
+    if ($profiles.Count -eq 0) {
+      return [pscustomobject]@{ Status = "WARN"; Text = "Could not read Windows network profile." }
+    }
+    $summary = ($profiles | ForEach-Object { "$($_.InterfaceAlias): $($_.NetworkCategory)" }) -join "; "
+    $publicProfiles = @($profiles | Where-Object { $_.NetworkCategory -eq "Public" })
+    return [pscustomobject]@{
+      Status = if ($publicProfiles.Count -gt 0) { "WARN" } else { "PASS" }
+      Text = if ($publicProfiles.Count -gt 0) {
+        "Windows network profile is Public ($summary). Public networks often block learners."
+      } else {
+        "Windows network profile looks OK ($summary)."
+      }
+    }
+  } catch {
+    return [pscustomobject]@{ Status = "WARN"; Text = "Could not read network profile: $($_.Exception.Message)" }
+  }
+}
+
+function Get-FirewallDiagnostic {
+  try {
+    $portRules = @(
+      Get-NetFirewallPortFilter -ErrorAction SilentlyContinue |
+        Where-Object {
+          ($_.Protocol -eq "TCP" -or $_.Protocol -eq "Any") -and
+          ($_.LocalPort -eq "$port" -or $_.LocalPort -eq "Any")
+        } |
+        Get-NetFirewallRule -ErrorAction SilentlyContinue |
+        Where-Object { $_.Enabled -eq "True" -and $_.Direction -eq "Inbound" -and $_.Action -eq "Allow" }
+    )
+
+    $nodePaths = @(Get-Process node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path -Unique)
+    $nodeRules = @()
+    foreach ($nodePath in $nodePaths) {
+      if ([string]::IsNullOrWhiteSpace($nodePath)) { continue }
+      $nodeRules += @(
+        Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue |
+          Where-Object { $_.Program -eq $nodePath } |
+          Get-NetFirewallRule -ErrorAction SilentlyContinue |
+          Where-Object { $_.Enabled -eq "True" -and $_.Direction -eq "Inbound" -and $_.Action -eq "Allow" }
+      )
+    }
+
+    if ($portRules.Count -gt 0) {
+      return [pscustomobject]@{ Status = "PASS"; Text = "Firewall hint: inbound allow rule found for TCP port $port." }
+    }
+    if ($nodeRules.Count -gt 0) {
+      return [pscustomobject]@{ Status = "PASS"; Text = "Firewall hint: inbound allow rule found for Node.js." }
+    }
+    return [pscustomobject]@{
+      Status = "WARN"
+      Text = "Firewall hint: no obvious inbound allow rule found for TCP $port or Node.js. Learner timeout may be Windows Firewall."
+    }
+  } catch {
+    return [pscustomobject]@{
+      Status = "WARN"
+      Text = "Firewall hint: could not inspect firewall rules. If learners time out, ask IT/admin to allow inbound TCP $port for Node.js."
+    }
+  }
+}
+
+function Format-DiagnosticLine($label, $diagnostic) {
+  return "$label [$($diagnostic.Status)]: $($diagnostic.Text)"
+}
+
 function Update-ServerHealth {
   param([switch]$LogResult)
 
   Refresh-Urls
   $healthy = Test-ServerHealthy
+  $listenerDiagnostic = Get-ListenerDiagnostic
+  $networkDiagnostic = Get-NetworkProfileDiagnostic
+  $firewallDiagnostic = Get-FirewallDiagnostic
+  $firstPlayerUrl = (($playerUrlBox.Text -split "`r?`n") | Where-Object { $_ -match "^http://" } | Select-Object -First 1)
+  $firstIp = if ($firstPlayerUrl -match "http://([^:]+):") { $matches[1] } else { "HOST-IP-FROM-ABOVE" }
+  $learnerTestCommand = "Test-NetConnection $firstIp -Port $port"
   if ($healthy) {
-    $healthLabel.Text = "Server check: ONLINE - learner computer should use one of the URLs below."
-    $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(34, 245, 199)
+    if ($networkDiagnostic.Status -eq "WARN" -or $firewallDiagnostic.Status -eq "WARN" -or $listenerDiagnostic.Status -ne "PASS") {
+      $healthLabel.Text = "Host app: RUNNING. Learner access: LIKELY BLOCKED or NOT VERIFIED."
+      $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
+    } else {
+      $healthLabel.Text = "Host app: RUNNING. Learner access: still needs learner-side test."
+      $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(34, 245, 199)
+    }
+    $networkHelpBox.Text = @"
+DIAGNOSTIC SUMMARY
+Host local app [PASS]: This computer can load http://127.0.0.1:$port/player.
+$(Format-DiagnosticLine "LAN listener" $listenerDiagnostic)
+$(Format-DiagnosticLine "Network profile" $networkDiagnostic)
+$(Format-DiagnosticLine "Firewall" $firewallDiagnostic)
+
+LEARNER COMPUTER TEST
+1. On learner computer, try: $firstPlayerUrl
+2. If it times out, open PowerShell on learner and run:
+$learnerTestCommand
+
+INTERPRETATION
+TcpTestSucceeded = True: network path works; browser/cache/URL typo is more likely.
+TcpTestSucceeded = False: problem is NOT the learner app. It is host firewall, Public profile, wrong IP, or Wi-Fi/client isolation.
+"@
     if ($stopButton.Enabled) {
       Set-Status "Running - verified" ([System.Drawing.Color]::FromArgb(34, 245, 199))
     }
     if ($LogResult) {
       Add-Log "Server health check passed. Learner URLs:`r`n$($playerUrlBox.Text)"
+      Add-Log $listenerDiagnostic.Text
+      Add-Log $networkDiagnostic.Text
+      Add-Log $firewallDiagnostic.Text
+      Add-Log "Learner-side test command: $learnerTestCommand"
     }
   } else {
-    $healthLabel.Text = "Server check: OFFLINE - click Start Game and keep the server window open."
+    $healthLabel.Text = "Local server: OFFLINE - click Start Game and keep the server window open."
     $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
+    $networkHelpBox.Text = @"
+DIAGNOSTIC SUMMARY
+Host local app [FAIL]: This computer cannot load http://127.0.0.1:$port/player.
+$(Format-DiagnosticLine "LAN listener" $listenerDiagnostic)
+
+WHAT THIS MEANS
+This is a HOST COMPUTER problem. The learner computer cannot connect until the server is running here first.
+
+NEXT STEPS
+1. Click Start Game.
+2. Keep the black server window open.
+3. If it still fails, check the black server window for npm/node errors.
+"@
     if ($LogResult) {
       Add-Log "Server health check failed. Nothing answered at http://127.0.0.1:$port/player"
+      Add-Log $listenerDiagnostic.Text
     }
   }
   return $healthy
@@ -287,8 +439,8 @@ Write-LauncherLog "Launcher opened from $root"
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Competency Stations Launcher"
 $form.StartPosition = "CenterScreen"
-$form.Size = New-Object System.Drawing.Size(780, 600)
-$form.MinimumSize = New-Object System.Drawing.Size(720, 560)
+$form.Size = New-Object System.Drawing.Size(820, 820)
+$form.MinimumSize = New-Object System.Drawing.Size(760, 760)
 $form.BackColor = [System.Drawing.Color]::FromArgb(13, 18, 24)
 $form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
@@ -312,15 +464,15 @@ $statusLabel.Text = "Ready"
 $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 12)
 $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
 $statusLabel.TextAlign = "MiddleRight"
-$statusLabel.Location = New-Object System.Drawing.Point(500, 32)
-$statusLabel.Size = New-Object System.Drawing.Size(230, 32)
+$statusLabel.Location = New-Object System.Drawing.Point(520, 32)
+$statusLabel.Size = New-Object System.Drawing.Size(250, 32)
 $form.Controls.Add($statusLabel)
 
 $instructions = New-Object System.Windows.Forms.Label
 $instructions.Text = "Click Start Game on the host computer. Keep this window open while learners connect from another computer on the same Wi-Fi."
 $instructions.ForeColor = [System.Drawing.Color]::FromArgb(198, 208, 216)
 $instructions.Location = New-Object System.Drawing.Point(28, 105)
-$instructions.Size = New-Object System.Drawing.Size(700, 42)
+$instructions.Size = New-Object System.Drawing.Size(740, 42)
 $form.Controls.Add($instructions)
 
 $startButton = New-Object System.Windows.Forms.Button
@@ -366,7 +518,7 @@ $stopButton.BackColor = [System.Drawing.Color]::FromArgb(104, 28, 42)
 $stopButton.ForeColor = [System.Drawing.Color]::White
 $stopButton.FlatStyle = "Flat"
 $stopButton.Location = New-Object System.Drawing.Point(585, 160)
-$stopButton.Size = New-Object System.Drawing.Size(145, 56)
+$stopButton.Size = New-Object System.Drawing.Size(185, 56)
 $stopButton.Enabled = $false
 $stopButton.Add_Click({
   try { Stop-GameServer } catch { Show-LauncherError $_.Exception.Message }
@@ -386,7 +538,7 @@ $hostUrlBox.BackColor = [System.Drawing.Color]::FromArgb(8, 12, 18)
 $hostUrlBox.ForeColor = [System.Drawing.Color]::White
 $hostUrlBox.BorderStyle = "FixedSingle"
 $hostUrlBox.Location = New-Object System.Drawing.Point(30, 264)
-$hostUrlBox.Size = New-Object System.Drawing.Size(700, 30)
+$hostUrlBox.Size = New-Object System.Drawing.Size(740, 30)
 $form.Controls.Add($hostUrlBox)
 
 $playerLabel = New-Object System.Windows.Forms.Label
@@ -403,14 +555,14 @@ $playerUrlBox.BackColor = [System.Drawing.Color]::FromArgb(8, 12, 18)
 $playerUrlBox.ForeColor = [System.Drawing.Color]::White
 $playerUrlBox.BorderStyle = "FixedSingle"
 $playerUrlBox.Location = New-Object System.Drawing.Point(30, 338)
-$playerUrlBox.Size = New-Object System.Drawing.Size(700, 52)
+$playerUrlBox.Size = New-Object System.Drawing.Size(740, 52)
 $form.Controls.Add($playerUrlBox)
 
 $healthLabel = New-Object System.Windows.Forms.Label
 $healthLabel.Text = "Server check: not started"
 $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
 $healthLabel.Location = New-Object System.Drawing.Point(30, 400)
-$healthLabel.Size = New-Object System.Drawing.Size(520, 28)
+$healthLabel.Size = New-Object System.Drawing.Size(530, 42)
 $form.Controls.Add($healthLabel)
 
 $checkServerButton = New-Object System.Windows.Forms.Button
@@ -418,12 +570,26 @@ $checkServerButton.Text = "Check Server"
 $checkServerButton.BackColor = [System.Drawing.Color]::FromArgb(28, 37, 48)
 $checkServerButton.ForeColor = [System.Drawing.Color]::White
 $checkServerButton.FlatStyle = "Flat"
-$checkServerButton.Location = New-Object System.Drawing.Point(575, 395)
-$checkServerButton.Size = New-Object System.Drawing.Size(155, 34)
+$checkServerButton.Location = New-Object System.Drawing.Point(585, 395)
+$checkServerButton.Size = New-Object System.Drawing.Size(185, 34)
 $checkServerButton.Add_Click({
   try { Update-ServerHealth -LogResult | Out-Null } catch { Show-LauncherError $_.Exception.Message }
 })
 $form.Controls.Add($checkServerButton)
+
+$networkHelpBox = New-Object System.Windows.Forms.TextBox
+$networkHelpBox.Multiline = $true
+$networkHelpBox.ReadOnly = $true
+$networkHelpBox.ScrollBars = "Vertical"
+$networkHelpBox.BackColor = [System.Drawing.Color]::FromArgb(11, 18, 24)
+$networkHelpBox.ForeColor = [System.Drawing.Color]::FromArgb(220, 228, 232)
+$networkHelpBox.BorderStyle = "FixedSingle"
+$networkHelpBox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$networkHelpBox.Location = New-Object System.Drawing.Point(30, 444)
+$networkHelpBox.Size = New-Object System.Drawing.Size(740, 220)
+$networkHelpBox.Anchor = "Left,Right,Top"
+$networkHelpBox.Text = "Click Start Game. This launcher can prove the server is running on this computer, but only the learner computer can prove network access.`r`n`r`nIf the learner gets ERR_CONNECTION_TIMED_OUT, use the exact URL above and check firewall/network isolation."
+$form.Controls.Add($networkHelpBox)
 
 $logBox = New-Object System.Windows.Forms.TextBox
 $logBox.Multiline = $true
@@ -433,8 +599,8 @@ $logBox.BackColor = [System.Drawing.Color]::FromArgb(4, 8, 12)
 $logBox.ForeColor = [System.Drawing.Color]::FromArgb(214, 229, 232)
 $logBox.BorderStyle = "FixedSingle"
 $logBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-$logBox.Location = New-Object System.Drawing.Point(30, 440)
-$logBox.Size = New-Object System.Drawing.Size(700, 85)
+$logBox.Location = New-Object System.Drawing.Point(30, 670)
+$logBox.Size = New-Object System.Drawing.Size(740, 85)
 $logBox.Anchor = "Left,Right,Top,Bottom"
 $form.Controls.Add($logBox)
 
