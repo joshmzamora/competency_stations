@@ -3,22 +3,45 @@ import { TimerReset } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { playTimerTickCue, playTimerUrgentCue } from "../utils/sound";
 
-export function CountdownTimer({ endsAt, startedAt }: { endsAt: number | null; startedAt?: number | null }) {
-  const [now, setNow] = useState(Date.now());
+export function CountdownTimer({
+  endsAt,
+  startedAt,
+  serverTime
+}: {
+  endsAt: number | null;
+  startedAt?: number | null;
+  serverTime?: number;
+}) {
+  const [localNow, setLocalNow] = useState(Date.now());
+  const localServerOffsetRef = useRef(0);
+  const lastTickRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    const interval = window.setInterval(() => setLocalNow(Date.now()), 100);
     return () => window.clearInterval(interval);
   }, []);
 
-  const remaining = Math.max(0, Math.ceil(((endsAt ?? now) - now) / 1000));
+  useEffect(() => {
+    localServerOffsetRef.current = serverTime ? Date.now() - serverTime : 0;
+  }, [serverTime]);
+
+  useEffect(() => {
+    if (!endsAt) {
+      lastTickRef.current = null;
+      return;
+    }
+    const currentServerNow = Date.now() - localServerOffsetRef.current;
+    lastTickRef.current = Math.max(0, Math.ceil((endsAt - currentServerNow) / 1000));
+  }, [endsAt]);
+
+  const syncedNow = localNow - localServerOffsetRef.current;
+  const remaining = Math.max(0, Math.ceil(((endsAt ?? syncedNow) - syncedNow) / 1000));
   const duration = startedAt && endsAt ? endsAt - startedAt : 30000;
-  const percent = useMemo(() => (endsAt ? Math.max(0, Math.min(100, ((endsAt - now) / duration) * 100)) : 0), [duration, endsAt, now]);
-  const lastTickRef = useRef(0);
+  const percent = useMemo(() => (endsAt ? Math.max(0, Math.min(100, ((endsAt - syncedNow) / duration) * 100)) : 0), [duration, endsAt, syncedNow]);
 
   useEffect(() => {
     if (!endsAt) return;
-    const currentRemaining = Math.max(0, Math.ceil(((endsAt ?? now) - now) / 1000));
+    const currentRemaining = Math.max(0, Math.ceil((endsAt - syncedNow) / 1000));
     if (lastTickRef.current !== currentRemaining) {
       lastTickRef.current = currentRemaining;
       if (currentRemaining > 0 && currentRemaining <= 5) {
@@ -27,7 +50,7 @@ export function CountdownTimer({ endsAt, startedAt }: { endsAt: number | null; s
         playTimerTickCue();
       }
     }
-  }, [now, endsAt]);
+  }, [endsAt, syncedNow]);
 
   const urgent = remaining <= 5 && endsAt;
 

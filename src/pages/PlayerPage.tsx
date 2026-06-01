@@ -246,9 +246,10 @@ export function PlayerPage() {
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
   const [timesUpVisible, setTimesUpVisible] = useState(false);
   const stationIdRef = useRef<string>("");
+  const timesUpTimerRef = useRef<number | null>(null);
+  const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptedRef = useRef(false);
   const groupIdRef = useRef(
     localStorage.getItem("competency-player-group-id") ??
@@ -313,12 +314,41 @@ export function PlayerPage() {
   }, [currentEvaluation?.evaluatedAt]);
 
   useEffect(() => {
-    if (!room?.timerEndsAt || room.timerEndsAt > now) return;
-    setTimesUpVisible(true);
-    playTimesUpCue();
-    const timeout = window.setTimeout(() => setTimesUpVisible(false), 2000);
-    return () => window.clearTimeout(timeout);
-  }, [room?.timerEndsAt, now]);
+    if (!room?.timerEndsAt) {
+      timesUpTimerRef.current = null;
+      setTimesUpVisible(false);
+      if (timesUpCloseTimeoutRef.current) {
+        window.clearTimeout(timesUpCloseTimeoutRef.current);
+        timesUpCloseTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const timerEndsAt = room.timerEndsAt;
+    if (timesUpTimerRef.current === timerEndsAt) return;
+    const localServerOffset = room.serverTime ? Date.now() - room.serverTime : 0;
+    const serverNow = Date.now() - localServerOffset;
+    const remainingMs = Math.max(0, timerEndsAt - serverNow);
+    const showTimeout = window.setTimeout(() => {
+      if (timesUpTimerRef.current === timerEndsAt) return;
+      timesUpTimerRef.current = timerEndsAt;
+      setTimesUpVisible(true);
+      playTimesUpCue();
+      if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
+      timesUpCloseTimeoutRef.current = window.setTimeout(() => {
+        setTimesUpVisible(false);
+        timesUpCloseTimeoutRef.current = null;
+      }, 2000);
+    }, remainingMs);
+
+    return () => window.clearTimeout(showTimeout);
+  }, [room?.serverTime, room?.timerEndsAt]);
+
+  useEffect(() => {
+    return () => {
+      if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== "open" || room || reconnectAttemptedRef.current) return;
@@ -508,7 +538,7 @@ export function PlayerPage() {
             </div>
           </div>
 
-          <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} />
+          <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} />
 
           {activePrompt && station && (activeParticipant || !activePromptUsesSelection) ? (
             <ActivePromptView
@@ -544,7 +574,7 @@ export function PlayerPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
-      <TimesUpEffect visible={timesUpVisible} />
+      <TimesUpEffect visible={timesUpVisible} onClose={() => setTimesUpVisible(false)} />
       <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">

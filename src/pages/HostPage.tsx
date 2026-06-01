@@ -248,6 +248,7 @@ export function HostPage() {
   const [participantNotes, setParticipantNotes] = useState<Record<string, string>>({});
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
+  const [isScenarioClosing, setIsScenarioClosing] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
   const [debriefPromptVisible, setDebriefPromptVisible] = useState(false);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
@@ -256,6 +257,8 @@ export function HostPage() {
   const [now, setNow] = useState(Date.now());
   const [timesUpVisible, setTimesUpVisible] = useState(false);
   const stationIdRef = useRef<string>("");
+  const timesUpTimerRef = useRef<number | null>(null);
+  const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const debriefRequestedRef = useRef(false);
   const downloadedDebriefRef = useRef<number | null>(null);
   const resumeAttemptedRef = useRef(false);
@@ -409,12 +412,41 @@ export function HostPage() {
   }, [currentEvaluation?.evaluatedAt]);
 
   useEffect(() => {
-    if (!room?.timerEndsAt || room.timerEndsAt > now) return;
-    setTimesUpVisible(true);
-    playTimesUpCue();
-    const timeout = window.setTimeout(() => setTimesUpVisible(false), 2000);
-    return () => window.clearTimeout(timeout);
-  }, [room?.timerEndsAt, now]);
+    if (!room?.timerEndsAt) {
+      timesUpTimerRef.current = null;
+      setTimesUpVisible(false);
+      if (timesUpCloseTimeoutRef.current) {
+        window.clearTimeout(timesUpCloseTimeoutRef.current);
+        timesUpCloseTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const timerEndsAt = room.timerEndsAt;
+    if (timesUpTimerRef.current === timerEndsAt) return;
+    const localServerOffset = room.serverTime ? Date.now() - room.serverTime : 0;
+    const serverNow = Date.now() - localServerOffset;
+    const remainingMs = Math.max(0, timerEndsAt - serverNow);
+    const showTimeout = window.setTimeout(() => {
+      if (timesUpTimerRef.current === timerEndsAt) return;
+      timesUpTimerRef.current = timerEndsAt;
+      setTimesUpVisible(true);
+      playTimesUpCue();
+      if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
+      timesUpCloseTimeoutRef.current = window.setTimeout(() => {
+        setTimesUpVisible(false);
+        timesUpCloseTimeoutRef.current = null;
+      }, 2000);
+    }, remainingMs);
+
+    return () => window.clearTimeout(showTimeout);
+  }, [room?.serverTime, room?.timerEndsAt]);
+
+  useEffect(() => {
+    return () => {
+      if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!introKey || introKeySeen === introKey) return;
@@ -433,8 +465,13 @@ export function HostPage() {
 
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
-    setIntroVisible(false);
+    setIsScenarioClosing(true);
     send({ type: "start-protocol-assignment" });
+
+    setTimeout(() => {
+      setIntroVisible(false);
+      setIsScenarioClosing(false);
+    }, 1000);
   }, [introKey, send]);
 
   const skipIntro = useCallback(() => {
@@ -700,7 +737,7 @@ export function HostPage() {
           </main>
 
           <aside className="grid content-start gap-4">
-            <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} />
+            <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} />
             <div className="grid grid-cols-3 gap-2">
               <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
                 15s
@@ -793,7 +830,7 @@ export function HostPage() {
       <Modal open={Boolean(error)} title="Connection alert" onClose={clearError}>
         <p className="text-white/75">{error}</p>
       </Modal>
-      <TimesUpEffect visible={timesUpVisible} />
+      <TimesUpEffect visible={timesUpVisible} subtle onClose={() => setTimesUpVisible(false)} />
       <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle />
       <ScenarioIntro
         open={introVisible}
@@ -803,6 +840,7 @@ export function HostPage() {
         patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
         patientReviewActiveFileId={room?.patientReviewActiveFileId}
         onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
+        isClosing={isScenarioClosing}
         canSkip
         onClose={closeIntro}
         onSkip={skipIntro}

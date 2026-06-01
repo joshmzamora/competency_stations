@@ -10,8 +10,7 @@ import {
   Square,
   Star,
   Triangle,
-  Umbrella,
-  Volume2
+  Umbrella
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
@@ -148,6 +147,7 @@ export function ScenarioIntro({
   patientReviewReviewedFileIds,
   patientReviewActiveFileId,
   onReviewPatientFile,
+  isClosing,
   startedAt,
   serverTime
 }: {
@@ -159,13 +159,13 @@ export function ScenarioIntro({
   patientReviewReviewedFileIds?: string[];
   patientReviewActiveFileId?: string | null;
   onReviewPatientFile?: (fileId: string) => void;
+  isClosing?: boolean;
   startedAt?: number | null;
   serverTime?: number;
 }) {
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState<"scenes" | "patient">("scenes");
   const [patientBriefVisible, setPatientBriefVisible] = useState(false);
-  const [audioBlocked, setAudioBlocked] = useState(false);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const patientBriefShownRef = useRef(false);
@@ -223,9 +223,7 @@ export function ScenarioIntro({
     audio.loop = false;
     syncAudio();
     const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
-    }
+    if (playPromise) playPromise.catch(() => undefined);
 
     const interval = window.setInterval(syncAudio, 250);
     return () => {
@@ -234,14 +232,6 @@ export function ScenarioIntro({
       audio.currentTime = 0;
     };
   }, [open, phase, serverTime, startedAt]);
-
-  function enableAudio() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const targetTime = Math.min(durationMs, startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : elapsed) / 1000;
-    audio.currentTime = targetTime;
-    audio.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
-  }
 
   function skipIntro() {
     if (canSkip) {
@@ -274,6 +264,7 @@ export function ScenarioIntro({
                 activeFileId={patientReviewActiveFileId}
                 onOpenFile={(fileId) => onReviewPatientFile?.(fileId)}
                 onContinue={onClose}
+                isClosing={isClosing}
               />
               <PhaseBrief
                 visible={patientBriefVisible}
@@ -311,12 +302,6 @@ export function ScenarioIntro({
                     <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Patient details in</div>
                     <div className="font-display text-3xl font-black text-monitor">{secondsLeft}s</div>
                   </div>
-                  {audioBlocked && (
-                    <AnimatedButton variant="secondary" onClick={enableAudio}>
-                      <Volume2 className="h-4 w-4" />
-                      Enable audio
-                    </AnimatedButton>
-                  )}
                 </div>
               </header>
 

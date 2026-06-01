@@ -147,6 +147,7 @@ export type RoomState = {
   selectedStation: CompetencyStation | PlayerStation | null;
   stationRouteStartId: string | null;
   activePromptIndex: number;
+  timerStartedAt: number | null;
   timerEndsAt: number | null;
   liveAnswer: LiveAnswer | null;
   players: PlayerState[];

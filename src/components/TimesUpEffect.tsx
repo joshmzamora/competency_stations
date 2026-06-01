@@ -1,7 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Timer } from "lucide-react";
 
-export function TimesUpEffect({ visible }: { visible: boolean }) {
+const timesUpEffect = {
+  label: "Time's Up",
+  detail: "Stop the response and evaluate",
+  className: "border-trauma/60 bg-trauma/20 text-trauma shadow-alert",
+  wash: "bg-trauma/12"
+};
+
+export function TimesUpEffect({ visible, subtle = false, onClose }: { visible: boolean; subtle?: boolean; onClose?: () => void }) {
   return (
     <AnimatePresence>
       {visible && (
@@ -10,20 +17,43 @@ export function TimesUpEffect({ visible }: { visible: boolean }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="pointer-events-none fixed inset-0 z-[300] grid place-items-center"
+          onClick={onClose}
+          className={`${subtle ? "pointer-events-none" : "pointer-events-auto"} fixed inset-0 z-[300] grid place-items-center ${
+            subtle ? "bg-black/10" : `bg-black/80 ${timesUpEffect.wash}`
+          }`}
         >
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="grid place-items-center gap-4"
-          >
-            <div className="grid h-48 w-48 place-items-center rounded-full bg-trauma/90 text-white shadow-2xl">
-              <Timer className="h-24 w-24" />
-            </div>
-            <div className="font-display text-6xl font-black uppercase text-white">Time's Up</div>
-          </motion.div>
+          {!subtle && (
+            <motion.div
+              initial={{ scale: 0.74, opacity: 0, y: 24 }}
+              animate={{ scale: [0.74, 1.03, 1], opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.48 }}
+              className={`grid min-h-[58vh] w-[min(92vw,900px)] place-items-center rounded-md border px-8 py-10 text-center backdrop-blur-xl ${timesUpEffect.className}`}
+            >
+              <div>
+                <Timer className="mx-auto h-28 w-28 md:h-36 md:w-36" />
+                <div className="mt-7 font-display text-6xl font-black uppercase leading-none text-white md:text-8xl">{timesUpEffect.label}</div>
+                <div className="mt-4 font-display text-base font-bold uppercase tracking-[0.24em] text-white/70 md:text-xl">{timesUpEffect.detail}</div>
+              </div>
+            </motion.div>
+          )}
+
+          {subtle && (
+            <motion.div
+              initial={{ y: -18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -12, opacity: 0 }}
+              className={`pointer-events-none absolute right-5 top-24 rounded-md border px-4 py-3 backdrop-blur-xl ${timesUpEffect.className}`}
+            >
+              <div className="flex items-center gap-3">
+                <Timer className="h-5 w-5" />
+                <div>
+                  <div className="font-display text-sm font-black uppercase tracking-[0.12em] text-white">{timesUpEffect.label}</div>
+                  <div className="text-xs text-white/60">{timesUpEffect.detail}</div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

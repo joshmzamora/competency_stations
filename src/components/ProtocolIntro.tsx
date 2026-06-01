@@ -187,7 +187,6 @@ export function ProtocolIntro({
   players: PlayerState[];
 }) {
   const [elapsed, setElapsed] = useState(0);
-  const [audioBlocked, setAudioBlocked] = useState(false);
   const completedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const onCompleteRef = useRef(onComplete);
@@ -233,7 +232,7 @@ export function ProtocolIntro({
     audio.volume = maxVolume;
     syncAudio();
     const playPromise = audio.play();
-    if (playPromise) playPromise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
+    if (playPromise) playPromise.catch(() => undefined);
     const volumeId = window.setInterval(syncAudio, 80);
 
     return () => {
@@ -339,15 +338,6 @@ export function ProtocolIntro({
             </footer>
           </div>
 
-          {audioBlocked && (
-            <button
-              type="button"
-              onClick={() => audioRef.current?.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true))}
-              className="absolute bottom-8 right-8 z-10 rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white"
-            >
-              Enable audio
-            </button>
-          )}
           <audio ref={audioRef} src={introAudioSrc} preload="auto" />
           <PhaseBrief
             visible={elapsed < 2400}

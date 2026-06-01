@@ -10,8 +10,7 @@ import {
   Pill,
   ShieldCheck,
   Stethoscope,
-  UserRound,
-  Volume2
+  UserRound
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
@@ -305,15 +304,16 @@ export function PatientCaseReview({
   reviewedFileIds,
   activeFileId,
   onOpenFile,
-  onContinue
+  onContinue,
+  isClosing
 }: {
   role: "host" | "player";
   reviewedFileIds: string[];
   activeFileId?: string | null;
   onOpenFile: (fileId: string) => void;
   onContinue: () => void;
+  isClosing?: boolean;
 }) {
-  const [audioBlocked, setAudioBlocked] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reviewedIds = new Set(["identity", ...reviewedFileIds]);
   const activeId = activeFileId && caseFiles.some((file) => file.id === activeFileId) ? activeFileId : caseFiles[0].id;
@@ -327,20 +327,12 @@ export function PatientCaseReview({
     audio.volume = 0.15;
     audio.loop = true;
     const promise = audio.play();
-    if (promise) {
-      promise.then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
-    }
+    if (promise) promise.catch(() => undefined);
     return () => {
       audio.pause();
       audio.currentTime = 0;
     };
   }, []);
-
-  function enableAudio() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true));
-  }
 
   function handleContinue() {
     const audio = audioRef.current;
@@ -440,12 +432,6 @@ export function PatientCaseReview({
           Files Reviewed: {reviewedIds.size} / {caseFiles.length}
         </div>
         <div className="flex items-center gap-2">
-          {audioBlocked && (
-            <AnimatedButton variant="ghost" onClick={enableAudio}>
-              <Volume2 className="h-4 w-4" />
-              Enable tension audio
-            </AnimatedButton>
-          )}
           {role === "host" ? (
             <AnimatedButton variant="secondary" onClick={handleContinue} disabled={!ready}>
               {ready ? "Enter Simulation" : "Review All 7 Files"}
