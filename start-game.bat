@@ -16,6 +16,7 @@ $root = (Resolve-Path -LiteralPath $env:GAME_DIR).Path
 $port = 3000
 $launcherLogPath = Join-Path $root "launcher.log"
 $serverProcess = $null
+$script:lastHealthCheck = Get-Date
 
 function Write-LauncherLog($line) {
   try {
@@ -27,14 +28,19 @@ function Write-LauncherLog($line) {
 }
 
 function Get-LocalIPv4 {
+  $addresses = Get-LocalIPv4Addresses
+  return ($addresses | Select-Object -First 1)
+}
+
+function Get-LocalIPv4Addresses {
   $addresses = [System.Net.Dns]::GetHostEntry([System.Net.Dns]::GetHostName()).AddressList |
     Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
     ForEach-Object { $_.IPAddressToString } |
     Where-Object { $_ -ne "127.0.0.1" -and $_ -notlike "169.254.*" }
 
-  $preferred = $addresses | Where-Object { $_ -like "192.168.*" -or $_ -like "10.*" -or $_ -match "^172\.(1[6-9]|2[0-9]|3[0-1])\." } | Select-Object -First 1
-  if ($preferred) { return $preferred }
-  return ($addresses | Select-Object -First 1)
+  $private = @($addresses | Where-Object { $_ -like "192.168.*" -or $_ -like "10.*" -or $_ -match "^172\.(1[6-9]|2[0-9]|3[0-1])\." })
+  $other = @($addresses | Where-Object { $private -notcontains $_ })
+  return @($private + $other | Select-Object -Unique)
 }
 
 function Test-CommandAvailable($name) {
@@ -74,11 +80,50 @@ function Set-Status($text, $color) {
 }
 
 function Refresh-Urls {
-  $ip = Get-LocalIPv4
+  $ips = @(Get-LocalIPv4Addresses)
   $hostUrl = "http://localhost:$port/host"
-  $playerUrl = if ($ip) { "http://$ip`:$port/player" } else { "http://YOUR-HOST-IP:$port/player" }
+  $playerUrl = if ($ips.Count -gt 0) {
+    ($ips | ForEach-Object { "http://$_`:$port/player" }) -join "`r`n"
+  } else {
+    "http://YOUR-HOST-IP:$port/player"
+  }
   $hostUrlBox.Text = $hostUrl
   $playerUrlBox.Text = $playerUrl
+}
+
+function Test-ServerHealthy {
+  try {
+    $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if (-not $listener) { return $false }
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/player" -UseBasicParsing -TimeoutSec 2
+    return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500)
+  } catch {
+    return $false
+  }
+}
+
+function Update-ServerHealth {
+  param([switch]$LogResult)
+
+  Refresh-Urls
+  $healthy = Test-ServerHealthy
+  if ($healthy) {
+    $healthLabel.Text = "Server check: ONLINE - learner computer should use one of the URLs below."
+    $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(34, 245, 199)
+    if ($stopButton.Enabled) {
+      Set-Status "Running - verified" ([System.Drawing.Color]::FromArgb(34, 245, 199))
+    }
+    if ($LogResult) {
+      Add-Log "Server health check passed. Learner URLs:`r`n$($playerUrlBox.Text)"
+    }
+  } else {
+    $healthLabel.Text = "Server check: OFFLINE - click Start Game and keep the server window open."
+    $healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
+    if ($LogResult) {
+      Add-Log "Server health check failed. Nothing answered at http://127.0.0.1:$port/player"
+    }
+  }
+  return $healthy
 }
 
 function Open-HostPage {
@@ -123,8 +168,7 @@ function Wait-ForServerReady {
   $deadline = (Get-Date).AddSeconds($timeoutSeconds)
   while ((Get-Date) -lt $deadline) {
     [System.Windows.Forms.Application]::DoEvents()
-    $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($listener) {
+    if (Test-ServerHealthy) {
       return $true
     }
     Start-Sleep -Milliseconds 350
@@ -163,6 +207,7 @@ function Start-GameServer {
     Stop-ExistingServerOnPort
 
     $commandFile = Join-Path $env:TEMP "competency-stations-start.cmd"
+    $playerEchoLines = (($playerUrlBox.Text -split "`r?`n") | ForEach-Object { "echo $_" }) -join "`r`n"
     $commandText = @"
 @echo off
 title Competency Stations Server
@@ -173,7 +218,9 @@ echo =====================================================
 echo.
 echo Keep this window open while using the game.
 echo Host:   http://localhost:$port/host
-echo Player: $($playerUrlBox.Text)
+echo.
+echo Player URLs:
+$playerEchoLines
 echo.
 if not exist node_modules (
   echo Installing dependencies...
@@ -201,7 +248,7 @@ pause
 
     Add-Log "Waiting for local server on port $port..."
     Wait-ForServerReady 90
-    Set-Status "Running on localhost:3000" ([System.Drawing.Color]::FromArgb(34, 245, 199))
+    Update-ServerHealth -LogResult | Out-Null
     Open-HostPage
   } catch {
     Show-LauncherError $_.Exception.Message
@@ -351,12 +398,32 @@ $form.Controls.Add($playerLabel)
 
 $playerUrlBox = New-Object System.Windows.Forms.TextBox
 $playerUrlBox.ReadOnly = $true
+$playerUrlBox.Multiline = $true
 $playerUrlBox.BackColor = [System.Drawing.Color]::FromArgb(8, 12, 18)
 $playerUrlBox.ForeColor = [System.Drawing.Color]::White
 $playerUrlBox.BorderStyle = "FixedSingle"
 $playerUrlBox.Location = New-Object System.Drawing.Point(30, 338)
-$playerUrlBox.Size = New-Object System.Drawing.Size(700, 30)
+$playerUrlBox.Size = New-Object System.Drawing.Size(700, 52)
 $form.Controls.Add($playerUrlBox)
+
+$healthLabel = New-Object System.Windows.Forms.Label
+$healthLabel.Text = "Server check: not started"
+$healthLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 176, 32)
+$healthLabel.Location = New-Object System.Drawing.Point(30, 400)
+$healthLabel.Size = New-Object System.Drawing.Size(520, 28)
+$form.Controls.Add($healthLabel)
+
+$checkServerButton = New-Object System.Windows.Forms.Button
+$checkServerButton.Text = "Check Server"
+$checkServerButton.BackColor = [System.Drawing.Color]::FromArgb(28, 37, 48)
+$checkServerButton.ForeColor = [System.Drawing.Color]::White
+$checkServerButton.FlatStyle = "Flat"
+$checkServerButton.Location = New-Object System.Drawing.Point(575, 395)
+$checkServerButton.Size = New-Object System.Drawing.Size(155, 34)
+$checkServerButton.Add_Click({
+  try { Update-ServerHealth -LogResult | Out-Null } catch { Show-LauncherError $_.Exception.Message }
+})
+$form.Controls.Add($checkServerButton)
 
 $logBox = New-Object System.Windows.Forms.TextBox
 $logBox.Multiline = $true
@@ -366,8 +433,8 @@ $logBox.BackColor = [System.Drawing.Color]::FromArgb(4, 8, 12)
 $logBox.ForeColor = [System.Drawing.Color]::FromArgb(214, 229, 232)
 $logBox.BorderStyle = "FixedSingle"
 $logBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-$logBox.Location = New-Object System.Drawing.Point(30, 390)
-$logBox.Size = New-Object System.Drawing.Size(700, 135)
+$logBox.Location = New-Object System.Drawing.Point(30, 440)
+$logBox.Size = New-Object System.Drawing.Size(700, 85)
 $logBox.Anchor = "Left,Right,Top,Bottom"
 $form.Controls.Add($logBox)
 
@@ -378,6 +445,10 @@ $timer.Add_Tick({
     Set-Status "Stopped" ([System.Drawing.Color]::FromArgb(255, 80, 104))
     $startButton.Enabled = $true
     $stopButton.Enabled = $false
+  }
+  if (((Get-Date) - $script:lastHealthCheck).TotalSeconds -ge 2) {
+    $script:lastHealthCheck = Get-Date
+    Update-ServerHealth | Out-Null
   }
 })
 $timer.Start()

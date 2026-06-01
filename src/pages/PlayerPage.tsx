@@ -15,6 +15,7 @@ import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
+import { createClientId } from "../utils/id";
 import { playStationTransitionCue, playTimesUpCue } from "../utils/sound";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
@@ -254,7 +255,7 @@ export function PlayerPage() {
   const groupIdRef = useRef(
     localStorage.getItem("competency-player-group-id") ??
     (() => {
-      const id = crypto.randomUUID();
+      const id = createClientId();
       localStorage.setItem("competency-player-group-id", id);
       return id;
     })()
