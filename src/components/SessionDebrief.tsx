@@ -1,8 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Download, Flag, Medal, PartyPopper, ShieldCheck, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { stations } from "../data/stations";
 import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from "../types";
 import { AnimatedButton } from "./AnimatedButton";
+
+const debriefAudioSrc = "/audio/squid_game_theme.mp3";
+const debriefAudioVolume = 0.07;
 
 function publicName(name?: string) {
   if (!name) return "Participant";
@@ -176,9 +180,33 @@ export function SessionDebrief({
   const report = buildMissedQuestionReport(room);
   const focusedMiss = report.missed.find((item) => item.id === room?.debriefFocusedPromptId);
   const missedExpanded = Boolean(room?.debriefMissedExpanded);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!debriefOpen && !closingOpen) {
+      audio.pause();
+      audio.currentTime = 0;
+      return;
+    }
+
+    audio.loop = true;
+    audio.volume = debriefAudioVolume;
+    const playPromise = audio.play();
+    if (playPromise) playPromise.catch(() => undefined);
+
+    return () => {
+      if (debriefOpen || closingOpen) return;
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [closingOpen, debriefOpen]);
 
   return (
     <>
+      <audio ref={audioRef} src={debriefAudioSrc} preload="auto" />
       <AnimatePresence>
         {debriefOpen && room ? (
           <motion.div
