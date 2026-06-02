@@ -916,6 +916,32 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
+    case "start-session-now": {
+      if (client.role !== "host") return;
+      const playerConnections = connectedPlayerClients(room.code);
+      const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
+      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
+        sendError(client, "Connect exactly one learner screen with 2-5 participants before starting the session.");
+        return;
+      }
+      assignShapesToRoom(room);
+      room.status = "in-progress";
+      room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
+      room.introStartedAt = null;
+      room.introCompletedAt = room.introCompletedAt ?? Date.now();
+      room.protocolIntroStartedAt = null;
+      room.patientReviewActiveFileId = null;
+      room.patientReviewReviewedFileIds = [];
+      room.selection = null;
+      room.debriefStartedAt = null;
+      room.closingStartedAt = null;
+      room.currentParticipantId = null;
+      if (usesParticipantSelection(room)) {
+        startSelection(room);
+      }
+      broadcastState(room.code);
+      break;
+    }
     case "skip-intro": {
       if (client.role !== "host") return;
       room.introStartedAt = null;

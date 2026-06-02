@@ -185,6 +185,7 @@ export type ClientMessage =
   | { type: "join-room"; code: string; names: string[]; groupId?: string }
   | { type: "leave-room" }
   | { type: "start-session" }
+  | { type: "start-session-now" }
   | { type: "skip-intro" }
   | { type: "skip-intro-to-patient-review"; elapsedMs: number }
   | { type: "review-patient-file"; fileId: string }

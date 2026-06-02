@@ -545,6 +545,14 @@ export function HostPage() {
     send({ type: "start-session" });
   }
 
+  function startStationsNow() {
+    if (!station || !canStartSession) return;
+    setIntroVisible(false);
+    setProtocolIntroSeenAt(Date.now());
+    setStationTransitionVisible(false);
+    send({ type: "start-session-now" });
+  }
+
   function goNext() {
     if (!station || !room) return;
     if (!atLastPrompt) send({ type: "next-prompt" });
@@ -628,7 +636,7 @@ export function HostPage() {
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
                   <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
                 </div>
-                <div className="mt-4 grid grid-cols-[0.85fr_1.15fr] gap-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-[0.75fr_1fr_1.1fr]">
                   <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
                     <Copy className="h-4 w-4" />
                     Copy
@@ -636,6 +644,10 @@ export function HostPage() {
                   <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
                     <Play className="h-4 w-4" />
                     Start intro
+                  </AnimatedButton>
+                  <AnimatedButton variant="ghost" onClick={startStationsNow} disabled={!canStartSession}>
+                    <SkipForward className="h-4 w-4" />
+                    Start stations
                   </AnimatedButton>
                 </div>
                 {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
