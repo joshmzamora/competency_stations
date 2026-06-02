@@ -146,7 +146,7 @@ function AssignmentSummary({ players }: { players: PlayerState[] }) {
       className="grid w-full max-w-6xl justify-items-center gap-7 text-center"
     >
       <div>
-        <div className="font-display text-xs font-bold uppercase tracking-[0.36em] text-scrub">Assignments locked</div>
+        <div className="font-display text-xs font-bold uppercase tracking-[0.36em] text-scrub">Shapes locked</div>
         <h3 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-7xl">All Shapes Assigned</h3>
       </div>
       <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -193,6 +193,7 @@ export function ProtocolIntro({
   const offsetRef = useRef(0);
   const audioStartKeyRef = useRef("");
   const audioRetryNeededRef = useRef(false);
+  const timelineKeyRef = useRef("");
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -205,7 +206,7 @@ export function ProtocolIntro({
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, totalDurationMs - syncedElapsed);
     audio.volume = Math.min(maxVolume, maxVolume * (remaining / fadeOutMs));
-    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.35) {
+    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.9) {
       audio.currentTime = targetTime;
     }
   }
@@ -233,7 +234,11 @@ export function ProtocolIntro({
       return;
     }
 
-    offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+    const timelineKey = `${startedAt}`;
+    if (timelineKeyRef.current !== timelineKey) {
+      offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+      timelineKeyRef.current = timelineKey;
+    }
 
     const tick = () => {
       const nextElapsed = getSyncedElapsed();
@@ -247,7 +252,13 @@ export function ProtocolIntro({
     tick();
     const id = window.setInterval(tick, 40);
     return () => window.clearInterval(id);
-  }, [open, serverTime, startedAt]);
+  }, [open, startedAt]);
+
+  useEffect(() => {
+    if (!open) {
+      timelineKeyRef.current = "";
+    }
+  }, [open]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -263,6 +274,7 @@ export function ProtocolIntro({
 
     audio.loop = false;
     audio.volume = maxVolume;
+    audio.currentTime = Math.min(totalDurationMs, getSyncedElapsed()) / 1000;
     syncAudio();
     playSyncedAssignmentAudio();
     const volumeId = window.setInterval(syncAudio, 80);
@@ -334,7 +346,7 @@ export function ProtocolIntro({
                 }}
                 className="absolute right-5 top-5 z-20 rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:border-trauma/50 hover:bg-trauma/15 hover:text-trauma md:right-7 md:top-7"
               >
-                Skip assignment
+                Skip shape selection
               </button>
             )}
             <header className="text-center">
@@ -380,7 +392,7 @@ export function ProtocolIntro({
                   <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-amber to-scrub" style={{ width: `${progress}%` }} />
                 </div>
                 <div className="flex justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
-                  <span>{assignedCount}/{players.length} assigned</span>
+                  <span>{assignedCount}/{players.length} shapes ready</span>
                   <span>{Math.max(0, Math.ceil((totalDurationMs - elapsed) / 1000))}s</span>
                 </div>
               </div>

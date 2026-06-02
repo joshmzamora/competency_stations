@@ -859,7 +859,7 @@ export function HostPage() {
         }}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
-      {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+      {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
       <Modal open={debriefPromptVisible} title="Debrief ready" onClose={() => setDebriefPromptVisible(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">

@@ -616,7 +616,7 @@ export function PlayerPage() {
         onComplete={completeProtocolIntro}
       />
         <StationTransition station={station ?? null} visible={stationTransitionVisible} />
-        {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
+        {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
         <SessionDebrief room={room ?? null} role="player" />
     </section>
   );

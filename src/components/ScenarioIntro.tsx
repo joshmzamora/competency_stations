@@ -46,7 +46,7 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "High Fidelity Manikin",
     title: "Realistic Patient Encounter",
-    lines: ["The manikin breathes, has a pulse, talks, and has heart sounds.", "Assess him like a real patient."],
+    lines: ["The manikin breathes, has a pulse, talks, and has heart sounds.", "Assess Emma like a real patient."],
     purpose: "The manikin is interactive. Assessment should be physical, verbal, and realistic.",
     image: "/images/intro/human-patient-simulation.jpg",
     visual: "manikin",
@@ -62,7 +62,7 @@ const scenes: IntroScene[] = [
     Icon: Monitor
   },
   {
-    eyebrow: "Shape And Number Assignment",
+    eyebrow: "Shape Selection",
     title: "Shape Selection",
     lines: ["Each participant receives a shape.", "When a station question begins, the selection screen will show whose turn it is."],
     purpose: "This prepares participants for the fair selection sequence after the briefing.",
@@ -72,7 +72,7 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "Bedside Orientation",
     title: "Orient To The Patient",
-    lines: ["Before we proceed, familiarize yourself with the manikin.", "Feel his pulse. Auscultate heart and lung sounds. Speak to him."],
+    lines: ["Before the first station, take a moment to orient yourself.", "Feel for a pulse. Auscultate heart and lung sounds. Speak with Emma."],
     purpose: "Learners should touch, listen, and communicate before the scenario accelerates.",
     image: "/images/intro/checking-vital-signs.jpg",
     visual: "bedside",
@@ -171,6 +171,7 @@ export function ScenarioIntro({
   const audioStartKeyRef = useRef<string>("");
   const audioRetryNeededRef = useRef(false);
   const patientBriefShownRef = useRef(false);
+  const timelineKeyRef = useRef<string>("");
   const sceneIndex = Math.min(scenes.length - 1, Math.floor(elapsed / sceneMs));
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
@@ -187,7 +188,7 @@ export function ScenarioIntro({
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, durationMs - syncedElapsed);
     audio.volume = Math.min(maxIntroVolume, maxIntroVolume * (remaining / fadeOutMs));
-    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.45) {
+    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 1.2) {
       audio.currentTime = targetTime;
     }
   }
@@ -209,9 +210,13 @@ export function ScenarioIntro({
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !startedAt) return;
     patientBriefShownRef.current = false;
-    offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+    const timelineKey = `${startedAt}`;
+    if (timelineKeyRef.current !== timelineKey) {
+      offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+      timelineKeyRef.current = timelineKey;
+    }
     const getElapsed = () => (startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0);
     const initialElapsed = Math.min(durationMs, getElapsed());
     setElapsed(initialElapsed);
@@ -227,7 +232,13 @@ export function ScenarioIntro({
       }
     }, 120);
     return () => window.clearInterval(interval);
-  }, [open, serverTime, startedAt]);
+  }, [open, startedAt]);
+
+  useEffect(() => {
+    if (!open) {
+      timelineKeyRef.current = "";
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
@@ -250,6 +261,7 @@ export function ScenarioIntro({
     };
 
     audio.loop = false;
+    audio.currentTime = Math.min(durationMs, getSyncedElapsed()) / 1000;
     syncAudio();
     playSyncedIntroAudio();
 

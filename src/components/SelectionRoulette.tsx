@@ -245,6 +245,7 @@ function SelectionRoster({ players, activeId }: { players: PlayerState[]; active
 
 export function SelectionRoulette({
   selection,
+  serverTime,
   players,
   clientId
 }: {
@@ -254,21 +255,29 @@ export function SelectionRoulette({
   clientId: string;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const offsetRef = useRef(0);
+  const selectionKeyRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!selection) {
       setElapsed(0);
+      selectionKeyRef.current = null;
       return;
+    }
+
+    if (selectionKeyRef.current !== selection.startedAt) {
+      offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+      selectionKeyRef.current = selection.startedAt;
     }
 
     let frame = 0;
     const tick = () => {
-      setElapsed(Math.max(0, Date.now() - selection.startedAt));
+      setElapsed(Math.max(0, Date.now() - offsetRef.current - selection.startedAt));
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [selection?.startedAt, selection]);
+  }, [selection?.startedAt, serverTime]);
 
   useEffect(() => {
     if (!selection) return;
