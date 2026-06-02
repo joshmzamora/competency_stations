@@ -87,7 +87,7 @@ function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[];
               <div className="min-w-0">
                 <div className="truncate font-display text-xs font-black uppercase text-white">{publicName(player.name)}</div>
                 <div className={`font-display text-[9px] font-bold uppercase tracking-[0.16em] ${revealed && shape ? shapeColor(shape) : "text-white/28"}`}>
-                  {revealed ? shape ?? "pending" : active ? "revealing" : "stand by"}
+                  {revealed ? shape ?? "pending" : active ? "revealing" : "standby"}
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
       </motion.div>
 
       <div className={`mt-9 font-display text-5xl font-black uppercase tracking-[0.24em] md:text-7xl ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
-        {revealShape ? shape ?? "pending" : "assigning"}
+        {revealShape ? shape ?? "pending" : "locking in"}
       </div>
     </motion.div>
   );
@@ -338,7 +338,7 @@ export function ProtocolIntro({
               </button>
             )}
             <header className="text-center">
-              <div className="font-display text-xs font-bold uppercase tracking-[0.32em] text-trauma">Shape assignment</div>
+              <div className="font-display text-xs font-bold uppercase tracking-[0.32em] text-trauma">Shape selection</div>
               <h2 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-7xl">Choose Your Shape</h2>
             </header>
 
@@ -361,10 +361,10 @@ export function ProtocolIntro({
                     >
                       <ShapeIcon shape={openingShape} className={`h-44 w-44 ${shapeColor(openingShape)}`} />
                     </motion.div>
-                    <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Next phase</div>
+                    <div className="mt-8 font-display text-xs font-bold uppercase tracking-[0.42em] text-monitor">Get ready</div>
                     <div className="mt-3 font-display text-6xl font-black uppercase md:text-8xl">Shape Selection</div>
                     <p className="mt-4 max-w-3xl text-2xl font-semibold leading-9 text-white/68">
-                      Each participant receives a shape. That shape will be used for random question selection during stations.
+                      Each participant will receive a shape. During station questions, the selection screen will show who is up next.
                     </p>
                   </motion.div>
                 ) : (
@@ -390,9 +390,9 @@ export function ProtocolIntro({
           <audio ref={audioRef} src={introAudioSrc} preload="auto" />
           <PhaseBrief
             visible={elapsed < 2400}
-            label="Next phase"
+            label="Get ready"
             title="Shape Selection"
-            subtitle="Each participant receives a game shape before the first station begins."
+            subtitle="Each participant receives a shape before the first station begins."
           />
         </motion.div>
       )}

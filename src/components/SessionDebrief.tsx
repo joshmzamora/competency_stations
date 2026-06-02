@@ -228,7 +228,9 @@ export function SessionDebrief({
                     <div className="font-display text-xs font-black uppercase tracking-[0.26em] text-monitor">Competency debrief</div>
                     <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none md:text-6xl">Session Review</h2>
                     <p className="mt-3 max-w-3xl text-white/62">
-                      Review missed items first, then close with participant accuracy. This screen stays live until the evaluator advances.
+                      {role === "host"
+                        ? "Review missed items first, then close with participant accuracy. This screen stays live until you advance."
+                        : "Review any missed items with your facilitator, then close with participant accuracy."}
                     </p>
                   </div>
                   <div className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-right">
@@ -339,7 +341,7 @@ export function SessionDebrief({
                     </div>
                   ) : (
                     <div className="rounded-md border border-monitor/20 bg-monitor/10 p-5 text-monitor">
-                      Waiting for the evaluator to continue.
+                      Your facilitator will continue when the review is complete.
                     </div>
                   )}
                 </motion.div>

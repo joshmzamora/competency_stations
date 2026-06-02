@@ -438,7 +438,7 @@ export function PatientCaseReview({
             </AnimatedButton>
           ) : (
             <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-white/42">
-              Waiting for host
+              {ready ? "Case review complete" : "Open every file"}
             </div>
           )}
         </div>

@@ -37,7 +37,7 @@ export function StationTransition({ station, visible }: { station?: CompetencySt
             className="relative grid w-[min(94vw,1220px)] justify-items-center gap-7 text-center"
           >
             <div className="rounded-full border border-monitor/45 bg-monitor/10 px-5 py-2 font-display text-xs font-black uppercase tracking-[0.28em] text-monitor">
-              Next station
+              Prepare for station
             </div>
             <motion.h2
               initial={{ letterSpacing: "0.22em", opacity: 0.55 }}
@@ -50,7 +50,7 @@ export function StationTransition({ station, visible }: { station?: CompetencySt
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="hidden h-px w-32 bg-white/15 md:block" />
               <div className="rounded-md border border-white/10 bg-black/40 px-5 py-3 font-display text-sm font-black uppercase tracking-[0.2em] text-white/65">
-                {station.competencyType}
+                Stand by for the next prompt
               </div>
               <div className="hidden h-px w-32 bg-white/15 md:block" />
             </div>

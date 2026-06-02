@@ -198,7 +198,7 @@ function ActivePromptView({
             <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
             <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl">{publicName(activeParticipant?.name)}</h2>
             <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68">
-              Respond verbally or perform the skill. The evaluator will mark the result.
+              Respond out loud or perform the skill when ready. Your facilitator will record the result.
             </p>
           </div>
         </div>
@@ -206,7 +206,7 @@ function ActivePromptView({
         <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
           <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-monitor">Stroke activity mode</div>
           <p className="mt-2 max-w-3xl text-lg leading-7 text-white/68">
-            Work together on the learner screen. Drag the cards into the correct columns, then use up to two checks.
+            Work together on this screen. Drag each card into the correct column, then use up to two checks.
           </p>
         </div>
       )}
@@ -525,7 +525,7 @@ export function PlayerPage() {
             <div>
               <div className="font-display text-xs uppercase tracking-[0.18em] text-white/45">Active station</div>
               <div className="font-display text-3xl font-black uppercase text-white">{station?.title ?? "Waiting for station"}</div>
-              {station && !isLive && <p className="mt-1 text-sm text-amber">Station loaded. Waiting for the host to start.</p>}
+              {station && !isLive && <p className="mt-1 text-sm text-amber">Station ready. Waiting to begin.</p>}
             </div>
             <div className="flex items-center gap-2">
               <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
@@ -560,10 +560,10 @@ export function PlayerPage() {
                 {station
                   ? isStrokeStation
                     ? activePromptUsesSelection
-                      ? "The host will run the selection animation before the next Stroke question appears."
-                      : "The host will advance the Stroke activity when ready."
-                    : "The host will run the selection animation before the next question appears."
-                  : "The host will select a competency station and start the session."}
+                      ? "Stand by. Selection will begin before the next Stroke question appears."
+                      : "Stand by. The next Stroke activity will appear here."
+                    : "Stand by. Selection will begin before the next question appears."
+                  : "Waiting for the session to begin."}
               </p>
             </div>
           )}

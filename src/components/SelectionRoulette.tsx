@@ -342,7 +342,7 @@ export function SelectionRoulette({
                 className="grid w-full justify-items-center gap-10"
               >
                 <div className="text-center">
-                  <div className="font-display text-sm font-bold uppercase tracking-[0.36em] text-trauma">Random participant selection</div>
+                  <div className="font-display text-sm font-bold uppercase tracking-[0.36em] text-trauma">Participant selection</div>
                   <h2 className="mt-4 font-display text-6xl font-black uppercase leading-none md:text-8xl">Selecting</h2>
                 </div>
 
@@ -391,8 +391,8 @@ export function SelectionRoulette({
 
                 <p className="max-w-lg text-base leading-7 text-white/65">
                   {amISelected
-                    ? "Prepare to respond or perform the next competency action. The evaluator will proceed from the host panel."
-                    : "Observe the selected participant and wait for your shape to be called."}
+                    ? "You are up. Listen for the prompt and respond when ready."
+                    : "Watch the active participant. Your turn may be next."}
                 </p>
                 <SelectionRoster players={players} activeId={targetPlayer?.id} />
               </motion.div>

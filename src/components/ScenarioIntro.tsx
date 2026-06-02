@@ -35,9 +35,9 @@ type IntroScene = {
 
 const scenes: IntroScene[] = [
   {
-    eyebrow: "Watch Video / Simulation Briefing",
+    eyebrow: "Simulation Briefing",
     title: "Simulation Briefing",
-    lines: ["Watch the simulation and debriefing video first.", "High fidelity simulation begins now."],
+    lines: ["Welcome to the competency stations.", "This briefing shows how the simulation will feel before the patient case opens."],
     purpose: "Start the scenario with a shared frame before patient details are revealed.",
     image: "/images/intro/medical-mannequin.webp",
     visual: "video",
@@ -63,9 +63,9 @@ const scenes: IntroScene[] = [
   },
   {
     eyebrow: "Shape And Number Assignment",
-    title: "Randomized Question Calls",
-    lines: ["Each participant receives a shape and number.", "Your shape and number correspond to random questions."],
-    purpose: "This prepares learners for the fair selection sequence after the briefing.",
+    title: "Shape Selection",
+    lines: ["Each participant receives a shape.", "When a station question begins, the selection screen will show whose turn it is."],
+    purpose: "This prepares participants for the fair selection sequence after the briefing.",
     visual: "shapes",
     Icon: Activity
   },
@@ -81,7 +81,7 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "Scenario Launch",
     title: "Stand By",
-    lines: ["Simulation briefing complete.", "Stand by for patient details.", "Let's get started."],
+    lines: ["Briefing complete.", "Next, review the patient case file.", "Then the first station begins."],
     purpose: "The briefing ends here. Patient chart review comes next.",
     image: "/images/intro/vital-signs-monitor.jpg",
     visual: "launch",
@@ -315,7 +315,7 @@ export function ScenarioIntro({
                 visible={patientBriefVisible}
                 label="Next phase"
                 title="Patient Intel"
-                subtitle="The learner opens all seven patient files. Once every file is reviewed, the host can enter the simulation."
+                subtitle="Review all seven patient files before entering the first station."
               />
             </>
           ) : (
@@ -324,7 +324,7 @@ export function ScenarioIntro({
                 visible={elapsed < 2400}
                 label="Starting"
                 title="Briefing"
-                subtitle="Six quick scenes explain how the simulation works before patient intel opens."
+                subtitle="A short briefing prepares everyone for the patient case and station flow."
               />
               <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
@@ -412,7 +412,7 @@ export function ScenarioIntro({
                     </AnimatedButton>
                   ) : (
                     <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-white/42">
-                      Intro controlled by host
+                      Briefing in progress
                     </div>
                   )}
                 </div>
