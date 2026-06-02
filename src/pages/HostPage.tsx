@@ -848,6 +848,7 @@ export function HostPage() {
       <ProtocolIntro
         open={protocolIntroVisible}
         startedAt={room?.protocolIntroStartedAt ?? null}
+        serverTime={room?.serverTime}
         players={room?.players ?? []}
         canSkip
         onSkip={() => {

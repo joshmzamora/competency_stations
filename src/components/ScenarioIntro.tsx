@@ -168,6 +168,8 @@ export function ScenarioIntro({
   const [patientBriefVisible, setPatientBriefVisible] = useState(false);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioStartKeyRef = useRef<string>("");
+  const audioRetryNeededRef = useRef(false);
   const patientBriefShownRef = useRef(false);
   const sceneIndex = Math.min(scenes.length - 1, Math.floor(elapsed / sceneMs));
   const scene = scenes[sceneIndex];
@@ -175,6 +177,36 @@ export function ScenarioIntro({
   const secondsLeft = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
   const progress = Math.min(100, (elapsed / durationMs) * 100);
   const sceneProgress = Math.min(100, ((elapsed - sceneIndex * sceneMs) / sceneMs) * 100);
+
+  function getSyncedElapsed() {
+    return startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0;
+  }
+
+  function syncIntroAudio(audio: HTMLAudioElement) {
+    const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
+    const targetTime = syncedElapsed / 1000;
+    const remaining = Math.max(0, durationMs - syncedElapsed);
+    audio.volume = Math.min(maxIntroVolume, maxIntroVolume * (remaining / fadeOutMs));
+    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.45) {
+      audio.currentTime = targetTime;
+    }
+  }
+
+  function playSyncedIntroAudio() {
+    const audio = audioRef.current;
+    if (!audio || !open || phase !== "scenes") return;
+    syncIntroAudio(audio);
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise
+        .then(() => {
+          audioRetryNeededRef.current = false;
+        })
+        .catch(() => {
+          audioRetryNeededRef.current = true;
+        });
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -209,29 +241,42 @@ export function ScenarioIntro({
     const audio = audioRef.current;
     if (!open || !audio || phase !== "scenes") return;
 
-    const getElapsed = () => (startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0);
+    const audioStartKey = `${startedAt ?? "no-start"}`;
+    if (audioStartKeyRef.current === audioStartKey && !audio.paused) return;
+    audioStartKeyRef.current = audioStartKey;
+
     const syncAudio = () => {
-      const syncedElapsed = Math.min(durationMs, getElapsed());
-      const targetTime = syncedElapsed / 1000;
-      const remaining = Math.max(0, durationMs - syncedElapsed);
-      audio.volume = Math.min(maxIntroVolume, maxIntroVolume * (remaining / fadeOutMs));
-      if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.45) {
-        audio.currentTime = targetTime;
-      }
+      syncIntroAudio(audio);
     };
 
     audio.loop = false;
     syncAudio();
-    const playPromise = audio.play();
-    if (playPromise) playPromise.catch(() => undefined);
+    playSyncedIntroAudio();
 
     const interval = window.setInterval(syncAudio, 250);
     return () => {
       window.clearInterval(interval);
       audio.pause();
       audio.currentTime = 0;
+      audioStartKeyRef.current = "";
+      audioRetryNeededRef.current = false;
     };
-  }, [open, phase, serverTime, startedAt]);
+  }, [open, phase, startedAt]);
+
+  useEffect(() => {
+    if (!open || phase !== "scenes") return;
+    const retry = () => {
+      if (audioRetryNeededRef.current) playSyncedIntroAudio();
+    };
+    window.addEventListener("pointerdown", retry);
+    window.addEventListener("keydown", retry);
+    window.addEventListener("touchstart", retry);
+    return () => {
+      window.removeEventListener("pointerdown", retry);
+      window.removeEventListener("keydown", retry);
+      window.removeEventListener("touchstart", retry);
+    };
+  }, [open, phase, startedAt]);
 
   function skipIntro() {
     if (canSkip) {

@@ -176,6 +176,7 @@ export function ProtocolIntro({
   onSkip,
   canSkip = false,
   startedAt,
+  serverTime,
   players
 }: {
   open: boolean;
@@ -189,8 +190,41 @@ export function ProtocolIntro({
   const [elapsed, setElapsed] = useState(0);
   const completedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const offsetRef = useRef(0);
+  const audioStartKeyRef = useRef("");
+  const audioRetryNeededRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+
+  function getSyncedElapsed() {
+    return startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0;
+  }
+
+  function syncAssignmentAudio(audio: HTMLAudioElement) {
+    const syncedElapsed = Math.min(totalDurationMs, getSyncedElapsed());
+    const targetTime = syncedElapsed / 1000;
+    const remaining = Math.max(0, totalDurationMs - syncedElapsed);
+    audio.volume = Math.min(maxVolume, maxVolume * (remaining / fadeOutMs));
+    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.35) {
+      audio.currentTime = targetTime;
+    }
+  }
+
+  function playSyncedAssignmentAudio() {
+    const audio = audioRef.current;
+    if (!audio || !open || !startedAt) return;
+    syncAssignmentAudio(audio);
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise
+        .then(() => {
+          audioRetryNeededRef.current = false;
+        })
+        .catch(() => {
+          audioRetryNeededRef.current = true;
+        });
+    }
+  }
 
   useEffect(() => {
     if (!open || !startedAt) {
@@ -199,8 +233,10 @@ export function ProtocolIntro({
       return;
     }
 
+    offsetRef.current = serverTime ? Date.now() - serverTime : 0;
+
     const tick = () => {
-      const nextElapsed = Math.max(0, Date.now() - startedAt);
+      const nextElapsed = getSyncedElapsed();
       setElapsed(nextElapsed);
       if (nextElapsed >= totalDurationMs && !completedRef.current) {
         completedRef.current = true;
@@ -211,34 +247,47 @@ export function ProtocolIntro({
     tick();
     const id = window.setInterval(tick, 40);
     return () => window.clearInterval(id);
-  }, [open, startedAt]);
+  }, [open, serverTime, startedAt]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!open || !audio) return;
+    if (!open || !audio || !startedAt) return;
 
-    const started = startedAt ?? Date.now();
+    const audioStartKey = `${startedAt}`;
+    if (audioStartKeyRef.current === audioStartKey && !audio.paused) return;
+    audioStartKeyRef.current = audioStartKey;
+
     const syncAudio = () => {
-      const syncedElapsed = Math.min(totalDurationMs, Math.max(0, Date.now() - started));
-      const targetTime = syncedElapsed / 1000;
-      const remaining = Math.max(0, totalDurationMs - syncedElapsed);
-      audio.volume = Math.min(maxVolume, maxVolume * (remaining / fadeOutMs));
-      if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.35) {
-        audio.currentTime = targetTime;
-      }
+      syncAssignmentAudio(audio);
     };
 
     audio.loop = false;
     audio.volume = maxVolume;
     syncAudio();
-    const playPromise = audio.play();
-    if (playPromise) playPromise.catch(() => undefined);
+    playSyncedAssignmentAudio();
     const volumeId = window.setInterval(syncAudio, 80);
 
     return () => {
       window.clearInterval(volumeId);
       audio.pause();
       audio.currentTime = 0;
+      audioStartKeyRef.current = "";
+      audioRetryNeededRef.current = false;
+    };
+  }, [open, startedAt]);
+
+  useEffect(() => {
+    if (!open || !startedAt) return;
+    const retry = () => {
+      if (audioRetryNeededRef.current) playSyncedAssignmentAudio();
+    };
+    window.addEventListener("pointerdown", retry);
+    window.addEventListener("keydown", retry);
+    window.addEventListener("touchstart", retry);
+    return () => {
+      window.removeEventListener("pointerdown", retry);
+      window.removeEventListener("keydown", retry);
+      window.removeEventListener("touchstart", retry);
     };
   }, [open, startedAt]);
 

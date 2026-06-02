@@ -608,12 +608,13 @@ export function PlayerPage() {
           onReviewPatientFile={(fileId) => send({ type: "review-patient-file", fileId })}
           onClose={closeIntro}
         />
-        <ProtocolIntro
-          open={protocolIntroVisible}
-          startedAt={room?.protocolIntroStartedAt ?? null}
-          players={room?.players ?? []}
-          onComplete={completeProtocolIntro}
-        />
+      <ProtocolIntro
+        open={protocolIntroVisible}
+        startedAt={room?.protocolIntroStartedAt ?? null}
+        serverTime={room?.serverTime}
+        players={room?.players ?? []}
+        onComplete={completeProtocolIntro}
+      />
         <StationTransition station={station ?? null} visible={stationTransitionVisible} />
         {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} players={room?.players ?? []} clientId={clientId} />}
         <SessionDebrief room={room ?? null} role="player" />
