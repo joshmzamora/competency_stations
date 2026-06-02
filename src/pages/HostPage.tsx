@@ -29,6 +29,7 @@ import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
 import { buildMissedQuestionReport, SessionDebrief } from "../components/SessionDebrief";
 import { StationCard } from "../components/StationCard";
+import { StationCompleteOverlay } from "../components/StationCompleteOverlay";
 import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
@@ -250,8 +251,8 @@ export function HostPage() {
   const [introVisible, setIntroVisible] = useState(false);
   const [isScenarioClosing, setIsScenarioClosing] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
-  const [debriefPromptVisible, setDebriefPromptVisible] = useState(false);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [dismissedStationCompleteId, setDismissedStationCompleteId] = useState<string | null>(null);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -259,7 +260,6 @@ export function HostPage() {
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
-  const debriefRequestedRef = useRef(false);
   const downloadedDebriefRef = useRef<number | null>(null);
   const resumeAttemptedRef = useRef(false);
 
@@ -275,6 +275,7 @@ export function HostPage() {
   const connectedParticipants = room?.players.filter((player) => player.connected).length ?? 0;
   const stationCompletedCount = station ? station.prompts.filter((item) => evaluations[item.id]).length : 0;
   const stationRemaining = Math.max(0, totalPrompts - stationCompletedCount);
+  const stationComplete = Boolean(station && totalPrompts > 0 && stationCompletedCount >= totalPrompts);
   const allPromptsTotal = useMemo(() => stations.reduce((sum, item) => sum + item.prompts.length, 0), []);
   const allStationsComplete = room?.status === "in-progress" && allPromptsTotal > 0 && evaluationList.length >= allPromptsTotal;
   const connectionLabel =
@@ -311,6 +312,16 @@ export function HostPage() {
       })
     );
   }, [evaluations]);
+
+  const stationCompleteSummary = useMemo(() => {
+    const stationEvaluations = station?.prompts.map((item) => evaluations[item.id]).filter(Boolean) ?? [];
+    return {
+      total: station?.prompts.length ?? 0,
+      correct: stationEvaluations.filter((item) => item.status === "correct").length,
+      partial: stationEvaluations.filter((item) => item.status === "partial").length,
+      incorrect: stationEvaluations.filter((item) => item.status === "incorrect").length
+    };
+  }, [evaluations, station]);
 
   const groupStats = useMemo(() => {
     const correct = evaluationList.filter((item) => item.status === "correct").length;
@@ -393,10 +404,8 @@ export function HostPage() {
   }, [preselectedStation, room, send, station]);
 
   useEffect(() => {
-    if (!allStationsComplete || room?.debriefStartedAt || room?.closingStartedAt || debriefRequestedRef.current) return;
-    debriefRequestedRef.current = true;
-    setDebriefPromptVisible(true);
-  }, [allStationsComplete, room?.closingStartedAt, room?.debriefStartedAt]);
+    setDismissedStationCompleteId(null);
+  }, [stationId]);
 
   useEffect(() => {
     if (!room?.debriefStartedAt || room.closingStartedAt || downloadedDebriefRef.current === room.debriefStartedAt) return;
@@ -564,9 +573,9 @@ export function HostPage() {
       {!room ? (
         <div className="grid gap-5 rounded-md border border-white/10 bg-black/35 p-6 lg:grid-cols-[1fr_360px] lg:items-center">
           <div>
-            <h2 className="font-display text-3xl font-bold uppercase tracking-[0.08em] text-white">Start a local simulation room</h2>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-[0.08em] text-white">Start an online simulation room</h2>
             <p className="mt-3 max-w-2xl text-white/65">
-              Create the room, have the learner computer join with 2-5 participant names, select a station, then start the simulation intro.
+              Create the room, have the learner screen join with 2-5 participant names, select a station, then start the simulation intro.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -593,7 +602,7 @@ export function HostPage() {
               <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Local room</div>
+                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Room code</div>
                     <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
                   </div>
                   <StatusChip label="Staging" />
@@ -612,7 +621,7 @@ export function HostPage() {
                 </div>
 
                 <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner computer URL</div>
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
                   <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
                 </div>
                 <div className="mt-4 grid grid-cols-[0.85fr_1.15fr] gap-2">
@@ -627,7 +636,7 @@ export function HostPage() {
                 </div>
                 {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
                 {station && connectedParticipants < 2 && (
-                  <p className="mt-3 text-xs text-amber">The learner computer must join with 2-5 participant names before the intro can start.</p>
+                  <p className="mt-3 text-xs text-amber">The learner screen must join with 2-5 participant names before the intro can start.</p>
                 )}
                 {station && connectedParticipants >= 2 && (
                   <p className="mt-3 text-xs text-scrub">
@@ -860,23 +869,26 @@ export function HostPage() {
         }}
       />
       <StationTransition station={station ?? null} visible={stationTransitionVisible} />
+      <StationCompleteOverlay
+        visible={Boolean(
+          room?.status === "in-progress" &&
+          station &&
+          stationComplete &&
+          dismissedStationCompleteId !== station.id &&
+          !introVisible &&
+          !protocolIntroVisible &&
+          !stationTransitionVisible &&
+          !room.debriefStartedAt &&
+          !room.closingStartedAt
+        )}
+        role="host"
+        stationTitle={station?.title ?? "Station"}
+        summary={stationCompleteSummary}
+        allStationsComplete={allStationsComplete}
+        onChooseNext={() => setDismissedStationCompleteId(station?.id ?? null)}
+        onStartDebrief={() => send({ type: "show-debrief" })}
+      />
       {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
-      <Modal open={debriefPromptVisible} title="Debrief ready" onClose={() => setDebriefPromptVisible(false)}>
-        <div className="grid gap-4">
-          <p className="text-white/75">
-            All station prompts are complete. Start the debrief when the room is ready.
-          </p>
-          <AnimatedButton
-            variant="secondary"
-            onClick={() => {
-              setDebriefPromptVisible(false);
-              send({ type: "show-debrief" });
-            }}
-          >
-            Start Debrief
-          </AnimatedButton>
-        </div>
-      </Modal>
       <Modal open={endConfirmOpen} title="End session?" onClose={() => setEndConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">

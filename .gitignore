@@ -6,6 +6,10 @@ data/rooms.json
 server.log
 server.err.log
 launcher.log
+*.log
+*.err.log
+*.pid
+tmp-*
 release/
 .package-cache/
 .env

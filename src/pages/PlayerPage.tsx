@@ -11,6 +11,7 @@ import { ProtocolIntro } from "../components/ProtocolIntro";
 import { ScenarioIntro } from "../components/ScenarioIntro";
 import { SelectionRoulette } from "../components/SelectionRoulette";
 import { SessionDebrief } from "../components/SessionDebrief";
+import { StationCompleteOverlay } from "../components/StationCompleteOverlay";
 import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
@@ -274,6 +275,18 @@ export function PlayerPage() {
   const validNames = names.map((name) => name.trim()).filter(Boolean);
   const evaluations = room?.evaluations ?? {};
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
+  const stationCompletedCount = station ? station.prompts.filter((item) => evaluations[item.id]).length : 0;
+  const stationComplete = Boolean(station && station.prompts.length > 0 && stationCompletedCount >= station.prompts.length);
+
+  const stationCompleteSummary = useMemo(() => {
+    const stationEvaluations = station?.prompts.map((item) => evaluations[item.id]).filter(Boolean) ?? [];
+    return {
+      total: station?.prompts.length ?? 0,
+      correct: stationEvaluations.filter((item) => item.status === "correct").length,
+      partial: stationEvaluations.filter((item) => item.status === "partial").length,
+      incorrect: stationEvaluations.filter((item) => item.status === "incorrect").length
+    };
+  }, [evaluations, station]);
 
   const participantStats = useMemo<PlayerPerformance[]>(() => {
     const totalTurns = Math.max(1, (room?.players ?? []).reduce((sum, player) => sum + player.turnCount, 0));
@@ -465,7 +478,7 @@ export function PlayerPage() {
           <div className="mb-6">
             <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-scrub">Learner monitor</div>
             <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Join Simulation</h1>
-            <p className="mt-3 max-w-2xl text-white/62">Use one learner computer for the room. Add the names of the 2-5 participants who will take turns answering verbally.</p>
+            <p className="mt-3 max-w-2xl text-white/62">Use one learner screen for the room. Add the names of the 2-5 participants who will take turns answering verbally.</p>
           </div>
           <form onSubmit={join} className="grid gap-6 rounded-md border border-white/10 bg-black/35 p-6">
             <label className="grid gap-2">
@@ -579,7 +592,7 @@ export function PlayerPage() {
       <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">
-            This learner computer will leave the room. You can rejoin later with the room code if the host is still connected.
+            This learner screen will leave the room. You can rejoin later with the room code if the host is still connected.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <AnimatedButton variant="ghost" onClick={() => setLeaveConfirmOpen(false)}>
@@ -616,6 +629,21 @@ export function PlayerPage() {
         onComplete={completeProtocolIntro}
       />
         <StationTransition station={station ?? null} visible={stationTransitionVisible} />
+        <StationCompleteOverlay
+          visible={Boolean(
+            room?.status === "in-progress" &&
+            station &&
+            stationComplete &&
+            !introVisible &&
+            !protocolIntroVisible &&
+            !stationTransitionVisible &&
+            !room.debriefStartedAt &&
+            !room.closingStartedAt
+          )}
+          role="player"
+          stationTitle={station?.title ?? "Station"}
+          summary={stationCompleteSummary}
+        />
         {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
         <SessionDebrief room={room ?? null} role="player" />
     </section>
