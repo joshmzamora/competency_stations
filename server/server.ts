@@ -84,6 +84,8 @@ type WsClient = {
   id: string;
   socket: net.Socket;
   buffer: Buffer;
+  messageFragments: Buffer[];
+  fragmentedOpcode: number | null;
   role?: ClientRole;
   roomCode?: string;
   names?: string[];
@@ -359,6 +361,9 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
     room.currentParticipantId = null;
     return false;
   }
+  if (!room.players.some((player) => player.shape)) {
+    assignShapesToRoom(room);
+  }
   if (!room.players.some((player) => player.shape)) return false;
 
   const playerId = pickBalancedPlayer(room);
@@ -616,6 +621,7 @@ function parseFrames(client: WsClient, chunk: Buffer) {
   while (client.buffer.length >= 2) {
     const firstByte = client.buffer[0];
     const secondByte = client.buffer[1];
+    const fin = (firstByte & 0x80) === 0x80;
     const opcode = firstByte & 0x0f;
     const masked = (secondByte & 0x80) === 0x80;
     let payloadLength = secondByte & 0x7f;
@@ -660,11 +666,41 @@ function parseFrames(client: WsClient, chunk: Buffer) {
       continue;
     }
 
+    if (opcode === 0x0) {
+      if (client.fragmentedOpcode === null) {
+        client.socket.destroy();
+        return;
+      }
+      client.messageFragments.push(payload);
+      if (!fin) continue;
+      const messagePayload = Buffer.concat(client.messageFragments);
+      client.messageFragments = [];
+      client.fragmentedOpcode = null;
+      if (messagePayload.length > 1024 * 1024) {
+        sendError(client, "The server received a message that was too large.");
+        continue;
+      }
+      try {
+        handleSocketMessage(client, JSON.parse(messagePayload.toString("utf8")) as WireMessage);
+      } catch (error) {
+        console.error("WebSocket message handling failed:", error);
+        sendError(client, "The server received a message it could not understand.");
+      }
+      continue;
+    }
+
     if (opcode !== 0x1) continue;
+
+    if (!fin) {
+      client.fragmentedOpcode = opcode;
+      client.messageFragments = [payload];
+      continue;
+    }
 
     try {
       handleSocketMessage(client, JSON.parse(payload.toString("utf8")) as WireMessage);
-    } catch {
+    } catch (error) {
+      console.error("WebSocket message handling failed:", error);
       sendError(client, "The server received a message it could not understand.");
     }
   }
@@ -899,6 +935,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     }
     case "skip-protocol-assignment": {
       if (client.role !== "host") return;
+      if (!room.players.some((player) => player.shape)) {
+        assignShapesToRoom(room);
+      }
       room.protocolIntroStartedAt = null;
       broadcastState(room.code);
       break;
@@ -1232,6 +1271,8 @@ function acceptWebSocket(request: http.IncomingMessage, socket: net.Socket) {
     id: crypto.randomUUID(),
     socket,
     buffer: Buffer.alloc(0),
+    messageFragments: [],
+    fragmentedOpcode: null,
     connected: true
   };
 

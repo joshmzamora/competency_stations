@@ -852,6 +852,7 @@ export function HostPage() {
         players={room?.players ?? []}
         canSkip
         onSkip={() => {
+          send({ type: "skip-protocol-assignment" });
           completeProtocolIntro();
         }}
         onComplete={() => {
