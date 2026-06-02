@@ -305,7 +305,9 @@ export function PatientCaseReview({
   activeFileId,
   onOpenFile,
   onContinue,
-  isClosing
+  isClosing,
+  audioEffectsEnabled = true,
+  audioTracksEnabled = true
 }: {
   role: "host" | "player";
   reviewedFileIds: string[];
@@ -313,6 +315,8 @@ export function PatientCaseReview({
   onOpenFile: (fileId: string) => void;
   onContinue: () => void;
   isClosing?: boolean;
+  audioEffectsEnabled?: boolean;
+  audioTracksEnabled?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reviewedIds = new Set(["identity", ...reviewedFileIds]);
@@ -323,7 +327,7 @@ export function PatientCaseReview({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !audioTracksEnabled) return;
     audio.volume = 0.15;
     audio.loop = true;
     const promise = audio.play();
@@ -332,7 +336,7 @@ export function PatientCaseReview({
       audio.pause();
       audio.currentTime = 0;
     };
-  }, []);
+  }, [audioTracksEnabled]);
 
   function handleContinue() {
     const audio = audioRef.current;
@@ -358,7 +362,7 @@ export function PatientCaseReview({
 
   function openFile(id: string) {
     if (role === "player") {
-      playFileClickCue();
+      if (audioEffectsEnabled) playFileClickCue();
       onOpenFile(id);
     }
   }

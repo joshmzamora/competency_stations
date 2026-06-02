@@ -1,6 +1,23 @@
 import type { EvaluationStatus } from "../types";
 
 type WebAudioWindow = typeof window & { webkitAudioContext?: typeof AudioContext };
+export type AudioRole = "host" | "player";
+export type AudioChannel = "effects" | "tracks";
+
+const audioEnabledByRole: Record<AudioRole, Record<AudioChannel, boolean>> = {
+  host: {
+    effects: true,
+    tracks: true
+  },
+  player: {
+    effects: true,
+    tracks: false
+  }
+};
+
+export function isAudioEnabledForRole(role: AudioRole, channel: AudioChannel = "effects") {
+  return audioEnabledByRole[role][channel];
+}
 
 function getAudioContext() {
   const AudioContextConstructor = window.AudioContext || (window as WebAudioWindow).webkitAudioContext;

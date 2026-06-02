@@ -36,7 +36,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
 import { downloadFile } from "../utils/results";
-import { playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type ParticipantPerformance = PlayerState & {
@@ -261,7 +261,10 @@ export function HostPage() {
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const downloadedDebriefRef = useRef<number | null>(null);
-  const resumeAttemptedRef = useRef(false);
+  const activeRoomCodeRef = useRef("");
+  const resumeAttemptedForClientRef = useRef("");
+  const effectsAudioEnabled = isAudioEnabledForRole("host", "effects");
+  const trackAudioEnabled = isAudioEnabledForRole("host", "tracks");
 
   const station = room?.selectedStation as CompetencyStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
@@ -284,7 +287,7 @@ export function HostPage() {
     const stationId = new URLSearchParams(window.location.search).get("station");
     return stations.find((item) => item.id === stationId);
   }, []);
-  const learnerUrl = `${window.location.origin}/player`;
+  const learnerUrl = room?.code ? `${window.location.origin}/player?room=${encodeURIComponent(room.code)}` : `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
   const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
   const launchChecklist = [
@@ -375,27 +378,28 @@ export function HostPage() {
 
   useEffect(() => {
     if (!finishedAt) return;
-    localStorage.removeItem("competency-host-room-code");
+    activeRoomCodeRef.current = "";
     navigate("/complete?role=host", { replace: true });
   }, [finishedAt, navigate]);
 
   useEffect(() => {
-    if (clientId) resumeAttemptedRef.current = false;
-  }, [clientId]);
-
-  useEffect(() => {
     if (room?.code) {
-      localStorage.setItem("competency-host-room-code", room.code);
+      activeRoomCodeRef.current = room.code;
+      resumeAttemptedForClientRef.current = clientId;
     }
-  }, [room?.code]);
+  }, [clientId, room?.code]);
 
   useEffect(() => {
-    if (status !== "open" || room || resumeAttemptedRef.current) return;
-    const savedCode = localStorage.getItem("competency-host-room-code");
-    if (!savedCode) return;
-    resumeAttemptedRef.current = true;
-    send({ type: "resume-host", code: savedCode });
-  }, [room, send, status]);
+    if (status !== "open" || room || !clientId || !activeRoomCodeRef.current) return;
+    if (resumeAttemptedForClientRef.current === clientId) return;
+    resumeAttemptedForClientRef.current = clientId;
+    send({ type: "resume-host", code: activeRoomCodeRef.current });
+  }, [clientId, room, send, status]);
+
+  useEffect(() => {
+    if (!error || room) return;
+    activeRoomCodeRef.current = "";
+  }, [error, room]);
 
   useEffect(() => {
     if (room && !station && preselectedStation) {
@@ -440,7 +444,7 @@ export function HostPage() {
       if (timesUpTimerRef.current === timerEndsAt) return;
       timesUpTimerRef.current = timerEndsAt;
       setTimesUpVisible(true);
-      playTimesUpCue();
+      if (effectsAudioEnabled) playTimesUpCue();
       if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
       timesUpCloseTimeoutRef.current = window.setTimeout(() => {
         setTimesUpVisible(false);
@@ -449,7 +453,7 @@ export function HostPage() {
     }, remainingMs);
 
     return () => window.clearTimeout(showTimeout);
-  }, [room?.serverTime, room?.timerEndsAt]);
+  }, [effectsAudioEnabled, room?.serverTime, room?.timerEndsAt]);
 
   useEffect(() => {
     return () => {
@@ -518,7 +522,7 @@ export function HostPage() {
     const showId = window.setTimeout(() => {
       setStationTransitionVisible(true);
       try {
-        playStationTransitionCue();
+        if (effectsAudioEnabled) playStationTransitionCue();
       } catch {
         // Browsers can block audio until interaction.
       }
@@ -528,7 +532,7 @@ export function HostPage() {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
-  }, [introVisible, protocolIntroVisible, room?.status, stationId]);
+  }, [effectsAudioEnabled, introVisible, protocolIntroVisible, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt || (promptUsesSelection && !room?.currentParticipantId)) return;
@@ -746,7 +750,7 @@ export function HostPage() {
           </main>
 
           <aside className="grid content-start gap-4">
-            <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} />
+            <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
             <div className="grid grid-cols-3 gap-2">
               <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
                 15s
@@ -840,10 +844,12 @@ export function HostPage() {
         <p className="text-white/75">{error}</p>
       </Modal>
       <TimesUpEffect visible={timesUpVisible} subtle onClose={() => setTimesUpVisible(false)} />
-      <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle />
+      <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} subtle audioEnabled={effectsAudioEnabled} />
       <ScenarioIntro
         open={introVisible}
         role="host"
+        audioEffectsEnabled={effectsAudioEnabled}
+        audioTracksEnabled={trackAudioEnabled}
         startedAt={room?.introStartedAt}
         serverTime={room?.serverTime}
         patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
@@ -859,6 +865,7 @@ export function HostPage() {
         startedAt={room?.protocolIntroStartedAt ?? null}
         serverTime={room?.serverTime}
         players={room?.players ?? []}
+        audioEnabled={trackAudioEnabled}
         canSkip
         onSkip={() => {
           send({ type: "skip-protocol-assignment" });
@@ -913,6 +920,7 @@ export function HostPage() {
       <SessionDebrief
         room={room ?? null}
         role="host"
+        audioEnabled={trackAudioEnabled}
         onDownload={downloadMissedReport}
         onClosing={() => send({ type: "show-closing" })}
         onEnd={() => send({ type: "finish-session" })}

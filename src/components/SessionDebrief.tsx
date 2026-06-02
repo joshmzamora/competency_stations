@@ -163,6 +163,7 @@ function ParticipantAccuracy({ room }: { room: RoomState }) {
 export function SessionDebrief({
   room,
   role,
+  audioEnabled = true,
   onDownload,
   onClosing,
   onEnd,
@@ -170,6 +171,7 @@ export function SessionDebrief({
 }: {
   room: RoomState | null;
   role: "host" | "player";
+  audioEnabled?: boolean;
   onDownload?: () => void;
   onClosing?: () => void;
   onEnd?: () => void;
@@ -186,7 +188,7 @@ export function SessionDebrief({
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (!debriefOpen && !closingOpen) {
+    if (!audioEnabled || (!debriefOpen && !closingOpen)) {
       audio.pause();
       audio.currentTime = 0;
       return;
@@ -202,7 +204,7 @@ export function SessionDebrief({
       audio.pause();
       audio.currentTime = 0;
     };
-  }, [closingOpen, debriefOpen]);
+  }, [audioEnabled, closingOpen, debriefOpen]);
 
   return (
     <>

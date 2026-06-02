@@ -6,11 +6,13 @@ import { playTimerTickCue, playTimerUrgentCue } from "../utils/sound";
 export function CountdownTimer({
   endsAt,
   startedAt,
-  serverTime
+  serverTime,
+  audioEnabled = true
 }: {
   endsAt: number | null;
   startedAt?: number | null;
   serverTime?: number;
+  audioEnabled?: boolean;
 }) {
   const [localNow, setLocalNow] = useState(Date.now());
   const localServerOffsetRef = useRef(0);
@@ -48,13 +50,14 @@ export function CountdownTimer({
     const currentRemaining = Math.max(0, Math.ceil((endsAt - syncedNow) / 1000));
     if (lastTickRef.current !== currentRemaining) {
       lastTickRef.current = currentRemaining;
+      if (!audioEnabled) return;
       if (currentRemaining > 0 && currentRemaining <= 5) {
         playTimerUrgentCue();
       } else if (currentRemaining > 0) {
         playTimerTickCue();
       }
     }
-  }, [endsAt, syncedNow]);
+  }, [audioEnabled, endsAt, syncedNow]);
 
   const urgent = remaining <= 5 && endsAt;
 

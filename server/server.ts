@@ -115,6 +115,10 @@ function createRoomCode() {
   return code;
 }
 
+function normalizeRoomCode(value: unknown) {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+}
+
 function createInitialRoom(code: string): RoomState {
   const now = new Date().toISOString();
   return {
@@ -317,11 +321,45 @@ function detachPlayerClient(client: WsClient, reason?: string, removeSavedPartic
   client.role = undefined;
   client.roomCode = undefined;
   client.names = undefined;
+  client.groupId = undefined;
   send(client, { type: "room-left", reason });
 
   if (roomCode) {
     scheduleRoomsSave();
     broadcastState(roomCode);
+  }
+}
+
+function detachCurrentRoom(client: WsClient, reason?: string, removeSavedParticipants = false, notify = false) {
+  const roomCode = client.roomCode;
+  const role = client.role;
+  const groupId = client.groupId;
+  const room = roomCode ? rooms.get(roomCode) : null;
+
+  if (room && groupId && removeSavedParticipants) {
+    room.players = room.players.filter((player) => !player.id.startsWith(`${groupId}-`));
+    if (room.currentParticipantId?.startsWith(`${groupId}-`)) {
+      room.currentParticipantId = null;
+      room.selection = null;
+    }
+    recalculateStats(room);
+  }
+
+  client.role = undefined;
+  client.roomCode = undefined;
+  client.names = undefined;
+  client.groupId = undefined;
+
+  if (notify) {
+    send(client, { type: "room-left", reason });
+  }
+
+  if (roomCode) {
+    scheduleRoomsSave();
+    broadcastState(roomCode);
+    if (role === "host" && connectedHostClients(roomCode).length === 0) {
+      schedulePlayerRemovalIfHostGone(roomCode);
+    }
   }
 }
 
@@ -751,6 +789,9 @@ function markMissingPromptsIncorrect(room: RoomState, promptIds: unknown) {
 
 function handleSocketMessage(client: WsClient, message: WireMessage) {
   if (message.type === "create-room") {
+    if (client.roomCode) {
+      detachCurrentRoom(client, undefined, client.role === "player", false);
+    }
     const code = createRoomCode();
     const room = createInitialRoom(code);
     rooms.set(code, room);
@@ -766,15 +807,27 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   }
 
   if (message.type === "resume-host") {
-    const code = String(message.code ?? "").trim().toUpperCase();
+    const code = normalizeRoomCode(message.code);
     const room = rooms.get(code);
     if (!room) {
       sendError(client, "Previous host room was not found. Create a new room on this computer.");
       return;
     }
 
+    if (client.roomCode && client.roomCode !== code) {
+      detachCurrentRoom(client, undefined, client.role === "player", false);
+    }
+
+    for (const existingHost of connectedHostClients(code)) {
+      if (existingHost.id !== client.id) {
+        detachCurrentRoom(existingHost, "Host control moved to another browser window.", false, true);
+      }
+    }
+
     client.role = "host";
     client.roomCode = code;
+    client.names = undefined;
+    client.groupId = undefined;
     if (hostDisconnectTimers.has(code)) {
       clearTimeout(hostDisconnectTimers.get(code));
       hostDisconnectTimers.delete(code);
@@ -785,7 +838,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
   }
 
   if (message.type === "join-room") {
-    const code = String(message.code ?? "").trim().toUpperCase();
+    const code = normalizeRoomCode(message.code);
     const room = rooms.get(code);
     if (!room) {
       sendError(client, "Room not found. Check the code on the host screen.");
@@ -795,7 +848,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const groupId = String(message.groupId ?? client.groupId ?? client.id).trim().slice(0, 80) || client.id;
     const existingPlayerClients = connectedPlayerClients(code);
     const reconnectingSameLearner = existingPlayerClients.some((existingClient) => existingClient.groupId === groupId);
-    if (existingPlayerClients.length >= 1 && !existingPlayerClients.some((existingClient) => existingClient.id === client.id) && !reconnectingSameLearner) {
+    const currentClientAlreadyInRoom = existingPlayerClients.some((existingClient) => existingClient.id === client.id);
+    const otherLearnerConnected = existingPlayerClients.some((existingClient) => existingClient.id !== client.id && existingClient.groupId !== groupId);
+    if (otherLearnerConnected || (existingPlayerClients.length >= 1 && !currentClientAlreadyInRoom && !reconnectingSameLearner)) {
       sendError(client, "A learner screen is already connected. This simulation supports one player computer with 2-5 participants.");
       return;
     }
@@ -811,18 +866,30 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
+    if (client.roomCode && client.roomCode !== code) {
+      detachCurrentRoom(client, undefined, client.role === "player", false);
+    }
+
+    for (const existingClient of connectedPlayerClients(code)) {
+      if (existingClient.id !== client.id && existingClient.groupId === groupId) {
+        detachPlayerClient(existingClient, "This learner screen reconnected in another browser window.");
+      }
+    }
+
     client.role = "player";
     client.roomCode = code;
     client.names = names;
     client.groupId = groupId;
 
-    // Create player states with formatted names
+    const existingPlayers = new Map(room.players.map((player) => [player.id, player]));
+
+    // Create player states with formatted names.
     room.players = names.map((n, i) => ({
       id: `${groupId}-${i}`,
       name: `Player ${i + 1} (${n})`,
       connected: true,
-      shape: room.players.find((player) => player.id === `${groupId}-${i}`)?.shape,
-      turnCount: room.players.find((player) => player.id === `${groupId}-${i}`)?.turnCount ?? 0
+      shape: existingPlayers.get(`${groupId}-${i}`)?.shape,
+      turnCount: existingPlayers.get(`${groupId}-${i}`)?.turnCount ?? 0
     }));
 
     sendState(client, room, "room-joined");

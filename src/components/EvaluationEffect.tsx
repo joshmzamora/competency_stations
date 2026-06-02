@@ -31,23 +31,25 @@ const effectCopy = {
 export function EvaluationEffect({
   status,
   visible,
-  subtle = false
+  subtle = false,
+  audioEnabled = true
 }: {
   status?: EvaluationStatus;
   visible: boolean;
   subtle?: boolean;
+  audioEnabled?: boolean;
 }) {
   const effect = status ? effectCopy[status] : null;
   const Icon = effect?.icon;
 
   useEffect(() => {
-    if (!visible || !status) return;
+    if (!visible || !status || !audioEnabled) return;
     try {
       playEvaluationCue(status, subtle);
     } catch {
       // Browsers can block audio until the user has interacted with the page.
     }
-  }, [status, subtle, visible]);
+  }, [audioEnabled, status, subtle, visible]);
 
   return (
     <AnimatePresence>

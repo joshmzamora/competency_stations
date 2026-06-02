@@ -17,7 +17,7 @@ import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
 import { createClientId } from "../utils/id";
-import { playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type PlayerPerformance = PlayerState & {
@@ -63,6 +63,22 @@ function percent(part: number, whole: number) {
 
 function weightedAccuracy(correct: number, partial: number, total: number) {
   return total ? Math.round(((correct * 100 + partial * 50) / (total * 100)) * 100) : 0;
+}
+
+function initialRoomCode() {
+  return new URLSearchParams(window.location.search).get("room")?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) ?? "";
+}
+
+function getLearnerGroupId() {
+  try {
+    const saved = sessionStorage.getItem("competency-player-group-id");
+    if (saved) return saved;
+    const id = createClientId();
+    sessionStorage.setItem("competency-player-group-id", id);
+    return id;
+  } catch {
+    return createClientId();
+  }
 }
 
 function StatTile({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
@@ -152,6 +168,7 @@ function ActivePromptView({
   promptNumber,
   totalPrompts,
   activityState,
+  audioEnabled,
   onMoveActivityCard,
   onCheckActivity
 }: {
@@ -161,6 +178,7 @@ function ActivePromptView({
   promptNumber: number;
   totalPrompts: number;
   activityState?: ActivityState;
+  audioEnabled: boolean;
   onMoveActivityCard: (item: string, column: string | null) => void;
   onCheckActivity: () => void;
 }) {
@@ -216,6 +234,7 @@ function ActivePromptView({
         <ActivityPromptLayout
           prompt={prompt}
           activityState={activityState}
+          audioEnabled={audioEnabled}
           onMoveCard={onMoveActivityCard}
           onCheck={onCheckActivity}
         />
@@ -233,15 +252,8 @@ export function PlayerPage() {
   const { status, room, error, clientId, finishedAt, send, clearError } = useRoomSocket();
   const navigate = useNavigate();
   const { setNavHidden } = useAppChrome();
-  const [code, setCode] = useState(() => localStorage.getItem("competency-player-room-code") ?? "");
-  const [names, setNames] = useState<string[]>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("competency-player-names") ?? "null") as unknown;
-      return Array.isArray(saved) && saved.length >= 2 ? saved.map(String).slice(0, 5) : ["", ""];
-    } catch {
-      return ["", ""];
-    }
-  });
+  const [code, setCode] = useState(initialRoomCode);
+  const [names, setNames] = useState<string[]>(["", ""]);
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
@@ -252,15 +264,12 @@ export function PlayerPage() {
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
-  const reconnectAttemptedRef = useRef(false);
-  const groupIdRef = useRef(
-    localStorage.getItem("competency-player-group-id") ??
-    (() => {
-      const id = createClientId();
-      localStorage.setItem("competency-player-group-id", id);
-      return id;
-    })()
-  );
+  const groupIdRef = useRef(getLearnerGroupId());
+  const joinedRoomCodeRef = useRef("");
+  const joinedNamesRef = useRef<string[]>([]);
+  const reconnectAttemptedForClientRef = useRef("");
+  const effectsAudioEnabled = isAudioEnabledForRole("player", "effects");
+  const trackAudioEnabled = isAudioEnabledForRole("player", "tracks");
 
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
@@ -310,15 +319,31 @@ export function PlayerPage() {
   }, [evaluationList, room?.players]);
 
   useEffect(() => {
-    if (clientId) reconnectAttemptedRef.current = false;
-  }, [clientId]);
-
-  useEffect(() => {
     if (!finishedAt) return;
-    localStorage.removeItem("competency-player-room-code");
-    localStorage.removeItem("competency-player-names");
+    joinedRoomCodeRef.current = "";
+    joinedNamesRef.current = [];
     navigate("/complete?role=player", { replace: true });
   }, [finishedAt, navigate]);
+
+  useEffect(() => {
+    if (room?.code) {
+      joinedRoomCodeRef.current = room.code;
+      reconnectAttemptedForClientRef.current = clientId;
+    }
+  }, [clientId, room?.code]);
+
+  useEffect(() => {
+    if (status !== "open" || room || !clientId || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
+    if (reconnectAttemptedForClientRef.current === clientId) return;
+    reconnectAttemptedForClientRef.current = clientId;
+    send({ type: "join-room", code: joinedRoomCodeRef.current, names: joinedNamesRef.current, groupId: groupIdRef.current });
+  }, [clientId, room, send, status]);
+
+  useEffect(() => {
+    if (!error || room) return;
+    joinedRoomCodeRef.current = "";
+    joinedNamesRef.current = [];
+  }, [error, room]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
@@ -347,7 +372,7 @@ export function PlayerPage() {
       if (timesUpTimerRef.current === timerEndsAt) return;
       timesUpTimerRef.current = timerEndsAt;
       setTimesUpVisible(true);
-      playTimesUpCue();
+      if (effectsAudioEnabled) playTimesUpCue();
       if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
       timesUpCloseTimeoutRef.current = window.setTimeout(() => {
         setTimesUpVisible(false);
@@ -356,30 +381,13 @@ export function PlayerPage() {
     }, remainingMs);
 
     return () => window.clearTimeout(showTimeout);
-  }, [room?.serverTime, room?.timerEndsAt]);
+  }, [effectsAudioEnabled, room?.serverTime, room?.timerEndsAt]);
 
   useEffect(() => {
     return () => {
       if (timesUpCloseTimeoutRef.current) window.clearTimeout(timesUpCloseTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (status !== "open" || room || reconnectAttemptedRef.current) return;
-    const savedCode = localStorage.getItem("competency-player-room-code");
-    let savedNames: string[] = [];
-    try {
-      const parsed = JSON.parse(localStorage.getItem("competency-player-names") ?? "[]") as unknown;
-      savedNames = Array.isArray(parsed) ? parsed.map(String).filter(Boolean).slice(0, 5) : [];
-    } catch {
-      savedNames = [];
-    }
-    if (!savedCode || savedNames.length < 2) return;
-    reconnectAttemptedRef.current = true;
-    setCode(savedCode);
-    setNames(savedNames);
-    send({ type: "join-room", code: savedCode, names: savedNames, groupId: groupIdRef.current });
-  }, [room, send, status]);
 
   useEffect(() => {
     if (!introKey || introKeySeen === introKey) return;
@@ -429,7 +437,7 @@ export function PlayerPage() {
     const showId = window.setTimeout(() => {
       setStationTransitionVisible(true);
       try {
-        playStationTransitionCue();
+        if (effectsAudioEnabled) playStationTransitionCue();
       } catch {
         // Browsers can block audio until interaction.
       }
@@ -439,7 +447,7 @@ export function PlayerPage() {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
-  }, [introVisible, protocolIntroVisible, room?.status, stationId]);
+  }, [effectsAudioEnabled, introVisible, protocolIntroVisible, room?.status, stationId]);
 
   function updateName(index: number, value: string) {
     const next = [...names];
@@ -458,16 +466,21 @@ export function PlayerPage() {
   function join(event: FormEvent) {
     event.preventDefault();
     if (validNames.length < 2 || validNames.length > 5) return;
-    localStorage.setItem("competency-player-room-code", code.trim().toUpperCase());
-    localStorage.setItem("competency-player-names", JSON.stringify(validNames));
+    joinedRoomCodeRef.current = code;
+    joinedNamesRef.current = validNames;
+    reconnectAttemptedForClientRef.current = clientId;
     send({ type: "join-room", code, names: validNames, groupId: groupIdRef.current });
   }
 
   function leaveRoom() {
-    localStorage.removeItem("competency-player-room-code");
-    localStorage.removeItem("competency-player-names");
-    localStorage.removeItem("competency-player-group-id");
-    reconnectAttemptedRef.current = true;
+    try {
+      sessionStorage.removeItem("competency-player-group-id");
+    } catch {
+      // Session storage may be unavailable in locked-down browser modes.
+    }
+    groupIdRef.current = getLearnerGroupId();
+    joinedRoomCodeRef.current = "";
+    joinedNamesRef.current = [];
     send({ type: "leave-room" });
   }
 
@@ -485,10 +498,10 @@ export function PlayerPage() {
               <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Room code</span>
               <input
                 value={code}
-                onChange={(event) => setCode(event.target.value.toUpperCase())}
+                onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
                 className="rounded-md border border-scrub/30 bg-panel px-4 py-3 font-display text-3xl font-bold uppercase text-white outline-none focus:border-scrub"
                 placeholder="ABCD"
-                maxLength={6}
+                maxLength={8}
               />
             </label>
             <div className="grid gap-3">
@@ -552,7 +565,7 @@ export function PlayerPage() {
             </div>
           </div>
 
-          <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} />
+          <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
 
           {activePrompt && station && (activeParticipant || !activePromptUsesSelection) ? (
             <ActivePromptView
@@ -562,6 +575,7 @@ export function PlayerPage() {
               promptNumber={(room.activePromptIndex ?? 0) + 1}
               totalPrompts={station.prompts.length}
               activityState={room.activityStates?.[activePrompt.id]}
+              audioEnabled={effectsAudioEnabled}
               onMoveActivityCard={(item, column) => send({ type: "update-activity-card", promptId: activePrompt.id, item, column })}
               onCheckActivity={() => send({ type: "check-activity", promptId: activePrompt.id })}
             />
@@ -610,10 +624,12 @@ export function PlayerPage() {
           </div>
         </div>
       </Modal>
-        <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} />
+        <EvaluationEffect status={currentEvaluation?.status} visible={effectVisible} audioEnabled={effectsAudioEnabled} />
         <ScenarioIntro
           open={introVisible}
           role="player"
+          audioEffectsEnabled={effectsAudioEnabled}
+          audioTracksEnabled={trackAudioEnabled}
           startedAt={room?.introStartedAt}
           serverTime={room?.serverTime}
           patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
@@ -626,6 +642,7 @@ export function PlayerPage() {
         startedAt={room?.protocolIntroStartedAt ?? null}
         serverTime={room?.serverTime}
         players={room?.players ?? []}
+        audioEnabled={trackAudioEnabled}
         onComplete={completeProtocolIntro}
       />
         <StationTransition station={station ?? null} visible={stationTransitionVisible} />
@@ -645,7 +662,7 @@ export function PlayerPage() {
           summary={stationCompleteSummary}
         />
         {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
-        <SessionDebrief room={room ?? null} role="player" />
+        <SessionDebrief room={room ?? null} role="player" audioEnabled={trackAudioEnabled} />
     </section>
   );
 }

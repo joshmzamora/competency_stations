@@ -54,12 +54,14 @@ function WorkColumns({
   placements,
   itemResults,
   readOnly,
+  audioEnabled,
   onMove
 }: {
   columns: ActivityColumn[];
   placements: Record<string, string | null>;
   itemResults?: Record<string, boolean>;
   readOnly?: boolean;
+  audioEnabled: boolean;
   onMove?: (item: string, column: string | null) => void;
 }) {
   return (
@@ -72,7 +74,7 @@ function WorkColumns({
             event.preventDefault();
             const item = event.dataTransfer.getData("text/plain");
             if (item) {
-              playActivityDropCue();
+              if (audioEnabled) playActivityDropCue();
               onMove?.(item, column.title);
             }
           }}
@@ -134,6 +136,7 @@ export function ActivityPromptLayout({
   showAnswer = false,
   activityState,
   readOnly = false,
+  audioEnabled = true,
   onMoveCard,
   onCheck
 }: {
@@ -141,6 +144,7 @@ export function ActivityPromptLayout({
   showAnswer?: boolean;
   activityState?: ActivityState;
   readOnly?: boolean;
+  audioEnabled?: boolean;
   onMoveCard?: (item: string, column: string | null) => void;
   onCheck?: () => void;
 }) {
@@ -192,7 +196,7 @@ export function ActivityPromptLayout({
               event.preventDefault();
               const item = event.dataTransfer.getData("text/plain");
               if (item) {
-                playActivityDropCue();
+                if (audioEnabled) playActivityDropCue();
                 onMoveCard?.(item, null);
               }
             }}
@@ -226,6 +230,7 @@ export function ActivityPromptLayout({
             placements={placements}
             itemResults={visibleItemResults}
             readOnly={readOnly}
+            audioEnabled={audioEnabled}
             onMove={onMoveCard}
           />
         </div>
@@ -259,7 +264,7 @@ export function ActivityPromptLayout({
             <button
               type="button"
               onClick={() => {
-                playActivityCheckCue();
+                if (audioEnabled) playActivityCheckCue();
                 onCheck?.();
               }}
               disabled={!onCheck || remainingChecks <= 0}

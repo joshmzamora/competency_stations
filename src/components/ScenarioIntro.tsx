@@ -144,6 +144,8 @@ export function ScenarioIntro({
   onSkip,
   canSkip = false,
   role,
+  audioEffectsEnabled = true,
+  audioTracksEnabled = true,
   patientReviewReviewedFileIds,
   patientReviewActiveFileId,
   onReviewPatientFile,
@@ -156,6 +158,8 @@ export function ScenarioIntro({
   onSkip?: () => void;
   canSkip?: boolean;
   role: "host" | "player";
+  audioEffectsEnabled?: boolean;
+  audioTracksEnabled?: boolean;
   patientReviewReviewedFileIds?: string[];
   patientReviewActiveFileId?: string | null;
   onReviewPatientFile?: (fileId: string) => void;
@@ -195,7 +199,7 @@ export function ScenarioIntro({
 
   function playSyncedIntroAudio() {
     const audio = audioRef.current;
-    if (!audio || !open || phase !== "scenes") return;
+    if (!audio || !audioTracksEnabled || !open || phase !== "scenes") return;
     syncIntroAudio(audio);
     const playPromise = audio.play();
     if (playPromise) {
@@ -250,7 +254,7 @@ export function ScenarioIntro({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!open || !audio || phase !== "scenes") return;
+    if (!open || !audio || !audioTracksEnabled || phase !== "scenes") return;
 
     const audioStartKey = `${startedAt ?? "no-start"}`;
     if (audioStartKeyRef.current === audioStartKey && !audio.paused) return;
@@ -273,10 +277,10 @@ export function ScenarioIntro({
       audioStartKeyRef.current = "";
       audioRetryNeededRef.current = false;
     };
-  }, [open, phase, startedAt]);
+  }, [audioTracksEnabled, open, phase, startedAt]);
 
   useEffect(() => {
-    if (!open || phase !== "scenes") return;
+    if (!open || !audioTracksEnabled || phase !== "scenes") return;
     const retry = () => {
       if (audioRetryNeededRef.current) playSyncedIntroAudio();
     };
@@ -288,7 +292,7 @@ export function ScenarioIntro({
       window.removeEventListener("keydown", retry);
       window.removeEventListener("touchstart", retry);
     };
-  }, [open, phase, startedAt]);
+  }, [audioTracksEnabled, open, phase, startedAt]);
 
   function skipIntro() {
     if (canSkip) {
@@ -317,6 +321,8 @@ export function ScenarioIntro({
             <>
               <PatientCaseReview
                 role={role}
+                audioEffectsEnabled={audioEffectsEnabled}
+                audioTracksEnabled={audioTracksEnabled}
                 reviewedFileIds={patientReviewReviewedFileIds ?? []}
                 activeFileId={patientReviewActiveFileId}
                 onOpenFile={(fileId) => onReviewPatientFile?.(fileId)}

@@ -179,7 +179,8 @@ export function ProtocolIntro({
   canSkip = false,
   startedAt,
   serverTime,
-  players
+  players,
+  audioEnabled = true
 }: {
   open: boolean;
   onComplete: () => void;
@@ -188,6 +189,7 @@ export function ProtocolIntro({
   startedAt: number | null;
   serverTime?: number;
   players: PlayerState[];
+  audioEnabled?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
   const completedRef = useRef(false);
@@ -215,7 +217,7 @@ export function ProtocolIntro({
 
   function playSyncedAssignmentAudio() {
     const audio = audioRef.current;
-    if (!audio || !open || !startedAt) return;
+    if (!audio || !audioEnabled || !open || !startedAt) return;
     syncAssignmentAudio(audio);
     const playPromise = audio.play();
     if (playPromise) {
@@ -264,7 +266,7 @@ export function ProtocolIntro({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!open || !audio || !startedAt) return;
+    if (!open || !audio || !audioEnabled || !startedAt) return;
 
     const audioStartKey = `${startedAt}`;
     if (audioStartKeyRef.current === audioStartKey && !audio.paused) return;
@@ -288,10 +290,10 @@ export function ProtocolIntro({
       audioStartKeyRef.current = "";
       audioRetryNeededRef.current = false;
     };
-  }, [open, startedAt]);
+  }, [audioEnabled, open, startedAt]);
 
   useEffect(() => {
-    if (!open || !startedAt) return;
+    if (!open || !audioEnabled || !startedAt) return;
     const retry = () => {
       if (audioRetryNeededRef.current) playSyncedAssignmentAudio();
     };
@@ -303,7 +305,7 @@ export function ProtocolIntro({
       window.removeEventListener("keydown", retry);
       window.removeEventListener("touchstart", retry);
     };
-  }, [open, startedAt]);
+  }, [audioEnabled, open, startedAt]);
 
   const progress = Math.min(100, (elapsed / totalDurationMs) * 100);
   const activeIndex = activeIndexForElapsed(elapsed, players.length);
