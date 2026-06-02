@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
 import { PhaseBrief } from "./PhaseBrief";
 
@@ -11,6 +11,8 @@ const maxVolume = 0.15;
 const fadeOutMs = 2200;
 const openingMs = 5200;
 const closingMs = 1600;
+const visualTickMs = 90;
+const audioSyncMs = 220;
 
 function segmentMs(playerCount: number) {
   return Math.max(2600, (totalDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
@@ -69,7 +71,7 @@ function activeIndexForElapsed(elapsed: number, playerCount: number) {
   return Math.min(playerCount - 1, Math.floor((elapsed - openingMs) / segmentMs(playerCount)));
 }
 
-function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[]; activeIndex: number; elapsed: number }) {
+const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[]; activeIndex: number; elapsed: number }) {
   return (
     <div className="mx-auto grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
       {players.map((player, index) => {
@@ -96,7 +98,7 @@ function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[];
       })}
     </div>
   );
-}
+});
 
 function FeaturedReveal({ player, index, elapsed, playerCount }: { player: PlayerState; index: number; elapsed: number; playerCount: number }) {
   const shape = player.shape;
@@ -115,27 +117,27 @@ function FeaturedReveal({ player, index, elapsed, playerCount }: { player: Playe
       className="grid w-full max-w-5xl justify-items-center text-center"
     >
       <div className="font-display text-sm font-bold uppercase tracking-[0.34em] text-trauma">Participant {index + 1}</div>
-      <h3 className="mt-4 font-display text-7xl font-black uppercase leading-none text-white md:text-9xl">{publicName(player.name)}</h3>
+      <h3 className="mt-3 font-display text-[clamp(3.75rem,9vw,8rem)] font-black uppercase leading-none text-white">{publicName(player.name)}</h3>
 
       <motion.div
         key={revealShape ? `${player.id}-${shape}` : displayedShape}
         initial={{ scale: 0.72, rotate: -18, opacity: 0 }}
         animate={{ scale: revealShape ? 1 : 0.82, rotate: revealShape ? 0 : [0, 8, -8, 0], opacity: revealShape ? 1 : 0.38 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className={`mt-12 grid h-72 w-72 place-items-center rounded-md border bg-black/45 md:h-96 md:w-96 ${revealShape ? shapeRing(shape) : "border-white/10"
+        className={`mt-8 grid h-[clamp(15rem,34vh,23rem)] w-[clamp(15rem,34vh,23rem)] place-items-center rounded-md border bg-black/45 ${revealShape ? shapeRing(shape) : "border-white/10"
           }`}
       >
-        <ShapeIcon shape={displayedShape} className={`h-44 w-44 md:h-64 md:w-64 ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
+        <ShapeIcon shape={displayedShape} className={`h-[clamp(9rem,22vh,15rem)] w-[clamp(9rem,22vh,15rem)] ${revealShape && shape ? shapeColor(shape) : "text-white/25"}`} />
       </motion.div>
 
-      <div className={`mt-9 font-display text-5xl font-black uppercase tracking-[0.24em] md:text-7xl ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
+      <div className={`mt-6 font-display text-[clamp(2.5rem,6vw,4.5rem)] font-black uppercase tracking-[0.24em] ${revealShape && shape ? shapeColor(shape) : "text-white/28"}`}>
         {revealShape ? shape ?? "pending" : "locking in"}
       </div>
     </motion.div>
   );
 }
 
-function AssignmentSummary({ players }: { players: PlayerState[] }) {
+const AssignmentSummary = memo(function AssignmentSummary({ players }: { players: PlayerState[] }) {
   return (
     <motion.div
       key="assignment-summary"
@@ -168,7 +170,7 @@ function AssignmentSummary({ players }: { players: PlayerState[] }) {
       </div>
     </motion.div>
   );
-}
+});
 
 export function ProtocolIntro({
   open,
@@ -250,7 +252,7 @@ export function ProtocolIntro({
     };
 
     tick();
-    const id = window.setInterval(tick, 40);
+    const id = window.setInterval(tick, visualTickMs);
     return () => window.clearInterval(id);
   }, [open, startedAt]);
 
@@ -277,7 +279,7 @@ export function ProtocolIntro({
     audio.currentTime = Math.min(totalDurationMs, getSyncedElapsed()) / 1000;
     syncAudio();
     playSyncedAssignmentAudio();
-    const volumeId = window.setInterval(syncAudio, 80);
+    const volumeId = window.setInterval(syncAudio, audioSyncMs);
 
     return () => {
       window.clearInterval(volumeId);
@@ -354,7 +356,7 @@ export function ProtocolIntro({
               <h2 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-7xl">Choose Your Shape</h2>
             </header>
 
-            <main className="grid min-h-0 place-items-center py-6">
+            <main className="grid min-h-0 place-items-center py-3">
               <AnimatePresence mode="wait">
                 {showSummary ? (
                   <AssignmentSummary players={players} />

@@ -17,9 +17,13 @@ export function CountdownTimer({
   const lastTickRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setLocalNow(Date.now()), 100);
+    if (!endsAt) {
+      setLocalNow(Date.now());
+      return;
+    }
+    const interval = window.setInterval(() => setLocalNow(Date.now()), 250);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [endsAt]);
 
   useEffect(() => {
     localServerOffsetRef.current = serverTime ? Date.now() - serverTime : 0;

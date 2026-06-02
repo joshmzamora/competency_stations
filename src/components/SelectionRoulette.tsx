@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
 const cardWidth = 280;
 const cardGap = 20;
 const cardStride = cardWidth + cardGap;
+const visualFrameMs = 33;
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -142,10 +143,10 @@ function useRouletteAudio(selection: SelectionState | null, progress: number, re
   }, [progress, reelPosition, resultVisible, selection]);
 }
 
-function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPosition: number }) {
-  if (players.length === 0) return null;
+const RouletteBar = memo(function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPosition: number }) {
   const repeatCount = 11;
-  const repeated = Array.from({ length: repeatCount }, () => players).flat();
+  const repeated = useMemo(() => Array.from({ length: repeatCount }, () => players).flat(), [players]);
+  if (players.length === 0) return null;
   const baseIndex = players.length * 2;
   const centerPosition = baseIndex + reelPosition;
   const activeIndex = Math.round(centerPosition);
@@ -212,9 +213,9 @@ function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPo
       </div>
     </div>
   );
-}
+});
 
-function SelectionRoster({ players, activeId }: { players: PlayerState[]; activeId?: string }) {
+const SelectionRoster = memo(function SelectionRoster({ players, activeId }: { players: PlayerState[]; activeId?: string }) {
   return (
     <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
       {players.map((player, index) => {
@@ -241,7 +242,7 @@ function SelectionRoster({ players, activeId }: { players: PlayerState[]; active
       })}
     </div>
   );
-}
+});
 
 export function SelectionRoulette({
   selection,
@@ -257,6 +258,7 @@ export function SelectionRoulette({
   const [elapsed, setElapsed] = useState(0);
   const offsetRef = useRef(0);
   const selectionKeyRef = useRef<number | null>(null);
+  const lastVisualUpdateRef = useRef(0);
 
   useEffect(() => {
     if (!selection) {
@@ -268,11 +270,17 @@ export function SelectionRoulette({
     if (selectionKeyRef.current !== selection.startedAt) {
       offsetRef.current = serverTime ? Date.now() - serverTime : 0;
       selectionKeyRef.current = selection.startedAt;
+      lastVisualUpdateRef.current = 0;
     }
 
     let frame = 0;
     const tick = () => {
-      setElapsed(Math.max(0, Date.now() - offsetRef.current - selection.startedAt));
+      const now = performance.now();
+      const nextElapsed = Math.max(0, Date.now() - offsetRef.current - selection.startedAt);
+      if (now - lastVisualUpdateRef.current >= visualFrameMs || nextElapsed >= selection.durationMs) {
+        lastVisualUpdateRef.current = now;
+        setElapsed(nextElapsed);
+      }
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
