@@ -68,35 +68,28 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "verbal-response",
     title: "",
-    scenario: "If the A wave represents atrial contraction, where does the A wave align with the EKG?",
+    scenario: "How much air is used to fully inflate the balloon on a standard adult PA/Swan-Ganz catheter?",
     instructions: ["Answer verbally."],
-    expectedResponse: "The A wave aligns with the PR interval.",
+    expectedResponse: "A standard adult PA catheter balloon usually requires a maximum of 1.5 mL/cc of air to fully inflate.",
   }),
   prompt({
     id: "hemodynamics-rv-vtach-pressure",
     stationId: "hemodynamics",
     type: "troubleshooting",
     title: "",
-    scenario: "As the PA catheter passes through the tricuspid valve into the right ventricle, what waveform/rhythm appears and what RV pressure pattern should be recognized?",
+    scenario: "When calibrating the hemodynamic monitor and the catheter is already inserted in the patient, which calibration method is used?",
     instructions: ["Answer verbally."],
-    expectedResponse:
-      "The waveform/rhythm appears as VTACH. The RV has a high systolic and low diastolic pressure pattern, approximately 20-30 mmHg systolic and 0-5 mmHg diastolic.",
-    explanation:
-      "The script identifies VTACH as the answer during the right ventricular waveform change and lists the RV pressure pattern as 20-30 mmHg over 0-5 mmHg.",
-    criticalActions: ["Identifies VTACH.", "Recognizes the RV pressure pattern."]
+    expectedResponse: "Use in vivo calibration because the catheter is already inside the patient.",
   }),
   prompt({
     id: "hemodynamics-pa-dicrotic-wedge",
     stationId: "hemodynamics",
     type: "timed-emergency",
     title: "",
-    scenario: "What does the PA waveform dicrotic notch represent, and what must happen when the catheter is wedged?",
+    scenario: "Where is the phlebostatic axis located?",
     instructions: ["Answer verbally."],
     expectedResponse:
-      "The PA waveform dicrotic notch represents closure of the pulmonic valve. When the catheter wedges into a small vessel, this may be called PCWP, PAOP, or LVEDP. The provider should instruct balloon deflation at this time to prevent rupture.",
-    explanation:
-      "The script states that the dicrotic notch represents pulmonic valve closure and that once wedged, the balloon must be deflated to prevent rupture.",
-    criticalActions: ["Deflates balloon when wedged.", "Recognizes rupture risk."],
+      "The phlebostatic axis is located at the 4th intercostal space and the mid-anterior-posterior diameter of the chest, which is about halfway between the front and back of the chest.",
     timerSeconds: 60
   })
 ];
