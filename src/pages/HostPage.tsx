@@ -36,7 +36,7 @@ import { StationTransition } from "../components/StationTransition";
 import { useAppChrome } from "../context/ChromeContext";
 import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
-import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation } from "../types";
+import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation, RoomState } from "../types";
 import { downloadFile } from "../utils/results";
 import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
 import { TimesUpEffect } from "../components/TimesUpEffect";
@@ -50,6 +50,35 @@ type ParticipantPerformance = PlayerState & {
   accuracy: number;
   participation: number;
 };
+
+const hostRoomBackupKey = "competency-host-room-emergency-backup";
+
+function readHostRoomBackup() {
+  try {
+    const value = sessionStorage.getItem(hostRoomBackupKey);
+    if (!value) return null;
+    const room = JSON.parse(value) as RoomState;
+    return room?.code ? room : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeHostRoomBackup(room: RoomState) {
+  try {
+    sessionStorage.setItem(hostRoomBackupKey, JSON.stringify(room));
+  } catch {
+    // Session storage can be unavailable or full; server-side recovery still runs.
+  }
+}
+
+function clearHostRoomBackup() {
+  try {
+    sessionStorage.removeItem(hostRoomBackupKey);
+  } catch {
+    // Session storage may be unavailable in locked-down browser modes.
+  }
+}
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -246,6 +275,7 @@ export function HostPage() {
   const { status, room, error, clientId, finishedAt, send, clearError } = useRoomSocket();
   const navigate = useNavigate();
   const { setNavHidden } = useAppChrome();
+  const initialHostRoomBackup = useMemo(readHostRoomBackup, []);
   const [participantNotes, setParticipantNotes] = useState<Record<string, string>>({});
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
@@ -261,8 +291,9 @@ export function HostPage() {
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const downloadedDebriefRef = useRef<number | null>(null);
-  const activeRoomCodeRef = useRef("");
+  const activeRoomCodeRef = useRef(initialHostRoomBackup?.code ?? "");
   const resumeAttemptedForClientRef = useRef("");
+  const latestRoomRef = useRef<RoomState | null>(initialHostRoomBackup);
   const effectsAudioEnabled = isAudioEnabledForRole("host", "effects");
   const trackAudioEnabled = isAudioEnabledForRole("host", "tracks");
 
@@ -379,20 +410,24 @@ export function HostPage() {
   useEffect(() => {
     if (!finishedAt) return;
     activeRoomCodeRef.current = "";
+    latestRoomRef.current = null;
+    clearHostRoomBackup();
     navigate("/complete?role=host", { replace: true });
   }, [finishedAt, navigate]);
 
   useEffect(() => {
     if (room?.code) {
+      latestRoomRef.current = room;
       activeRoomCodeRef.current = room.code;
+      writeHostRoomBackup(room);
     }
-  }, [room?.code]);
+  }, [room]);
 
   useEffect(() => {
     if (status !== "open" || !clientId || !activeRoomCodeRef.current) return;
     if (resumeAttemptedForClientRef.current === clientId) return;
     resumeAttemptedForClientRef.current = clientId;
-    send({ type: "resume-host", code: activeRoomCodeRef.current });
+    send({ type: "resume-host", code: activeRoomCodeRef.current, room: latestRoomRef.current ?? undefined });
   }, [clientId, send, status]);
 
   useEffect(() => {

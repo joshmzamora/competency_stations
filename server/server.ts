@@ -95,7 +95,7 @@ type WsClient = {
 
 const rootDir = process.cwd();
 const distDir = path.join(rootDir, "dist");
-const dataDir = path.join(rootDir, "data");
+const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(rootDir, "data");
 const resultsPath = path.join(dataDir, "results.json");
 const roomsPath = path.join(dataDir, "rooms.json");
 const port = Number(process.env.PORT ?? 3000);
@@ -307,6 +307,71 @@ function connectedHostClients(roomCode: string) {
   return [...clients].filter((client) => client.roomCode === roomCode && client.role === "host" && client.connected);
 }
 
+function recordValue(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function recordMap(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, never> : {};
+}
+
+function restoreRoomSnapshot(value: unknown, code: string): RoomState | null {
+  const snapshot = recordValue(value);
+  if (normalizeRoomCode(snapshot.code) !== code) return null;
+  if (snapshot.status !== "lobby" && snapshot.status !== "in-progress" && snapshot.status !== "ended") return null;
+
+  const base = createInitialRoom(code);
+  const restored: RoomState = {
+    ...base,
+    code,
+    status: snapshot.status,
+    serverTime: Date.now(),
+    introStartedAt: null,
+    introCompletedAt: numberOrNull(snapshot.introCompletedAt),
+    protocolIntroStartedAt: null,
+    patientReviewActiveFileId: typeof snapshot.patientReviewActiveFileId === "string" ? snapshot.patientReviewActiveFileId : null,
+    patientReviewReviewedFileIds: Array.isArray(snapshot.patientReviewReviewedFileIds) ? snapshot.patientReviewReviewedFileIds.map((item) => String(item)) : [],
+    debriefStartedAt: numberOrNull(snapshot.debriefStartedAt),
+    debriefFocusedPromptId: typeof snapshot.debriefFocusedPromptId === "string" ? snapshot.debriefFocusedPromptId : null,
+    debriefMissedExpanded: Boolean(snapshot.debriefMissedExpanded),
+    closingStartedAt: numberOrNull(snapshot.closingStartedAt),
+    selection: null,
+    currentParticipantId: typeof snapshot.currentParticipantId === "string" ? snapshot.currentParticipantId : null,
+    sessionStartedAt: numberOrNull(snapshot.sessionStartedAt),
+    score: typeof snapshot.score === "number" && Number.isFinite(snapshot.score) ? snapshot.score : 0,
+    selectedStation: snapshot.selectedStation && typeof snapshot.selectedStation === "object" ? snapshot.selectedStation : null,
+    stationRouteStartId: typeof snapshot.stationRouteStartId === "string" ? snapshot.stationRouteStartId : null,
+    activePromptIndex: typeof snapshot.activePromptIndex === "number" && Number.isFinite(snapshot.activePromptIndex) ? Math.max(0, Math.floor(snapshot.activePromptIndex)) : 0,
+    timerEndsAt: typeof snapshot.timerEndsAt === "number" && snapshot.timerEndsAt > Date.now() ? snapshot.timerEndsAt : null,
+    timerStartedAt: numberOrNull(snapshot.timerStartedAt),
+    liveAnswer: snapshot.liveAnswer && typeof snapshot.liveAnswer === "object" ? snapshot.liveAnswer as RoomState["liveAnswer"] : null,
+    players: Array.isArray(snapshot.players)
+      ? snapshot.players.map((entry, index) => {
+        const player = recordValue(entry);
+        return {
+          id: typeof player.id === "string" ? player.id : `restored-${index}`,
+          name: typeof player.name === "string" ? player.name : `Player ${index + 1}`,
+          connected: false,
+          shape: typeof player.shape === "string" ? player.shape : undefined,
+          turnCount: typeof player.turnCount === "number" && Number.isFinite(player.turnCount) ? player.turnCount : 0
+        };
+      })
+      : [],
+    evaluations: recordMap(snapshot.evaluations) as Record<string, PromptEvaluation>,
+    activityStates: recordMap(snapshot.activityStates) as Record<string, ActivityState>,
+    createdAt: typeof snapshot.createdAt === "string" ? snapshot.createdAt : base.createdAt,
+    endedAt: typeof snapshot.endedAt === "string" ? snapshot.endedAt : undefined,
+    stats: snapshot.stats && typeof snapshot.stats === "object" ? snapshot.stats as GameStats : base.stats
+  };
+
+  recalculateStats(restored);
+  return restored;
+}
+
 function detachPlayerClient(client: WsClient, reason?: string, removeSavedParticipants = false) {
   const roomCode = client.roomCode;
   const groupId = client.groupId;
@@ -482,7 +547,11 @@ function send(client: WsClient, message: WireMessage) {
     header.writeBigUInt64BE(BigInt(json.length), 2);
   }
 
-  client.socket.write(Buffer.concat([header, json]));
+  try {
+    client.socket.write(Buffer.concat([header, json]));
+  } catch {
+    removeClient(client);
+  }
 }
 
 function sendError(client: WsClient, message: string) {
@@ -569,7 +638,9 @@ function serializableRoom(room: RoomState): RoomState {
 async function saveRoomsNow() {
   await fs.mkdir(dataDir, { recursive: true });
   const payload = [...rooms.values()].map(serializableRoom);
-  await fs.writeFile(roomsPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  const tempPath = `${roomsPath}.${process.pid}.tmp`;
+  await fs.writeFile(tempPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await fs.rename(tempPath, roomsPath);
 }
 
 function scheduleRoomsSave() {
@@ -580,6 +651,14 @@ function scheduleRoomsSave() {
       console.error("Could not save active room progress", error);
     });
   }, 120);
+}
+
+async function flushRoomsSave() {
+  if (roomsSaveTimer) {
+    clearTimeout(roomsSaveTimer);
+    roomsSaveTimer = null;
+  }
+  await saveRoomsNow();
 }
 
 async function loadRooms() {
@@ -773,6 +852,11 @@ function markMissingPromptsIncorrect(room: RoomState, promptIds: unknown) {
 }
 
 function handleSocketMessage(client: WsClient, message: WireMessage) {
+  if (message.type === "client-heartbeat") {
+    send(client, { type: "heartbeat", serverTime: Date.now() });
+    return;
+  }
+
   if (message.type === "create-room") {
     if (client.roomCode) {
       detachCurrentRoom(client, undefined, client.role === "player", false);
@@ -789,10 +873,18 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
 
   if (message.type === "resume-host") {
     const code = normalizeRoomCode(message.code);
-    const room = rooms.get(code);
+    let room = rooms.get(code);
     if (!room) {
-      sendError(client, "Previous host room was not found. Create a new room on this computer.");
-      return;
+      const restoredRoom = restoreRoomSnapshot(message.room, code);
+      if (!restoredRoom) {
+        sendError(client, "Previous host room was not found. Create a new room on this computer.");
+        return;
+      }
+      room = restoredRoom;
+      rooms.set(code, room);
+      flushRoomsSave().catch((error) => {
+        console.error("Could not save restored room", error);
+      });
     }
 
     if (client.roomCode && client.roomCode !== code) {
@@ -1490,6 +1582,23 @@ server.on("upgrade", (request, socket) => {
     socket.destroy();
   }
 });
+
+let shuttingDown = false;
+async function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  server.close();
+  try {
+    await flushRoomsSave();
+  } catch (error) {
+    console.error("Could not save active rooms during shutdown", error);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.once("SIGINT", () => void shutdown());
+process.once("SIGTERM", () => void shutdown());
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`Competency Stations is running on http://localhost:${port}`);

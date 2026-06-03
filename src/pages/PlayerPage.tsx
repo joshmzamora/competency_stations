@@ -30,6 +30,50 @@ type PlayerPerformance = PlayerState & {
   participation: number;
 };
 
+type PlayerRoomBackup = {
+  code: string;
+  names: string[];
+  groupId: string;
+  savedAt: number;
+};
+
+const playerRoomBackupKey = "competency-player-room-emergency-backup";
+const playerRoomBackupMaxAgeMs = 12 * 60 * 60 * 1000;
+
+function readPlayerRoomBackup(): PlayerRoomBackup | null {
+  try {
+    const value = sessionStorage.getItem(playerRoomBackupKey);
+    if (!value) return null;
+    const backup = JSON.parse(value) as PlayerRoomBackup;
+    if (!backup?.code || !Array.isArray(backup.names) || backup.names.length < 2 || !backup.groupId) return null;
+    if (Date.now() - Number(backup.savedAt ?? 0) > playerRoomBackupMaxAgeMs) return null;
+    return {
+      code: backup.code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8),
+      names: backup.names.map((name) => String(name).trim()).filter(Boolean).slice(0, 7),
+      groupId: String(backup.groupId),
+      savedAt: Number(backup.savedAt)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePlayerRoomBackup(backup: PlayerRoomBackup) {
+  try {
+    sessionStorage.setItem(playerRoomBackupKey, JSON.stringify({ ...backup, savedAt: Date.now() }));
+  } catch {
+    // Session storage can be unavailable or full; manual rejoin still works.
+  }
+}
+
+function clearPlayerRoomBackup() {
+  try {
+    sessionStorage.removeItem(playerRoomBackupKey);
+  } catch {
+    // Session storage may be unavailable in locked-down browser modes.
+  }
+}
+
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
     case "circle": return <CircleIcon className={className} />;
@@ -308,8 +352,11 @@ export function PlayerPage() {
   const { status, room, error, clientId, finishedAt, send, clearError } = useRoomSocket();
   const navigate = useNavigate();
   const { setNavHidden } = useAppChrome();
-  const [code, setCode] = useState(initialRoomCode);
-  const [names, setNames] = useState<string[]>(["", ""]);
+  const initialUrlRoomCode = useMemo(initialRoomCode, []);
+  const initialPlayerBackup = useMemo(readPlayerRoomBackup, []);
+  const usableInitialPlayerBackup = initialUrlRoomCode && initialPlayerBackup?.code !== initialUrlRoomCode ? null : initialPlayerBackup;
+  const [code, setCode] = useState(() => initialUrlRoomCode || usableInitialPlayerBackup?.code || "");
+  const [names, setNames] = useState<string[]>(() => usableInitialPlayerBackup?.names.length ? usableInitialPlayerBackup.names : ["", ""]);
   const [effectVisible, setEffectVisible] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
@@ -320,10 +367,13 @@ export function PlayerPage() {
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
-  const groupIdRef = useRef(getLearnerGroupId());
-  const joinedRoomCodeRef = useRef("");
-  const joinedNamesRef = useRef<string[]>([]);
+  const groupIdRef = useRef(usableInitialPlayerBackup?.groupId ?? getLearnerGroupId());
+  const joinedRoomCodeRef = useRef(usableInitialPlayerBackup?.code ?? "");
+  const joinedNamesRef = useRef<string[]>(usableInitialPlayerBackup?.names ?? []);
   const reconnectAttemptedForClientRef = useRef("");
+  const roomRecoveryAttemptsRef = useRef(0);
+  const roomRecoveryStartedServerTimeRef = useRef<number | null>(null);
+  const [roomRecoveryPending, setRoomRecoveryPending] = useState(false);
   const effectsAudioEnabled = isAudioEnabledForRole("player", "effects");
   const trackAudioEnabled = isAudioEnabledForRole("player", "tracks");
 
@@ -378,14 +428,32 @@ export function PlayerPage() {
     if (!finishedAt) return;
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];
+    clearPlayerRoomBackup();
     navigate("/complete?role=player", { replace: true });
   }, [finishedAt, navigate]);
 
   useEffect(() => {
     if (room?.code) {
       joinedRoomCodeRef.current = room.code;
+      if (joinedNamesRef.current.length >= 2) {
+        writePlayerRoomBackup({
+          code: room.code,
+          names: joinedNamesRef.current,
+          groupId: groupIdRef.current,
+          savedAt: Date.now()
+        });
+      }
     }
   }, [room?.code]);
+
+  useEffect(() => {
+    if (!roomRecoveryPending || roomRecoveryStartedServerTimeRef.current === null || !room?.serverTime) return;
+    if (room.serverTime === roomRecoveryStartedServerTimeRef.current) return;
+    roomRecoveryAttemptsRef.current = 0;
+    roomRecoveryStartedServerTimeRef.current = null;
+    setRoomRecoveryPending(false);
+    clearError();
+  }, [clearError, room?.serverTime, roomRecoveryPending]);
 
   useEffect(() => {
     if (status !== "open" || !clientId || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
@@ -399,6 +467,27 @@ export function PlayerPage() {
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];
   }, [error, room]);
+
+  useEffect(() => {
+    if (!error.includes("Room not found") || !room || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
+    if (roomRecoveryAttemptsRef.current >= 20) return;
+    roomRecoveryStartedServerTimeRef.current = room.serverTime ?? null;
+    setRoomRecoveryPending(true);
+    clearError();
+  }, [clearError, error, room]);
+
+  useEffect(() => {
+    if (!roomRecoveryPending || status !== "open") return;
+    const retryId = window.setInterval(() => {
+      if (roomRecoveryAttemptsRef.current >= 20) {
+        setRoomRecoveryPending(false);
+        return;
+      }
+      roomRecoveryAttemptsRef.current += 1;
+      send({ type: "join-room", code: joinedRoomCodeRef.current, names: joinedNamesRef.current, groupId: groupIdRef.current });
+    }, 1000);
+    return () => window.clearInterval(retryId);
+  }, [roomRecoveryPending, send, status]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
@@ -524,6 +613,7 @@ export function PlayerPage() {
     joinedRoomCodeRef.current = code;
     joinedNamesRef.current = validNames;
     reconnectAttemptedForClientRef.current = clientId;
+    writePlayerRoomBackup({ code, names: validNames, groupId: groupIdRef.current, savedAt: Date.now() });
     send({ type: "join-room", code, names: validNames, groupId: groupIdRef.current });
   }
 
@@ -533,6 +623,7 @@ export function PlayerPage() {
     } catch {
       // Session storage may be unavailable in locked-down browser modes.
     }
+    clearPlayerRoomBackup();
     groupIdRef.current = getLearnerGroupId();
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];

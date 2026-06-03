@@ -16,10 +16,27 @@ export function useRoomSocket() {
   useEffect(() => {
     let disposed = false;
     let reconnectTimer = 0;
+    let heartbeatTimer = 0;
 
     function socketIsOpeningOrOpen() {
       const socket = socketRef.current;
       return socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN;
+    }
+
+    function stopHeartbeat() {
+      if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+      heartbeatTimer = 0;
+    }
+
+    function startHeartbeat(socket: WebSocket) {
+      stopHeartbeat();
+      const sendHeartbeat = () => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "client-heartbeat" } satisfies ClientMessage));
+        }
+      };
+      sendHeartbeat();
+      heartbeatTimer = window.setInterval(sendHeartbeat, 25000);
     }
 
     function scheduleReconnect() {
@@ -38,9 +55,11 @@ export function useRoomSocket() {
       socket.addEventListener("open", () => {
         if (disposed) return;
         setStatus("open");
+        startHeartbeat(socket);
       });
       socket.addEventListener("close", () => {
         if (disposed) return;
+        stopHeartbeat();
         setStatus("closed");
         if (intentionalCloseRef.current) return;
         scheduleReconnect();
@@ -88,6 +107,7 @@ export function useRoomSocket() {
     return () => {
       disposed = true;
       window.clearTimeout(reconnectTimer);
+      stopHeartbeat();
       window.removeEventListener("focus", reconnectIfNeeded);
       window.removeEventListener("online", reconnectIfNeeded);
       document.removeEventListener("visibilitychange", reconnectIfNeeded);

@@ -182,7 +182,8 @@ export type ResultRecord = {
 
 export type ClientMessage =
   | { type: "create-room" }
-  | { type: "resume-host"; code: string }
+  | { type: "client-heartbeat" }
+  | { type: "resume-host"; code: string; room?: RoomState }
   | { type: "join-room"; code: string; names: string[]; groupId?: string }
   | { type: "leave-room" }
   | { type: "start-session" }
