@@ -68,9 +68,9 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     stationId: "hemodynamics",
     type: "verbal-response",
     title: "",
-    scenario: "How much air is used to fully inflate the balloon on a standard adult PA/Swan-Ganz catheter?",
+    scenario: "How much air is used to fully inflate the balloon on a standard adult PA/Swan-Ganz catheter, and how long should the PA catheter balloon be inflated?",
     instructions: ["Answer verbally."],
-    expectedResponse: "A standard adult PA catheter balloon usually requires a maximum of 1.5 mL/cc of air to fully inflate.",
+    expectedResponse: "A standard adult PA catheter balloon usually requires a maximum of 1.5 mL/cc of air to fully inflate. The balloon should be inflated for no more than 10 seconds or 2 respiratory cycles.",
   }),
   prompt({
     id: "hemodynamics-rv-vtach-pressure",
