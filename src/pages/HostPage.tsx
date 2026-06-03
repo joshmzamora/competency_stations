@@ -105,14 +105,14 @@ function StatusChip({ label, tone = "neutral" }: { label: string; tone?: "neutra
         ? "border-amber/35 bg-amber/10 text-amber"
         : "border-white/10 bg-white/[0.04] text-white/50";
 
-  return <span className={`rounded-full border px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.14em] ${className}`}>{label}</span>;
+  return <span className={`rounded-full border px-3 py-1.5 font-display text-xs font-bold uppercase tracking-[0.14em] ${className}`}>{label}</span>;
 }
 
 function StatTile({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
-      <div className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
-      <div className={`mt-1 font-display text-2xl font-black ${tone}`}>{value}</div>
+    <div className="rounded-md border border-white/10 bg-white/[0.035] p-4">
+      <div className="font-display text-xs font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
+      <div className={`mt-1 font-display text-3xl font-black ${tone}`}>{value}</div>
     </div>
   );
 }
@@ -144,7 +144,7 @@ function ParticipantCard({
       whileHover={{ y: -3 }}
       onClick={onSelect}
       disabled={disabled}
-      className={`group grid w-full gap-3 rounded-md border p-4 text-left transition ${active ? `${tone.border} ${tone.bg} ${tone.ring}` : "border-white/10 bg-black/35 hover:border-white/25"
+      className={`group grid w-full gap-4 rounded-md border p-5 text-left transition ${active ? `${tone.border} ${tone.bg} ${tone.ring}` : "border-white/10 bg-black/35 hover:border-white/25"
         } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${selecting ? "animate-pulse" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -154,7 +154,7 @@ function ParticipantCard({
           </div>
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-black uppercase text-white">{player.displayName}</div>
-            <div className={`mt-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] ${tone.text}`}>{player.shape ?? "shape pending"}</div>
+            <div className={`mt-0.5 font-display text-xs font-bold uppercase tracking-[0.18em] ${tone.text}`}>{player.shape ?? "shape pending"}</div>
           </div>
         </div>
         <StatusChip label={status} tone={active ? "active" : needsReview ? "review" : "neutral"} />
@@ -168,7 +168,7 @@ function ParticipantCard({
       </div>
 
       <div>
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-white/45">
+        <div className="flex items-center justify-between text-xs uppercase tracking-[0.14em] text-white/45">
           <span>Participation</span>
           <span>{player.participation}%</span>
         </div>
@@ -178,14 +178,14 @@ function ParticipantCard({
       </div>
 
       <div className="grid grid-cols-[auto_1fr] items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/35 font-display text-xs font-black text-white">
+        <div className="grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-black/35 font-display text-sm font-black text-white">
           {player.accuracy}%
         </div>
         <textarea
           value={note}
           onClick={(event) => event.stopPropagation()}
           onChange={(event) => onNoteChange(event.target.value)}
-          className="min-h-10 resize-none rounded-md border border-white/10 bg-panel/80 px-3 py-2 text-xs text-white outline-none focus:border-scrub"
+          className="min-h-12 resize-none rounded-md border border-white/10 bg-panel/80 px-4 py-3 text-sm text-white outline-none focus:border-scrub"
           placeholder="Quick participant note..."
         />
       </div>
@@ -195,9 +195,9 @@ function ParticipantCard({
 
 function HudPill({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2">
-      <div className="font-display text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">{label}</div>
-      <div className={`mt-0.5 truncate font-display text-lg font-black uppercase ${tone}`}>{value}</div>
+    <div className="rounded-md border border-white/10 bg-white/[0.035] px-4 py-3">
+      <div className="font-display text-xs font-bold uppercase tracking-[0.14em] text-white/35">{label}</div>
+      <div className={`mt-1 truncate font-display text-2xl font-black uppercase ${tone}`}>{value}</div>
     </div>
   );
 }
@@ -222,21 +222,15 @@ function SessionHud({
   duration: string;
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/35 p-4">
+    <div className="rounded-md border border-white/10 bg-black/35 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-monitor">Current station</div>
-          <div className="mt-1 truncate font-display text-3xl font-black uppercase leading-none text-white">
+          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Current station</div>
+          <div className="mt-2 truncate font-display text-4xl font-black uppercase leading-none text-white">
             {station?.shortTitle ?? "Select a station"}
           </div>
-          {prompt ? (
-            <div className="mt-3 rounded-md border border-monitor/15 bg-monitor/10 px-3 py-2">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Question in progress</div>
-              <div className="mt-1 text-sm font-semibold text-white/78">Review the scenario below and evaluate the active response.</div>
-            </div>
-          ) : null}
         </div>
-        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[520px] sm:grid-cols-5">
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:min-w-[620px] sm:grid-cols-5">
           <HudPill label="Question" value={totalPrompts ? `${promptIndex + 1}/${totalPrompts}` : "-"} tone="text-monitor" />
           <HudPill label="Active" value={activeParticipant?.displayName ?? "Pending"} tone={activeParticipant ? shapeTone(activeParticipant.shape).text : "text-white/45"} />
           <HudPill label="Station left" value={remaining} tone="text-amber" />
@@ -613,23 +607,23 @@ export function HostPage() {
           </AnimatedButton>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(240px,300px)] xl:grid-cols-[320px_minmax(0,1fr)_340px] 2xl:grid-cols-[330px_minmax(0,1fr)_360px]">
-          <aside className="grid min-w-0 content-start gap-4 overflow-hidden">
+        <div className="grid gap-5 lg:grid-cols-[minmax(300px,340px)_minmax(0,1fr)_minmax(280px,330px)] xl:grid-cols-[360px_minmax(0,1fr)_380px] 2xl:grid-cols-[380px_minmax(0,1fr)_400px]">
+          <aside className="grid min-w-0 content-start gap-5 overflow-hidden">
             {room.status === "lobby" && (
-              <div className="min-w-0 overflow-hidden rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+              <div className="min-w-0 overflow-hidden rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Room code</div>
-                    <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
+                    <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-white/45">Room code</div>
+                    <div className="mt-1 font-display text-6xl font-black leading-none text-scrub">{room.code}</div>
                   </div>
                   <StatusChip label="Staging" />
                 </div>
 
                 <div className="mt-4 grid gap-2">
                   {launchChecklist.map((item) => (
-                    <div key={item.label} className="grid min-w-0 grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] items-center gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
-                      <div className="min-w-0 truncate font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
-                      <div className={`flex min-w-0 items-center justify-end gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
+                    <div key={item.label} className="grid min-w-0 grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] items-center gap-3 rounded-md border border-white/10 bg-black/25 px-4 py-3">
+                      <div className="min-w-0 truncate font-display text-xs font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
+                      <div className={`flex min-w-0 items-center justify-end gap-2 text-right text-sm font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
                         <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
                         <span className="min-w-0 truncate">{item.value}</span>
                       </div>
@@ -637,9 +631,9 @@ export function HostPage() {
                   ))}
                 </div>
 
-                <div className="mt-3 min-w-0 overflow-hidden rounded-md border border-monitor/20 bg-monitor/10 p-3">
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
-                  <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
+                <div className="mt-3 min-w-0 overflow-hidden rounded-md border border-monitor/20 bg-monitor/10 p-4">
+                  <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
+                  <div className="mt-2 break-all text-base leading-6 text-white/75">{learnerUrl}</div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
@@ -655,24 +649,21 @@ export function HostPage() {
                     Start stations
                   </AnimatedButton>
                 </div>
-                {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
+                {!station && <p className="mt-3 text-sm text-amber">Choose a station before starting.</p>}
                 {station && connectedParticipants < 2 && (
-                  <p className="mt-3 text-xs text-amber">The learner screen must join with 2-7 participant names before the intro can start.</p>
+                  <p className="mt-3 text-sm text-amber">The learner screen must join with 2-7 participant names before the intro can start.</p>
                 )}
                 {station && connectedParticipants >= 2 && (
-                  <p className="mt-3 text-xs text-scrub">
+                  <p className="mt-3 text-sm text-scrub">
                     {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. The intro plays once, then participant selection begins."}
                   </p>
                 )}
               </div>
             )}
 
-            <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-black/35 p-4">
-              <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
-              <div className="mb-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/55">
-                Pick the first station before starting. After each station, choose the next station here; scores and results stay in one continuous session.
-              </div>
-              <div className="grid gap-2">
+            <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-black/35 p-5">
+              <div className="mb-4 font-display text-base font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
+              <div className="grid gap-3">
                 {stations.map((item, index) => {
                   const isActive = item.id === station?.id;
                   const progress = stationProgress.get(item.id);
@@ -685,7 +676,7 @@ export function HostPage() {
                         if (completedStation) return;
                         send({ type: "open-station", station: item });
                       }}
-                      className={`min-w-0 rounded-md border px-3 py-3 text-left transition ${isActive
+                      className={`min-w-0 rounded-md border px-4 py-4 text-left transition ${isActive
                         ? "border-scrub/50 bg-scrub/10 text-scrub"
                         : completedStation
                           ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
@@ -693,25 +684,25 @@ export function HostPage() {
                         } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 truncate font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
+                        <div className="min-w-0 truncate font-display text-base font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
                         {completedStation ? (
-                          <span className="rounded-full border border-scrub/35 bg-scrub/10 px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-[0.12em] text-scrub">
+                          <span className="rounded-full border border-scrub/35 bg-scrub/10 px-2.5 py-1 font-display text-[10px] font-black uppercase tracking-[0.12em] text-scrub">
                             Complete
                           </span>
                         ) : isActive ? (
-                          <span className="rounded-full border border-monitor/35 bg-monitor/10 px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-[0.12em] text-monitor">
+                          <span className="rounded-full border border-monitor/35 bg-monitor/10 px-2.5 py-1 font-display text-[10px] font-black uppercase tracking-[0.12em] text-monitor">
                             Live
                           </span>
                         ) : null}
                       </div>
                       <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
                           <div
                             className={`h-full rounded-full ${completedStation ? "bg-scrub" : isActive ? "bg-monitor" : "bg-white/35"}`}
                             style={{ width: `${progress?.total ? Math.round((progress.completed / progress.total) * 100) : 0}%` }}
                           />
                         </div>
-                        <div className="font-display text-[10px] font-black text-white/45">{progress?.completed ?? 0}/{progress?.total ?? item.prompts.length}</div>
+                        <div className="font-display text-xs font-black text-white/45">{progress?.completed ?? 0}/{progress?.total ?? item.prompts.length}</div>
                       </div>
                     </button>
                   );
@@ -720,7 +711,7 @@ export function HostPage() {
             </div>
           </aside>
 
-          <main className="grid min-w-0 content-start gap-4">
+          <main className="grid min-w-0 content-start gap-5">
             <SessionHud
               station={station}
               prompt={prompt}
@@ -753,12 +744,12 @@ export function HostPage() {
                   </AnimatedButton>
                 </div>
                 {!currentEvaluation && (
-                  room.status === "in-progress" ? <div className="rounded-md border border-amber/20 bg-amber/10 p-3 text-sm text-amber">
+                  room.status === "in-progress" ? <div className="rounded-md border border-amber/20 bg-amber/10 p-4 text-base text-amber">
                     Mark this question Correct, Partial, or Incorrect before moving on.
                   </div> : null
                 )}
                 {atLastPrompt && currentEvaluation && (
-                  <div className="rounded-md border border-monitor/20 bg-monitor/10 p-3 text-sm text-monitor">
+                  <div className="rounded-md border border-monitor/20 bg-monitor/10 p-4 text-base text-monitor">
                     Station complete. Choose the next station from the station navigation list.
                   </div>
                 )}
@@ -766,9 +757,9 @@ export function HostPage() {
             )}
           </main>
 
-          <aside className="grid min-w-0 content-start gap-4">
+          <aside className="grid min-w-0 content-start gap-5">
             <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
                 15s
               </AnimatedButton>
@@ -779,7 +770,7 @@ export function HostPage() {
                 60s
               </AnimatedButton>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <AnimatedButton variant="ghost" onClick={() => send({ type: "start-timer", seconds: prompt?.timerSeconds ?? 60 })} disabled={!prompt}>
                 <Timer className="h-4 w-4" />
                 Custom
@@ -790,22 +781,22 @@ export function HostPage() {
               </AnimatedButton>
             </div>
 
-            <div className="rounded-md border border-white/10 bg-black/35 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Evaluation</div>
-                <ClipboardList className="h-4 w-4 text-monitor" />
+            <div className="rounded-md border border-white/10 bg-black/35 p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="font-display text-base font-bold uppercase tracking-[0.18em] text-monitor">Evaluation</div>
+                <ClipboardList className="h-5 w-5 text-monitor" />
               </div>
               {activeParticipant ? (
-                <div className={`mb-3 rounded-md border p-3 ${shapeTone(activeParticipant.shape).border} ${shapeTone(activeParticipant.shape).bg}`}>
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Evaluating</div>
-                  <div className="mt-1 font-display text-xl font-black uppercase text-white">{activeParticipant.displayName}</div>
+                <div className={`mb-4 rounded-md border p-4 ${shapeTone(activeParticipant.shape).border} ${shapeTone(activeParticipant.shape).bg}`}>
+                  <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/45">Evaluating</div>
+                  <div className="mt-1 font-display text-2xl font-black uppercase text-white">{activeParticipant.displayName}</div>
                 </div>
               ) : !promptUsesSelection ? (
-                <div className="mb-3 rounded-md border border-monitor/25 bg-monitor/10 p-3 text-xs leading-5 text-monitor">
+                <div className="mb-4 rounded-md border border-monitor/25 bg-monitor/10 p-4 text-sm leading-6 text-monitor">
                   This prompt is scored as a group response. No random participant selection is required.
                 </div>
               ) : null}
-              <div className="mt-3 grid gap-2">
+              <div className="mt-4 grid gap-3">
                 <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
                   <Check className="h-4 w-4" />
                   Correct
@@ -820,7 +811,7 @@ export function HostPage() {
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
+            <div className="grid gap-3 rounded-md border border-white/10 bg-black/25 p-4">
               <AnimatedButton variant="danger" onClick={() => setEndConfirmOpen(true)}>
                 <Power className="h-4 w-4" />
                 End session
@@ -829,10 +820,10 @@ export function HostPage() {
           </aside>
 
           <div className="lg:col-span-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
-                <h3 className="font-display text-2xl font-black uppercase text-white">Turn balance and individual performance</h3>
+                <div className="font-display text-sm font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
+                <h3 className="font-display text-3xl font-black uppercase text-white">Turn balance and individual performance</h3>
               </div>
               <StatusChip label={`${participantStats.length} assigned`} />
             </div>
