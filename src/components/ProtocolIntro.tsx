@@ -10,7 +10,7 @@ const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
 const fadeOutMs = 2200;
 const openingMs = 5200;
-const closingMs = 1600;
+const closingMs = 7000;
 const visualTickMs = 90;
 const audioSyncMs = 220;
 

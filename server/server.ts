@@ -992,13 +992,13 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.selection = null;
       const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
-      // Clear after 25s so re-broadcasts don't re-trigger the intro
+      // Clear after the client animation completes so re-broadcasts don't re-trigger the intro.
       setTimeout(() => {
         if (room.protocolIntroStartedAt === assignmentStartedAt) {
           room.protocolIntroStartedAt = null;
           broadcastState(room.code);
         }
-      }, 25000);
+      }, 24000);
       break;
     }
     case "skip-protocol-assignment": {
