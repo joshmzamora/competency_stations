@@ -608,7 +608,8 @@ export function HostPage() {
           </AnimatedButton>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[330px_1fr_380px]">
+        <div className="-mx-4 overflow-x-auto px-4 pb-2">
+          <div className="grid min-w-[1440px] grid-cols-[330px_minmax(620px,1fr)_360px] gap-6">
           <aside className="grid content-start gap-4">
             {room.status === "lobby" && (
               <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
@@ -636,7 +637,7 @@ export function HostPage() {
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
                   <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
                 </div>
-                <div className="mt-4 grid gap-2 sm:grid-cols-[0.75fr_1fr_1.1fr]">
+                <div className="mt-4 grid grid-cols-2 gap-2">
                   <AnimatedButton variant="ghost" onClick={() => navigator.clipboard.writeText(room.code)}>
                     <Copy className="h-4 w-4" />
                     Copy
@@ -645,7 +646,7 @@ export function HostPage() {
                     <Play className="h-4 w-4" />
                     Start intro
                   </AnimatedButton>
-                  <AnimatedButton variant="ghost" onClick={startStationsNow} disabled={!canStartSession}>
+                  <AnimatedButton variant="ghost" className="col-span-2" onClick={startStationsNow} disabled={!canStartSession}>
                     <SkipForward className="h-4 w-4" />
                     Start stations
                   </AnimatedButton>
@@ -715,7 +716,7 @@ export function HostPage() {
             </div>
           </aside>
 
-          <main className="grid content-start gap-4">
+          <main className="grid min-w-0 content-start gap-4">
             <SessionHud
               station={station}
               prompt={prompt}
@@ -728,7 +729,7 @@ export function HostPage() {
             />
 
             {!station ? (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid min-w-0 gap-4 md:grid-cols-2">
                 {stations.map((item) => (
                   <StationCard key={item.id} station={item} onSelect={(nextStation) => send({ type: "open-station", station: nextStation })} />
                 ))}
@@ -761,7 +762,7 @@ export function HostPage() {
             )}
           </main>
 
-          <aside className="grid content-start gap-4">
+          <aside className="grid min-w-0 content-start gap-4">
             <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
             <div className="grid grid-cols-3 gap-2">
               <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
@@ -823,7 +824,7 @@ export function HostPage() {
             </div>
           </aside>
 
-          <div className="lg:col-span-3">
+          <div className="col-span-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
@@ -848,6 +849,7 @@ export function HostPage() {
                 />
               ))}
             </div>
+          </div>
           </div>
         </div>
       )}

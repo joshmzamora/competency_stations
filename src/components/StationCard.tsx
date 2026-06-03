@@ -27,7 +27,7 @@ export function StationCard({
       whileHover={{ y: -5, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(station)}
-      className="group min-h-[260px] rounded-md border border-white/10 bg-black/40 p-5 text-left shadow-scrub transition hover:border-scrub/35"
+      className="group min-h-[260px] rounded-md border border-white/10 bg-black/40 p-5 text-left shadow-[0_18px_46px_rgba(0,0,0,0.28)] transition hover:border-scrub/35 hover:shadow-scrub"
     >
       <div className="flex items-start justify-between gap-4">
         <span className={`rounded-md border px-3 py-2 ${accentClasses[station.accent]}`}>
