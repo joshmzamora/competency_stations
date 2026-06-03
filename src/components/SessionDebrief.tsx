@@ -28,12 +28,16 @@ function statusTone(status: EvaluationStatus) {
   return "text-trauma";
 }
 
-const closingShapes = [
-  { label: "triangle", Icon: Triangle, tone: "text-trauma", x: "6%", y: "13%" },
-  { label: "star", Icon: Star, tone: "text-amber", x: "76%", y: "10%" },
-  { label: "umbrella", Icon: Umbrella, tone: "text-white", x: "10%", y: "68%" },
-  { label: "circle", Icon: Circle, tone: "text-scrub", x: "78%", y: "65%" },
-  { label: "square", Icon: Square, tone: "text-monitor", x: "47%", y: "76%" }
+const closingDecorations = [
+  { kind: "shape", label: "triangle", Icon: Triangle, tone: "text-trauma", band: "top", left: "8%", top: "20%", rotate: -8, delay: 0 },
+  { kind: "cookie", label: "cookie-top-left", band: "top", left: "24%", top: "58%", rotate: 10, delay: 0.1 },
+  { kind: "shape", label: "star", Icon: Star, tone: "text-amber", band: "top", left: "62%", top: "16%", rotate: 7, delay: 0.18 },
+  { kind: "cookie", label: "cookie-top-right", band: "top", left: "84%", top: "52%", rotate: -12, delay: 0.28 },
+  { kind: "cookie", label: "cookie-bottom-left", band: "bottom", left: "10%", top: "18%", rotate: -7, delay: 0.08 },
+  { kind: "shape", label: "umbrella", Icon: Umbrella, tone: "text-white", band: "bottom", left: "29%", top: "50%", rotate: 9, delay: 0.16 },
+  { kind: "shape", label: "square", Icon: Square, tone: "text-monitor", band: "bottom", left: "52%", top: "22%", rotate: -5, delay: 0.24 },
+  { kind: "shape", label: "circle", Icon: Circle, tone: "text-scrub", band: "bottom", left: "74%", top: "56%", rotate: 6, delay: 0.32 },
+  { kind: "cookie", label: "cookie-bottom-right", band: "bottom", left: "90%", top: "18%", rotate: 12, delay: 0.4 }
 ];
 
 function CookieDisk() {
@@ -50,20 +54,27 @@ function CookieDisk() {
   );
 }
 
-function ClosingShapeBackdrop() {
+function ClosingScatterBand({ band }: { band: "top" | "bottom" }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {closingShapes.map(({ label, Icon, tone, x, y }, index) => (
+    <div className="pointer-events-none relative min-h-24 w-full overflow-hidden sm:min-h-28 md:min-h-32">
+      {closingDecorations.filter((item) => item.band === band).map((item, index) => (
         <motion.div
-          key={label}
-          className="absolute grid h-32 w-32 place-items-center rounded-md border border-white/10 bg-white/[0.035]"
-          style={{ left: x, top: y }}
+          key={item.label}
+          className="absolute grid h-16 w-16 place-items-center rounded-md border border-white/10 bg-white/[0.035] sm:h-20 sm:w-20"
+          style={{
+            left: item.left,
+            top: item.top,
+            rotate: `${item.rotate}deg`
+          }}
           initial={{ opacity: 0, scale: 0.78, rotate: -8 }}
           animate={{ opacity: 0.82, scale: 1, rotate: 0 }}
-          transition={{ duration: 0.55, delay: 0.12 + index * 0.08 }}
+          transition={{ duration: 0.55, delay: item.delay + index * 0.02 }}
         >
-          <Icon className={`absolute h-24 w-24 ${tone} opacity-50`} strokeWidth={1.6} />
-          <CookieDisk />
+          {item.kind === "shape" && item.Icon ? (
+            <item.Icon className={`h-10 w-10 sm:h-14 sm:w-14 ${item.tone} opacity-80`} strokeWidth={1.7} />
+          ) : (
+            <CookieDisk />
+          )}
         </motion.div>
       ))}
     </div>
@@ -356,47 +367,50 @@ export function SessionDebrief({
       <AnimatePresence>
         {closingOpen ? (
           <motion.div
-            className="fixed inset-0 z-[240] grid place-items-center overflow-hidden bg-[#050607] px-4 text-center text-white"
+            className="fixed inset-0 z-[240] overflow-y-auto bg-[#050607] px-4 text-center text-white"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <ClosingShapeBackdrop />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,176,32,0.12),transparent_34%),radial-gradient(circle_at_50%_75%,rgba(110,247,255,0.08),transparent_42%)]" />
-            <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.55, delay: 0.25 }}
-              className="relative max-w-4xl rounded-md border border-white/10 bg-black/70 p-8 shadow-[0_0_90px_rgba(255,48,77,0.18)] md:p-12"
-            >
-              <ShieldCheck className="mx-auto h-12 w-12 text-scrub" />
-              <div className="mt-5 font-display text-xs font-black uppercase tracking-[0.32em] text-monitor">Simulation complete</div>
-              <h2 className="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Debrief Finished</h2>
-              <div className="mx-auto mt-5 flex justify-center">
-                <motion.div animate={{ rotate: [0, -4, 4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
-                  <CookieDisk />
-                </motion.div>
-              </div>
-              <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold leading-9 text-white/78">
-                Enjoy your Squid Game cookies.
-              </p>
-              {role === "host" && (
-                <p className="mx-auto mt-4 max-w-2xl text-white/50">
-                  Facilitator: distribute cookies, answer final questions, and thank the team for completing the competency stations.
-                </p>
-              )}
-              {role === "host" && (
-                <div className="mx-auto mt-7 grid max-w-md gap-2 sm:grid-cols-2">
-                  <AnimatedButton variant="ghost" onClick={onDownload}>
-                    <Download className="h-4 w-4" />
-                    Report
-                  </AnimatedButton>
-                  <AnimatedButton variant="secondary" onClick={onEnd}>
-                    Finish
-                  </AnimatedButton>
+            <div className="relative mx-auto grid min-h-screen max-w-6xl grid-rows-[auto_auto_auto] content-center gap-4 py-4">
+              <ClosingScatterBand band="top" />
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.55, delay: 0.25 }}
+                className="relative z-10 mx-auto max-w-4xl rounded-md border border-white/10 bg-black/70 p-8 shadow-[0_0_90px_rgba(255,48,77,0.18)] md:p-12"
+              >
+                <ShieldCheck className="mx-auto h-12 w-12 text-scrub" />
+                <div className="mt-5 font-display text-xs font-black uppercase tracking-[0.32em] text-monitor">Simulation complete</div>
+                <h2 className="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Debrief Finished</h2>
+                <div className="mx-auto mt-5 flex justify-center">
+                  <motion.div animate={{ rotate: [0, -4, 4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+                    <CookieDisk />
+                  </motion.div>
                 </div>
-              )}
-            </motion.div>
+                <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold leading-9 text-white/78">
+                  Enjoy your Squid Game cookies.
+                </p>
+                {role === "host" && (
+                  <p className="mx-auto mt-4 max-w-2xl text-white/50">
+                    Facilitator: distribute cookies, answer final questions, and thank the team for completing the competency stations.
+                  </p>
+                )}
+                {role === "host" && (
+                  <div className="mx-auto mt-7 grid max-w-md gap-2 sm:grid-cols-2">
+                    <AnimatedButton variant="ghost" onClick={onDownload}>
+                      <Download className="h-4 w-4" />
+                      Report
+                    </AnimatedButton>
+                    <AnimatedButton variant="secondary" onClick={onEnd}>
+                      Finish
+                    </AnimatedButton>
+                  </div>
+                )}
+              </motion.div>
+              <ClosingScatterBand band="bottom" />
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
