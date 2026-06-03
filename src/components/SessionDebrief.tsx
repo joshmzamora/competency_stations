@@ -339,7 +339,7 @@ export function SessionDebrief({
                     <div className="rounded-md border border-amber/25 bg-amber/10 p-5">
                       <div className="font-display text-sm font-black uppercase tracking-[0.18em] text-amber">Evaluator controls</div>
                       <p className="mt-2 text-sm leading-6 text-white/62">
-                        The missed-question report is downloaded automatically on the host computer. Use these controls if you need another copy or are ready to close.
+                        The missed-question report is available when you need it. Download it here or continue to closing when the review is complete.
                       </p>
                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
                         <AnimatedButton variant="ghost" onClick={onDownload}>

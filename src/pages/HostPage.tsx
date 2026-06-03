@@ -290,7 +290,6 @@ export function HostPage() {
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
-  const downloadedDebriefRef = useRef<number | null>(null);
   const activeRoomCodeRef = useRef(initialHostRoomBackup?.code ?? "");
   const resumeAttemptedForClientRef = useRef("");
   const latestRoomRef = useRef<RoomState | null>(initialHostRoomBackup);
@@ -444,12 +443,6 @@ export function HostPage() {
   useEffect(() => {
     setDismissedStationCompleteId(null);
   }, [stationId]);
-
-  useEffect(() => {
-    if (!room?.debriefStartedAt || room.closingStartedAt || downloadedDebriefRef.current === room.debriefStartedAt) return;
-    downloadedDebriefRef.current = room.debriefStartedAt;
-    downloadMissedReport();
-  }, [downloadMissedReport, room?.closingStartedAt, room?.debriefStartedAt]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
