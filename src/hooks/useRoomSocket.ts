@@ -33,8 +33,6 @@ export function useRoomSocket() {
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
       socketRef.current = socket;
-      roomRef.current = null;
-      setRoom(null);
       setStatus("connecting");
 
       socket.addEventListener("open", () => {
@@ -43,8 +41,6 @@ export function useRoomSocket() {
       });
       socket.addEventListener("close", () => {
         if (disposed) return;
-        roomRef.current = null;
-        setRoom(null);
         setStatus("closed");
         if (intentionalCloseRef.current) return;
         scheduleReconnect();

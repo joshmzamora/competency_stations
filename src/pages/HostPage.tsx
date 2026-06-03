@@ -385,16 +385,15 @@ export function HostPage() {
   useEffect(() => {
     if (room?.code) {
       activeRoomCodeRef.current = room.code;
-      resumeAttemptedForClientRef.current = clientId;
     }
-  }, [clientId, room?.code]);
+  }, [room?.code]);
 
   useEffect(() => {
-    if (status !== "open" || room || !clientId || !activeRoomCodeRef.current) return;
+    if (status !== "open" || !clientId || !activeRoomCodeRef.current) return;
     if (resumeAttemptedForClientRef.current === clientId) return;
     resumeAttemptedForClientRef.current = clientId;
     send({ type: "resume-host", code: activeRoomCodeRef.current });
-  }, [clientId, room, send, status]);
+  }, [clientId, send, status]);
 
   useEffect(() => {
     if (!error || room) return;

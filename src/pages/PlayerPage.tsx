@@ -330,16 +330,15 @@ export function PlayerPage() {
   useEffect(() => {
     if (room?.code) {
       joinedRoomCodeRef.current = room.code;
-      reconnectAttemptedForClientRef.current = clientId;
     }
-  }, [clientId, room?.code]);
+  }, [room?.code]);
 
   useEffect(() => {
-    if (status !== "open" || room || !clientId || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
+    if (status !== "open" || !clientId || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
     if (reconnectAttemptedForClientRef.current === clientId) return;
     reconnectAttemptedForClientRef.current = clientId;
     send({ type: "join-room", code: joinedRoomCodeRef.current, names: joinedNamesRef.current, groupId: groupIdRef.current });
-  }, [clientId, room, send, status]);
+  }, [clientId, send, status]);
 
   useEffect(() => {
     if (!error || room) return;

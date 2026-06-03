@@ -36,7 +36,9 @@ const caseFiles: CaseFile[] = [
       ["Patient Name", "Emma Gonnadye"],
       ["Age", "67"],
       ["Gender", "Female"],
-      ["Weight", "90 kg"],
+      ["Height", "5'2\""],
+      ["Weight", "167 lb (75.7 kg)"],
+      ["BMI", "30.5"],
       ["Diagnosis", "Acute exacerbation of congestive heart failure, EF 20%; COPD; chronic atrial fibrillation"]
     ]
   },
@@ -251,9 +253,9 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
             <KeyRound className="h-3.5 w-3.5 text-monitor" />
             Patient ID Strip
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            {["Emma G.", "67F", "90 kg"].map((item) => (
-              <div key={item} className="rounded-md border border-monitor/15 bg-monitor/10 px-5 py-4 font-display text-2xl font-black uppercase text-monitor">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            {["Emma G.", "67F", "167 lb / 75.7 kg", "5'2\"", "BMI 30.5"].map((item) => (
+              <div key={item} className="rounded-md border border-monitor/15 bg-monitor/10 px-4 py-4 font-display text-xl font-black uppercase text-monitor">
                 {item}
               </div>
             ))}
