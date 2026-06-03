@@ -105,6 +105,8 @@ const clients = new Set<WsClient>();
 const rooms = new Map<string, RoomState>();
 let roomsSaveTimer: NodeJS.Timeout | null = null;
 const websocketHeartbeatMs = 15000;
+const minParticipants = 2;
+const maxParticipants = 7;
 
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -415,10 +417,10 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
 }
 
 function assignShapesToRoom(room: RoomState) {
-  const priorityShapes = ["triangle", "star", "umbrella", "circle", "square"];
+  const priorityShapes = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
   const shapes = priorityShapes.slice(0, Math.max(0, Math.min(room.players.length, priorityShapes.length)));
 
-  // Shuffle the priority pool so assignments stay random while keeping square for a fifth participant.
+  // Shuffle the shape pool so assignments stay random while keeping each participant visually distinct.
   for (let i = shapes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shapes[i], shapes[j]] = [shapes[j], shapes[i]];
@@ -826,7 +828,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const currentClientAlreadyInRoom = existingPlayerClients.some((existingClient) => existingClient.id === client.id);
     const otherLearnerConnected = existingPlayerClients.some((existingClient) => existingClient.id !== client.id && existingClient.groupId !== groupId);
     if (otherLearnerConnected || (existingPlayerClients.length >= 1 && !currentClientAlreadyInRoom && !reconnectingSameLearner)) {
-      sendError(client, "A learner screen is already connected. This simulation supports one player computer with 2-5 participants.");
+      sendError(client, `A learner screen is already connected. This simulation supports one player computer with ${minParticipants}-${maxParticipants} participants.`);
       return;
     }
 
@@ -834,10 +836,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     const names = rawNames
       .map((n) => String(n).trim().slice(0, 24))
       .filter(Boolean)
-      .slice(0, 5);
+      .slice(0, maxParticipants);
 
-    if (names.length < 2) {
-      sendError(client, "Enter at least 2 participant names on the learner screen before joining.");
+    if (names.length < minParticipants) {
+      sendError(client, `Enter at least ${minParticipants} participant names on the learner screen before joining.`);
       return;
     }
 
@@ -902,8 +904,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       if (client.role !== "host") return;
       const playerConnections = connectedPlayerClients(room.code);
       const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
-      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
-        sendError(client, "Connect exactly one learner screen with 2-5 participants before starting the session.");
+      if (playerConnections.length !== 1 || connectedParticipantCount < minParticipants || connectedParticipantCount > maxParticipants) {
+        sendError(client, `Connect exactly one learner screen with ${minParticipants}-${maxParticipants} participants before starting the session.`);
         return;
       }
       room.status = "in-progress";
@@ -922,8 +924,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       if (client.role !== "host") return;
       const playerConnections = connectedPlayerClients(room.code);
       const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
-      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
-        sendError(client, "Connect exactly one learner screen with 2-5 participants before starting the session.");
+      if (playerConnections.length !== 1 || connectedParticipantCount < minParticipants || connectedParticipantCount > maxParticipants) {
+        sendError(client, `Connect exactly one learner screen with ${minParticipants}-${maxParticipants} participants before starting the session.`);
         return;
       }
       assignShapesToRoom(room);
@@ -979,8 +981,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       if (client.role !== "host") return;
       const playerConnections = connectedPlayerClients(room.code);
       const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
-      if (playerConnections.length !== 1 || connectedParticipantCount < 2 || connectedParticipantCount > 5) {
-        sendError(client, "Connect exactly one learner screen with 2-5 participants before assigning identities.");
+      if (playerConnections.length !== 1 || connectedParticipantCount < minParticipants || connectedParticipantCount > maxParticipants) {
+        sendError(client, `Connect exactly one learner screen with ${minParticipants}-${maxParticipants} participants before assigning identities.`);
         return;
       }
       assignShapesToRoom(room);

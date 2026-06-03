@@ -1,4 +1,4 @@
-import { Circle as CircleIcon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella, UsersRound } from "lucide-react";
+import { Circle as CircleIcon, Diamond, Hexagon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella, UsersRound } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -37,6 +37,8 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
     case "square": return <SquareIcon className={className} />;
     case "star": return <Star className={className} />;
     case "umbrella": return <Umbrella className={className} />;
+    case "diamond": return <Diamond className={className} />;
+    case "hexagon": return <Hexagon className={className} />;
   }
 }
 
@@ -53,6 +55,8 @@ function shapeTone(shape?: PlayerShape) {
     case "square": return { text: "text-monitor", border: "border-monitor/45", bg: "bg-monitor/10", shadow: "shadow-[0_0_44px_rgba(110,247,255,0.18)]" };
     case "star": return { text: "text-amber", border: "border-amber/45", bg: "bg-amber/10", shadow: "shadow-[0_0_44px_rgba(255,176,32,0.18)]" };
     case "umbrella": return { text: "text-white", border: "border-white/35", bg: "bg-white/10", shadow: "shadow-[0_0_38px_rgba(255,255,255,0.12)]" };
+    case "diamond": return { text: "text-fuchsia-300", border: "border-fuchsia-300/45", bg: "bg-fuchsia-300/10", shadow: "shadow-[0_0_44px_rgba(240,171,252,0.18)]" };
+    case "hexagon": return { text: "text-lime-300", border: "border-lime-300/45", bg: "bg-lime-300/10", shadow: "shadow-[0_0_44px_rgba(190,242,100,0.16)]" };
     default: return { text: "text-white/40", border: "border-white/10", bg: "bg-white/[0.04]", shadow: "" };
   }
 }
@@ -507,7 +511,7 @@ export function PlayerPage() {
   }
 
   function addPlayer() {
-    if (names.length < 5) setNames([...names, ""]);
+    if (names.length < 7) setNames([...names, ""]);
   }
 
   function removePlayer(index: number) {
@@ -516,7 +520,7 @@ export function PlayerPage() {
 
   function join(event: FormEvent) {
     event.preventDefault();
-    if (validNames.length < 2 || validNames.length > 5) return;
+    if (validNames.length < 2 || validNames.length > 7) return;
     joinedRoomCodeRef.current = code;
     joinedNamesRef.current = validNames;
     reconnectAttemptedForClientRef.current = clientId;
@@ -542,7 +546,7 @@ export function PlayerPage() {
           <div className="mb-6">
             <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-scrub">Learner monitor</div>
             <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Join Simulation</h1>
-            <p className="mt-3 max-w-2xl text-white/62">Use one learner screen for the room. Add the names of the 2-5 participants who will take turns answering verbally.</p>
+            <p className="mt-3 max-w-2xl text-white/62">Use one learner screen for the room. Add the names of the 2-7 participants who will take turns answering verbally.</p>
           </div>
           <form onSubmit={join} className="grid gap-6 rounded-md border border-white/10 bg-black/35 p-6">
             <label className="grid gap-2">
@@ -557,11 +561,11 @@ export function PlayerPage() {
             </label>
             <div className="grid gap-3">
               <div className="flex items-center justify-between">
-                <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Participants (2-5)</span>
+                <span className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/55">Participants (2-7)</span>
                 <button
                   type="button"
                   onClick={addPlayer}
-                  disabled={names.length >= 5}
+                  disabled={names.length >= 7}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white disabled:opacity-30"
                 >
                   <Plus className="h-4 w-4" />
@@ -590,7 +594,7 @@ export function PlayerPage() {
               </div>
             </div>
             {validNames.length < 2 && <p className="text-sm text-amber">Enter at least 2 participant names before joining.</p>}
-            <AnimatedButton disabled={status !== "open" || code.trim().length < 4 || validNames.length < 2 || validNames.length > 5}>
+            <AnimatedButton disabled={status !== "open" || code.trim().length < 4 || validNames.length < 2 || validNames.length > 7}>
               <Radio className="h-4 w-4" />
               Join simulation
             </AnimatedButton>

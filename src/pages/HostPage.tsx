@@ -4,6 +4,8 @@ import {
   Circle as CircleIcon,
   ClipboardList,
   Copy,
+  Diamond,
+  Hexagon,
   PauseCircle,
   Play,
   Power,
@@ -56,6 +58,8 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
     case "square": return <SquareIcon className={className} />;
     case "star": return <Star className={className} />;
     case "umbrella": return <Umbrella className={className} />;
+    case "diamond": return <Diamond className={className} />;
+    case "hexagon": return <Hexagon className={className} />;
   }
 }
 
@@ -72,6 +76,8 @@ function shapeTone(shape?: PlayerShape) {
     case "square": return { text: "text-monitor", border: "border-monitor/45", bg: "bg-monitor/10", ring: "shadow-[0_0_36px_rgba(110,247,255,0.18)]" };
     case "star": return { text: "text-amber", border: "border-amber/45", bg: "bg-amber/10", ring: "shadow-[0_0_36px_rgba(255,176,32,0.18)]" };
     case "umbrella": return { text: "text-white", border: "border-white/35", bg: "bg-white/10", ring: "shadow-[0_0_34px_rgba(255,255,255,0.12)]" };
+    case "diamond": return { text: "text-fuchsia-300", border: "border-fuchsia-300/45", bg: "bg-fuchsia-300/10", ring: "shadow-[0_0_36px_rgba(240,171,252,0.18)]" };
+    case "hexagon": return { text: "text-lime-300", border: "border-lime-300/45", bg: "bg-lime-300/10", ring: "shadow-[0_0_36px_rgba(190,242,100,0.16)]" };
     default: return { text: "text-white/40", border: "border-white/10", bg: "bg-white/[0.04]", ring: "" };
   }
 }
@@ -289,10 +295,10 @@ export function HostPage() {
   }, []);
   const learnerUrl = room?.code ? `${window.location.origin}/player?room=${encodeURIComponent(room.code)}` : `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
-  const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 5);
+  const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 7);
   const launchChecklist = [
     { label: "Station", value: station?.shortTitle ?? "Choose station", ready: Boolean(station) },
-    { label: "Participants", value: `${connectedParticipants}/5 connected`, ready: connectedParticipants >= 2 && connectedParticipants <= 5 },
+    { label: "Participants", value: `${connectedParticipants}/7 connected`, ready: connectedParticipants >= 2 && connectedParticipants <= 7 },
     { label: "Intro", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
   ];
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
@@ -586,7 +592,7 @@ export function HostPage() {
           <div>
             <h2 className="font-display text-3xl font-bold uppercase tracking-[0.08em] text-white">Start an online simulation room</h2>
             <p className="mt-3 max-w-2xl text-white/65">
-              Create the room, have the learner screen join with 2-5 participant names, select a station, then start the simulation intro.
+              Create the room, have the learner screen join with 2-7 participant names, select a station, then start the simulation intro.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -651,7 +657,7 @@ export function HostPage() {
                 </div>
                 {!station && <p className="mt-3 text-xs text-amber">Choose a station before starting.</p>}
                 {station && connectedParticipants < 2 && (
-                  <p className="mt-3 text-xs text-amber">The learner screen must join with 2-5 participant names before the intro can start.</p>
+                  <p className="mt-3 text-xs text-amber">The learner screen must join with 2-7 participant names before the intro can start.</p>
                 )}
                 {station && connectedParticipants >= 2 && (
                   <p className="mt-3 text-xs text-scrub">

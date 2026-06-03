@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Diamond, Hexagon, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState, SelectionState } from "../types";
 
@@ -20,6 +20,10 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
       return <Star className={className} />;
     case "umbrella":
       return <Umbrella className={className} />;
+    case "diamond":
+      return <Diamond className={className} />;
+    case "hexagon":
+      return <Hexagon className={className} />;
   }
 }
 
@@ -35,6 +39,10 @@ function shapeColor(shape?: PlayerShape) {
       return "text-amber";
     case "umbrella":
       return "text-white";
+    case "diamond":
+      return "text-fuchsia-300";
+    case "hexagon":
+      return "text-lime-300";
     default:
       return "text-white/35";
   }
@@ -52,6 +60,10 @@ function shapeBorder(shape?: PlayerShape) {
       return "border-amber/70 shadow-[0_0_50px_rgba(255,176,32,0.22)]";
     case "umbrella":
       return "border-white/45 shadow-[0_0_50px_rgba(255,255,255,0.12)]";
+    case "diamond":
+      return "border-fuchsia-300/70 shadow-[0_0_50px_rgba(240,171,252,0.2)]";
+    case "hexagon":
+      return "border-lime-300/70 shadow-[0_0_50px_rgba(190,242,100,0.18)]";
     default:
       return "border-white/10";
   }
@@ -217,7 +229,7 @@ const RouletteBar = memo(function RouletteBar({ players, reelPosition }: { playe
 
 const SelectionRoster = memo(function SelectionRoster({ players, activeId }: { players: PlayerState[]; activeId?: string }) {
   return (
-    <div className="grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid w-full max-w-6xl gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       {players.map((player, index) => {
         const active = player.id === activeId;
         return (

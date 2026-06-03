@@ -90,7 +90,7 @@ export type SelectionState = {
   durationMs: number;
 };
 
-export type PlayerShape = "triangle" | "star" | "umbrella" | "circle" | "square";
+export type PlayerShape = "triangle" | "star" | "umbrella" | "circle" | "square" | "diamond" | "hexagon";
 
 export type PlayerState = {
   id: string;

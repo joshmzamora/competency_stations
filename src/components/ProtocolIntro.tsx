@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Diamond, Hexagon, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
 import { PhaseBrief } from "./PhaseBrief";
 
-const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square"];
+const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
 const totalDurationMs = 22000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
@@ -15,7 +15,7 @@ const visualTickMs = 90;
 const audioSyncMs = 220;
 
 function segmentMs(playerCount: number) {
-  return Math.max(2600, (totalDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
+  return Math.max(1200, (totalDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
 }
 
 function revealAt(index: number, playerCount: number) {
@@ -34,6 +34,10 @@ function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: strin
       return <Star className={className} />;
     case "umbrella":
       return <Umbrella className={className} />;
+    case "diamond":
+      return <Diamond className={className} />;
+    case "hexagon":
+      return <Hexagon className={className} />;
   }
 }
 
@@ -49,6 +53,10 @@ function shapeColor(shape: PlayerShape) {
       return "text-scrub";
     case "square":
       return "text-monitor";
+    case "diamond":
+      return "text-fuchsia-300";
+    case "hexagon":
+      return "text-lime-300";
   }
 }
 
@@ -58,6 +66,8 @@ function shapeRing(shape?: PlayerShape) {
   if (shape === "umbrella") return "border-white/45 shadow-[0_0_70px_rgba(255,255,255,0.14)]";
   if (shape === "circle") return "border-scrub/65 shadow-[0_0_70px_rgba(36,245,199,0.22)]";
   if (shape === "square") return "border-monitor/65 shadow-[0_0_70px_rgba(110,247,255,0.2)]";
+  if (shape === "diamond") return "border-fuchsia-300/65 shadow-[0_0_70px_rgba(240,171,252,0.18)]";
+  if (shape === "hexagon") return "border-lime-300/65 shadow-[0_0_70px_rgba(190,242,100,0.16)]";
   return "border-white/10";
 }
 
@@ -73,7 +83,7 @@ function activeIndexForElapsed(elapsed: number, playerCount: number) {
 
 const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[]; activeIndex: number; elapsed: number }) {
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-2 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="mx-auto grid w-full max-w-6xl gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       {players.map((player, index) => {
         const revealed = elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34;
         const active = index === activeIndex;
@@ -151,7 +161,7 @@ const AssignmentSummary = memo(function AssignmentSummary({ players }: { players
         <div className="font-display text-xs font-bold uppercase tracking-[0.36em] text-scrub">Shapes locked</div>
         <h3 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-7xl">All Shapes Assigned</h3>
       </div>
-      <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         {players.map((player, index) => (
           <motion.div
             key={player.id}

@@ -2,8 +2,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   Circle,
+  Diamond,
   Gauge,
   HeartPulse,
+  Hexagon,
   Monitor,
   Radio,
   Stethoscope,
@@ -95,12 +97,14 @@ function ShapeConstellation() {
     { label: "Star", Icon: Star, tone: "text-amber", delay: 0.12 },
     { label: "Umbrella", Icon: Umbrella, tone: "text-white", delay: 0.24 },
     { label: "Circle", Icon: Circle, tone: "text-scrub", delay: 0.36 },
-    { label: "Square", Icon: Square, tone: "text-monitor", delay: 0.48 }
+    { label: "Square", Icon: Square, tone: "text-monitor", delay: 0.48 },
+    { label: "Diamond", Icon: Diamond, tone: "text-fuchsia-300", delay: 0.6 },
+    { label: "Hexagon", Icon: Hexagon, tone: "text-lime-300", delay: 0.72 }
   ];
 
   return (
     <div className="grid h-full min-h-[520px] place-items-center rounded-md border border-white/10 bg-[#08090b] p-8">
-      <div className="grid w-full max-w-4xl grid-cols-5 gap-5">
+      <div className="grid w-full max-w-5xl grid-cols-2 gap-5 sm:grid-cols-4 xl:grid-cols-7">
         {shapeItems.map(({ label, Icon, tone, delay }) => (
           <motion.div
             key={label}
