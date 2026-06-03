@@ -203,45 +203,47 @@ function ActivePromptView({
         </div>
       </div>
 
-      {usesSelection ? (
-        <div className={`grid gap-5 rounded-md border p-5 md:grid-cols-[170px_1fr] md:items-center ${tone.border} ${tone.bg}`}>
-          <motion.div
-            initial={{ scale: 0.75, rotate: -12 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 230, damping: 18 }}
-            className={`grid aspect-square place-items-center rounded-md border ${tone.border} bg-black/30 ${tone.shadow}`}
-          >
-            {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 ${tone.text}`} />}
-          </motion.div>
-          <div>
-            <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
-            <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl">{publicName(activeParticipant?.name)}</h2>
-            <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68">
-              Respond out loud or perform the skill when ready. Your facilitator will record the result.
+      {prompt.type === "activity" ? (
+        <>
+          <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
+            <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-monitor">Stroke activity mode</div>
+            <p className="mt-2 max-w-3xl text-lg leading-7 text-white/68">
+              Work together on this screen. Drag each card into the correct column, then use up to two checks.
             </p>
           </div>
-        </div>
+          <ActivityPromptLayout
+            prompt={prompt}
+            activityState={activityState}
+            audioEnabled={audioEnabled}
+            onMoveCard={onMoveActivityCard}
+            onCheck={onCheckActivity}
+          />
+        </>
       ) : (
-        <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
-          <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-monitor">Stroke activity mode</div>
-          <p className="mt-2 max-w-3xl text-lg leading-7 text-white/68">
-            Work together on this screen. Drag each card into the correct column, then use up to two checks.
-          </p>
-        </div>
-      )}
-
-      {prompt.type === "activity" ? (
-        <ActivityPromptLayout
-          prompt={prompt}
-          activityState={activityState}
-          audioEnabled={audioEnabled}
-          onMoveCard={onMoveActivityCard}
-          onCheck={onCheckActivity}
-        />
-      ) : (
-        <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5 md:p-7">
-          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Scenario question</div>
-          <p className="mt-4 text-2xl leading-10 text-white/84">{prompt.scenario}</p>
+        <div className="grid gap-5 xl:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)]">
+          {usesSelection ? (
+            <div className={`grid min-h-[30vh] content-center gap-5 rounded-md border p-6 md:grid-cols-[150px_1fr] md:items-center xl:min-h-[46vh] xl:grid-cols-1 xl:justify-items-start xl:p-8 ${tone.border} ${tone.bg}`}>
+              <motion.div
+                initial={{ scale: 0.75, rotate: -12 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 230, damping: 18 }}
+                className={`grid aspect-square w-36 place-items-center rounded-md border ${tone.border} bg-black/30 ${tone.shadow} xl:w-44`}
+              >
+                {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 xl:h-32 xl:w-32 ${tone.text}`} />}
+              </motion.div>
+              <div className="min-w-0">
+                <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
+                <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl xl:text-5xl 2xl:text-6xl">{publicName(activeParticipant?.name)}</h2>
+                <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68 xl:text-xl xl:leading-8">
+                  Respond out loud or perform the skill when ready. Your facilitator will record the result.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          <div className="grid min-h-[34vh] content-center rounded-md border border-monitor/25 bg-monitor/10 p-7 md:min-h-[42vh] md:p-10 xl:min-h-[46vh] xl:p-12">
+            <div className="font-display text-sm font-bold uppercase tracking-[0.22em] text-monitor md:text-base">Scenario question</div>
+            <p className="mt-6 text-4xl font-semibold leading-[3.2rem] text-white/88 md:text-5xl md:leading-[4rem] xl:text-5xl xl:leading-[4rem] 2xl:text-6xl 2xl:leading-[4.8rem]">{prompt.scenario}</p>
+          </div>
         </div>
       )}
     </motion.div>
