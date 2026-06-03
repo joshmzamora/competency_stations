@@ -212,6 +212,7 @@ export type ClientMessage =
 
 export type ServerMessage =
   | { type: "connected"; id: string }
+  | { type: "heartbeat"; serverTime: number }
   | { type: "room-created"; room: RoomState }
   | { type: "room-joined"; room: RoomState }
   | { type: "state"; room: RoomState }

@@ -104,6 +104,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const clients = new Set<WsClient>();
 const rooms = new Map<string, RoomState>();
 let roomsSaveTimer: NodeJS.Timeout | null = null;
+const websocketHeartbeatMs = 15000;
 
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -1340,6 +1341,7 @@ function acceptWebSocket(request: http.IncomingMessage, socket: net.Socket) {
 
   clients.add(client);
   socket.setNoDelay(true);
+  socket.setKeepAlive(true, websocketHeartbeatMs);
   socket.on("data", (chunk) => parseFrames(client, chunk));
   socket.on("close", () => removeClient(client));
   socket.on("error", () => removeClient(client));
@@ -1471,6 +1473,11 @@ await loadRooms();
 
 const handler = await createRequestHandler();
 const server = http.createServer(handler);
+setInterval(() => {
+  for (const client of clients) {
+    send(client, { type: "heartbeat", serverTime: Date.now() });
+  }
+}, websocketHeartbeatMs);
 
 server.on("upgrade", (request, socket) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);

@@ -17,8 +17,18 @@ export function useRoomSocket() {
     let disposed = false;
     let reconnectTimer = 0;
 
+    function socketIsOpeningOrOpen() {
+      const socket = socketRef.current;
+      return socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN;
+    }
+
+    function scheduleReconnect() {
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      reconnectTimer = window.setTimeout(connect, document.visibilityState === "visible" ? 250 : 1000);
+    }
+
     function connect() {
-      if (disposed) return;
+      if (disposed || socketIsOpeningOrOpen()) return;
       intentionalCloseRef.current = false;
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
@@ -37,7 +47,7 @@ export function useRoomSocket() {
         setRoom(null);
         setStatus("closed");
         if (intentionalCloseRef.current) return;
-        reconnectTimer = window.setTimeout(connect, 1000);
+        scheduleReconnect();
       });
       socket.addEventListener("error", () => {
         if (disposed) return;
@@ -67,11 +77,24 @@ export function useRoomSocket() {
       });
     }
 
+    function reconnectIfNeeded() {
+      if (disposed || socketIsOpeningOrOpen() || intentionalCloseRef.current) return;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      reconnectTimer = 0;
+      connect();
+    }
+
     connect();
+    window.addEventListener("focus", reconnectIfNeeded);
+    window.addEventListener("online", reconnectIfNeeded);
+    document.addEventListener("visibilitychange", reconnectIfNeeded);
 
     return () => {
       disposed = true;
       window.clearTimeout(reconnectTimer);
+      window.removeEventListener("focus", reconnectIfNeeded);
+      window.removeEventListener("online", reconnectIfNeeded);
+      document.removeEventListener("visibilitychange", reconnectIfNeeded);
       socketRef.current?.close();
       socketRef.current = null;
     };
