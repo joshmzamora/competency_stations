@@ -622,6 +622,73 @@ const pressureInjuryPrompts: CompetencyPrompt[] = [
   })
 ];
 
+const glycemicControlPrompts: CompetencyPrompt[] = [
+  prompt({
+    id: "glycemic-control-tpn-tube-feed-interruption",
+    stationId: "glycemic-control",
+    type: "verbal-response",
+    title: "",
+    scenario: "If TPN or tube feeds are interrupted, what is the correct action per protocol?",
+    instructions: [
+      "Answer verbally.",
+      "Name the IV fluid.",
+      "State the rate and maximum rate."
+    ],
+    expectedResponse:
+      "Start D10 IV at the previous tube-feed rate or TPN rate, with a maximum rate of 40 mL/hr."
+  }),
+  prompt({
+    id: "glycemic-control-insulin-drip-checks",
+    stationId: "glycemic-control",
+    type: "verbal-response",
+    title: "",
+    scenario: "When the patient is on an insulin drip, how often should the blood sugar be checked?",
+    instructions: ["Answer verbally.", "State the monitoring frequency."],
+    expectedResponse: "Blood sugar should be checked every hour while the patient is on an insulin drip."
+  }),
+  prompt({
+    id: "glycemic-control-provider-notification",
+    stationId: "glycemic-control",
+    type: "verbal-response",
+    title: "",
+    scenario: "What blood sugar result would prompt you to notify the provider?",
+    instructions: [
+      "Answer verbally.",
+      "State the high blood sugar threshold.",
+      "State the low blood sugar threshold."
+    ],
+    expectedResponse: "Notify the provider for blood sugar 180 or higher, or less than 70."
+  }),
+  prompt({
+    id: "glycemic-control-lantus-npo",
+    stationId: "glycemic-control",
+    type: "verbal-response",
+    title: "",
+    scenario: "If the patient has Lantus ordered at bedtime and is NPO after midnight, per protocol what should the nurse do?",
+    instructions: [
+      "Answer verbally.",
+      "State what to do with the Lantus.",
+      "State who to contact for the next recommendation."
+    ],
+    expectedResponse:
+      "Hold Lantus and ask the provider for a recommendation because the patient is NPO."
+  }),
+  prompt({
+    id: "glycemic-control-capillary-testing-inaccurate",
+    stationId: "glycemic-control",
+    type: "group-response",
+    title: "",
+    scenario: "Each person should name one reason the patient's finger-stick capillary blood testing may be inaccurate.",
+    instructions: [
+      "Everyone answers this prompt.",
+      "Each participant names one reason.",
+      "Do not repeat the same reason if another participant has already named it."
+    ],
+    expectedResponse:
+      "Reasons include hypotension, severe dehydration, shock, peripheral vascular disease, edema, and the patient being on pressors."
+  })
+];
+
 export const stations: CompetencyStation[] = [
   {
     id: "code-blue",
@@ -702,6 +769,16 @@ export const stations: CompetencyStation[] = [
     competencyType: "Pressure injury assessment",
     accent: "amber",
     prompts: pressureInjuryPrompts
+  },
+  {
+    id: "glycemic-control",
+    title: "Glycemic Control",
+    shortTitle: "Glycemic Control",
+    description: "TPN and tube-feed interruptions, insulin drip monitoring, glucose escalation thresholds, NPO basal insulin safety, and capillary testing accuracy.",
+    estimatedMinutes: 8,
+    competencyType: "Glycemic management protocol",
+    accent: "scrub",
+    prompts: glycemicControlPrompts
   }
 ];
 

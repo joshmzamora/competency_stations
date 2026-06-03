@@ -196,7 +196,8 @@ function selectedStationId(room: RoomState) {
 }
 
 function usesParticipantSelection(room: RoomState) {
-  return String(objectField(activePrompt(room), "type") ?? "") !== "activity";
+  const type = String(objectField(activePrompt(room), "type") ?? "");
+  return type !== "activity" && type !== "group-response";
 }
 
 function findPrompt(room: RoomState, id: string) {

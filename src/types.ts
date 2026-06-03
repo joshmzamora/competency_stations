@@ -5,7 +5,8 @@ export type PromptType =
   | "troubleshooting"
   | "practical-assessment"
   | "multiple-choice"
-  | "timed-emergency";
+  | "timed-emergency"
+  | "group-response";
 
 export type ActivityColumn = {
   title: string;

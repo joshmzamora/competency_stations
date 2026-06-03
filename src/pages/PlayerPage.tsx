@@ -1,4 +1,4 @@
-import { Circle as CircleIcon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle as CircleIcon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella, UsersRound } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -161,10 +161,56 @@ function ParticipantBoard({ players, activeId }: { players: PlayerPerformance[];
   );
 }
 
+function GroupResponseCue({ players }: { players: PlayerState[] }) {
+  return (
+    <div className="relative min-h-[30vh] overflow-hidden rounded-md border border-scrub/35 bg-scrub/10 p-6 md:p-8 xl:min-h-[46vh]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(34,245,199,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(34,245,199,0.06)_1px,transparent_1px)] bg-[size:30px_30px]" />
+      <div className="relative z-[1] grid h-full content-center gap-6">
+        <motion.div
+          initial={{ scale: 0.86, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 210, damping: 18 }}
+          className="mx-auto grid h-28 w-28 place-items-center rounded-md border border-scrub/45 bg-black/35 text-scrub shadow-[0_0_54px_rgba(34,245,199,0.24)]"
+        >
+          <UsersRound className="h-16 w-16" />
+        </motion.div>
+        <div className="text-center">
+          <div className="font-display text-xs font-black uppercase tracking-[0.28em] text-scrub">Everyone answers</div>
+          <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-5xl">Group Response</h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg leading-7 text-white/68">
+            Each participant gives one answer out loud. Listen for repeats and keep moving around the group.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          {players.map((player, index) => {
+            const tone = shapeTone(player.shape);
+            return (
+              <motion.div
+                key={player.id}
+                initial={{ opacity: 0, y: 12, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: [1, 1.03, 1] }}
+                transition={{ duration: 0.42, delay: index * 0.08, scale: { duration: 1.8, repeat: Infinity, delay: index * 0.12 } }}
+                className={`flex items-center gap-3 rounded-md border bg-black/35 px-4 py-3 ${tone.border}`}
+              >
+                {player.shape && <ShapeIcon shape={player.shape} className={`h-8 w-8 ${tone.text}`} />}
+                <div className="min-w-0">
+                  <div className="truncate font-display text-sm font-black uppercase text-white">{publicName(player.name)}</div>
+                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">ready to answer</div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ActivePromptView({
   prompt,
   station,
   activeParticipant,
+  players,
   promptNumber,
   totalPrompts,
   activityState,
@@ -175,6 +221,7 @@ function ActivePromptView({
   prompt: PlayerPrompt;
   station: PlayerStation;
   activeParticipant?: PlayerState;
+  players: PlayerState[];
   promptNumber: number;
   totalPrompts: number;
   activityState?: ActivityState;
@@ -183,7 +230,8 @@ function ActivePromptView({
   onCheckActivity: () => void;
 }) {
   const tone = shapeTone(activeParticipant?.shape);
-  const usesSelection = prompt.type !== "activity";
+  const usesSelection = prompt.type !== "activity" && prompt.type !== "group-response";
+  const groupResponse = prompt.type === "group-response";
 
   return (
     <motion.div
@@ -239,6 +287,8 @@ function ActivePromptView({
                 </p>
               </div>
             </div>
+          ) : groupResponse ? (
+            <GroupResponseCue players={players} />
           ) : null}
           <div className="grid min-h-[34vh] content-center rounded-md border border-monitor/25 bg-monitor/10 p-7 md:min-h-[42vh] md:p-10 xl:min-h-[46vh] xl:p-12">
             <div className="font-display text-sm font-bold uppercase tracking-[0.22em] text-monitor md:text-base">Scenario question</div>
@@ -279,7 +329,7 @@ export function PlayerPage() {
   const isStrokeStation = station?.id === "stroke";
   const isLive = room?.status === "in-progress";
   const activePrompt = isLive ? prompt : undefined;
-  const activePromptUsesSelection = Boolean(activePrompt && activePrompt.type !== "activity");
+  const activePromptUsesSelection = Boolean(activePrompt && activePrompt.type !== "activity" && activePrompt.type !== "group-response");
   const activeParticipant = useMemo(() => room?.players.find((player) => player.id === room.currentParticipantId), [room?.currentParticipantId, room?.players]);
   const currentEvaluation = activePrompt ? room?.evaluations?.[activePrompt.id] : undefined;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
@@ -573,6 +623,7 @@ export function PlayerPage() {
               prompt={activePrompt}
               station={station}
               activeParticipant={activeParticipant}
+              players={room.players}
               promptNumber={(room.activePromptIndex ?? 0) + 1}
               totalPrompts={station.prompts.length}
               activityState={room.activityStates?.[activePrompt.id]}

@@ -270,7 +270,7 @@ export function HostPage() {
   const prompt = station?.prompts[room?.activePromptIndex ?? 0] as CompetencyPrompt | undefined;
   const stationId = station?.id ?? "";
   const isStrokeStation = station?.id === "stroke";
-  const promptUsesSelection = Boolean(prompt && prompt.type !== "activity");
+  const promptUsesSelection = Boolean(prompt && prompt.type !== "activity" && prompt.type !== "group-response");
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
@@ -796,7 +796,7 @@ export function HostPage() {
                 </div>
               ) : !promptUsesSelection ? (
                 <div className="mb-3 rounded-md border border-monitor/25 bg-monitor/10 p-3 text-xs leading-5 text-monitor">
-                  This prompt is scored as a group activity. No random participant selection is required.
+                  This prompt is scored as a group response. No random participant selection is required.
                 </div>
               ) : null}
               <div className="mt-3 grid gap-2">
