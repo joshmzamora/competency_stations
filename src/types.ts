@@ -14,6 +14,7 @@ export type ActivityColumn = {
 };
 
 export type PromptActivity = {
+  mode?: "sort" | "select";
   question: string;
   itemBankLabel: string;
   itemBank: string[];

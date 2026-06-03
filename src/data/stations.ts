@@ -549,6 +549,68 @@ const strokePrompts: CompetencyPrompt[] = [
     explanation:
       "Antithrombotic medications are held until 24 hours after Tenecteplase administration.",
     criticalActions: ["Does not administer antithrombotics before 24 hours."]
+  }),
+  prompt({
+    id: "stroke-activity-risk-factors",
+    stationId: "stroke",
+    type: "activity",
+    title: "",
+    scenario: "Identify the stroke risk factors from the option bank.",
+    instructions: [
+      "Review each option on the learner screen.",
+      "Select only the options that are stroke risk factors.",
+      "Explain why selected items increase stroke risk."
+    ],
+    activity: {
+      mode: "select",
+      question: "Select the options that are stroke risk factors.",
+      itemBankLabel: "Risk-factor option bank",
+      itemBank: [
+        "High blood pressure (hypertension)",
+        "Type 2 diabetes",
+        "High cholesterol",
+        "Atrial fibrillation (AFib)",
+        "Sleep apnea",
+        "Smoking",
+        "Physical inactivity",
+        "Overweight",
+        "Atrial flutter",
+        "History of heart attack",
+        "Seasonal allergies",
+        "Recent flu vaccination",
+        "Cataracts",
+        "Wearing reading glasses",
+        "Appendectomy as a child",
+        "Mild sunburn",
+        "Lactose intolerance",
+        "Healed ankle sprain"
+      ],
+      columns: [
+        { title: "Stroke risk factors", items: [] }
+      ]
+    },
+    answerKey: [
+      {
+        title: "Stroke risk factors",
+        items: [
+          "High blood pressure (hypertension)",
+          "Type 2 diabetes",
+          "High cholesterol",
+          "Atrial fibrillation (AFib)",
+          "Sleep apnea",
+          "Smoking",
+          "Physical inactivity",
+          "Overweight",
+          "Atrial flutter",
+          "History of heart attack"
+        ]
+      }
+    ],
+    expectedResponse:
+      "Stroke risk factors include high blood pressure, type 2 diabetes, high cholesterol, atrial fibrillation, sleep apnea, smoking, physical inactivity, overweight, atrial flutter, and history of heart attack.",
+    explanation:
+      "This activity reinforces patient-specific stroke education by separating true stroke risk factors from unrelated distractors.",
+    criticalActions: ["Identifies hypertension, diabetes, cholesterol, smoking, inactivity, and dysrhythmia/cardiac history as stroke risks."]
   })
 ];
 

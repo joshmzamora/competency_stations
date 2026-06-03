@@ -240,6 +240,35 @@ function answerMap(prompt: unknown): Map<string, string> {
   return map;
 }
 
+function activityMode(prompt: unknown) {
+  const activity = objectField(prompt, "activity");
+  return objectField(activity, "mode") === "select" ? "select" : "sort";
+}
+
+function selectedActivityColumn(prompt: unknown) {
+  const columns = objectField(objectField(prompt, "activity"), "columns");
+  if (!Array.isArray(columns)) return "Selected";
+  return String(objectField(columns[0], "title") ?? "Selected");
+}
+
+function activityCheckResults(prompt: unknown, state: ActivityState, answers: Map<string, string>) {
+  if (activityMode(prompt) === "select") {
+    const selectedColumn = selectedActivityColumn(prompt);
+    const correctItems = new Set(Array.from(answers.entries()).filter(([, column]) => column === selectedColumn).map(([item]) => item));
+
+    return Object.fromEntries(
+      Object.keys(state.placements).map((item) => [
+        item,
+        correctItems.has(item) ? state.placements[item] === selectedColumn : state.placements[item] === null
+      ])
+    );
+  }
+
+  return Object.fromEntries(
+    Object.keys(state.placements).map((item) => [item, state.placements[item] === answers.get(item)])
+  );
+}
+
 function statusPoints(status: EvaluationStatus) {
   if (status === "correct") return 100;
   if (status === "partial") return 50;
@@ -1302,9 +1331,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       const state = prompt ? ensureActivityState(room, prompt) : null;
       const answers = prompt ? answerMap(prompt) : new Map<string, string>();
       if (state && answers.size && state.checkCount < 2) {
-        state.itemResults = Object.fromEntries(
-          Object.keys(state.placements).map((item) => [item, state.placements[item] === answers.get(item)])
-        );
+        state.itemResults = activityCheckResults(prompt, state, answers);
         state.checkCount++;
         state.lastCheckedAt = new Date().toISOString();
         broadcastState(room.code);

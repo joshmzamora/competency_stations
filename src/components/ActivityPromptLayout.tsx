@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, ClipboardList, MoveRight, RotateCcw } from "lucide-react";
-import type { ActivityColumn, ActivityState, CompetencyPrompt, PlayerPrompt } from "../types";
+import type { ActivityColumn, ActivityState, CompetencyPrompt, PlayerPrompt, PromptActivity } from "../types";
 import { playActivityCheckCue, playActivityDropCue } from "../utils/sound";
 
 function FormattedText({ text }: { text: string }) {
@@ -46,6 +46,45 @@ function ActivityCard({
     >
       <FormattedText text={item} />
     </div>
+  );
+}
+
+function SelectableOptionCard({
+  item,
+  selected,
+  result,
+  readOnly,
+  onToggle
+}: {
+  item: string;
+  selected: boolean;
+  result?: boolean;
+  readOnly?: boolean;
+  onToggle: (item: string) => void;
+}) {
+  const resultClass =
+    result === true
+      ? "border-scrub/55 bg-scrub/10 text-white shadow-[0_0_20px_rgba(34,245,199,0.1)]"
+      : result === false
+        ? "border-trauma/55 bg-trauma/10 text-white shadow-[0_0_20px_rgba(255,48,77,0.1)]"
+        : selected
+          ? "border-monitor/55 bg-monitor/12 text-white shadow-[0_0_20px_rgba(110,247,255,0.12)]"
+          : "border-white/10 bg-black/35 text-white/76";
+
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(item)}
+      disabled={readOnly}
+      className={`flex min-h-[52px] items-start gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold leading-5 transition ${resultClass} ${readOnly ? "" : "hover:border-monitor/40 hover:bg-monitor/10"}`}
+    >
+      <span
+        className={`mt-1 h-3.5 w-3.5 flex-none rounded-sm border ${
+          selected ? "border-monitor bg-monitor shadow-[0_0_14px_rgba(110,247,255,0.2)]" : "border-white/25 bg-black/30"
+        }`}
+      />
+      <span><FormattedText text={item} /></span>
+    </button>
   );
 }
 
@@ -105,6 +144,69 @@ function WorkColumns({
   );
 }
 
+function SelectionActivityPanel({
+  activity,
+  placements,
+  itemResults,
+  readOnly,
+  audioEnabled,
+  onMove
+}: {
+  activity: PromptActivity;
+  placements: Record<string, string | null>;
+  itemResults?: Record<string, boolean>;
+  readOnly?: boolean;
+  audioEnabled: boolean;
+  onMove?: (item: string, column: string | null) => void;
+}) {
+  const selectedColumn = activity.columns[0]?.title ?? "Selected";
+  const selectedItems = activity.itemBank.filter((item) => placements[item] === selectedColumn);
+
+  return (
+    <div className="mt-6 grid gap-4">
+      <div className="rounded-md border border-white/10 bg-white/[0.035] p-4">
+        <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">
+          <ClipboardList className="h-4 w-4 text-monitor" />
+          {activity.itemBankLabel}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {activity.itemBank.map((item) => {
+            const selected = placements[item] === selectedColumn;
+
+            return (
+              <SelectableOptionCard
+                key={item}
+                item={item}
+                selected={selected}
+                result={itemResults?.[item]}
+                readOnly={readOnly}
+                onToggle={(selectedItem) => {
+                  if (audioEnabled) playActivityDropCue();
+                  onMove?.(selectedItem, selected ? null : selectedColumn);
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-md border border-monitor/20 bg-monitor/10 p-4">
+        <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-monitor">{selectedColumn}</div>
+        <div className="mt-3 flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-monitor/20 bg-black/20 p-3">
+          {selectedItems.map((item) => (
+            <ActivityCard key={item} item={item} readOnly result={itemResults?.[item]} onDragStart={() => undefined} />
+          ))}
+          {!selectedItems.length && (
+            <div className="grid min-h-10 flex-1 place-items-center text-sm text-white/30">
+              None selected
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnswerKey({ answerKey }: { answerKey: ActivityColumn[] }) {
   return (
     <div className="rounded-md border border-white/10 bg-white/[0.035] p-4">
@@ -154,6 +256,7 @@ export function ActivityPromptLayout({
 
   if (!activity) return null;
 
+  const mode = activity.mode === "select" ? "select" : "sort";
   const placements = activityState?.placements ?? Object.fromEntries(activity.itemBank.map((item) => [item, null]));
   const itemResults = activityState?.itemResults;
   const checkCount = activityState?.checkCount ?? 0;
@@ -161,7 +264,7 @@ export function ActivityPromptLayout({
   const allCorrect = Boolean(itemResults) && correctCount === activity.itemBank.length;
   const visibleItemResults = showAnswer ? itemResults : undefined;
   const remainingChecks = Math.max(0, 2 - checkCount);
-  const unassignedItems = activity.itemBank.filter((item) => !placements[item]);
+  const unassignedItems = mode === "sort" ? activity.itemBank.filter((item) => !placements[item]) : [];
 
   return (
     <motion.div
@@ -185,55 +288,74 @@ export function ActivityPromptLayout({
 
         <p className="mt-5 text-2xl leading-9 text-white/80">{activity.question || prompt.scenario}</p>
 
-        <div className="mt-6 rounded-md border border-white/10 bg-white/[0.035] p-4">
-          <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">
-            <ClipboardList className="h-4 w-4 text-monitor" />
-            {activity.itemBankLabel}
-          </div>
-          <div
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              const item = event.dataTransfer.getData("text/plain");
-              if (item) {
-                if (audioEnabled) playActivityDropCue();
-                onMoveCard?.(item, null);
-              }
-            }}
-            className="flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-white/10 bg-black/20 p-3"
-          >
-            {unassignedItems.map((item) => (
-              <ActivityCard
-                key={item}
-                item={item}
-                result={visibleItemResults?.[item]}
-                readOnly={readOnly}
-                onDragStart={() => undefined}
-              />
-            ))}
-            {!unassignedItems.length && (
-              <div className="grid min-h-10 flex-1 place-items-center text-sm text-white/30">
-                All cards placed
+        {mode === "select" ? (
+          <>
+            <SelectionActivityPanel
+              activity={activity}
+              placements={placements}
+              itemResults={visibleItemResults}
+              readOnly={readOnly}
+              audioEnabled={audioEnabled}
+              onMove={onMoveCard}
+            />
+            <div className="mt-5 flex items-center gap-3 text-sm text-white/45">
+              <MoveRight className="h-4 w-4 text-monitor" />
+              Select the relevant options and leave the distractors unselected.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-6 rounded-md border border-white/10 bg-white/[0.035] p-4">
+              <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">
+                <ClipboardList className="h-4 w-4 text-monitor" />
+                {activity.itemBankLabel}
               </div>
-            )}
-          </div>
-        </div>
+              <div
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const item = event.dataTransfer.getData("text/plain");
+                  if (item) {
+                    if (audioEnabled) playActivityDropCue();
+                    onMoveCard?.(item, null);
+                  }
+                }}
+                className="flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-white/10 bg-black/20 p-3"
+              >
+                {unassignedItems.map((item) => (
+                  <ActivityCard
+                    key={item}
+                    item={item}
+                    result={visibleItemResults?.[item]}
+                    readOnly={readOnly}
+                    onDragStart={() => undefined}
+                  />
+                ))}
+                {!unassignedItems.length && (
+                  <div className="grid min-h-10 flex-1 place-items-center text-sm text-white/30">
+                    All cards placed
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="mt-5 flex items-center gap-3 text-sm text-white/45">
-          <MoveRight className="h-4 w-4 text-monitor" />
-          Sort the cards into the correct column.
-        </div>
+            <div className="mt-5 flex items-center gap-3 text-sm text-white/45">
+              <MoveRight className="h-4 w-4 text-monitor" />
+              Sort the cards into the correct column.
+            </div>
 
-        <div className="mt-4">
-          <WorkColumns
-            columns={activity.columns}
-            placements={placements}
-            itemResults={visibleItemResults}
-            readOnly={readOnly}
-            audioEnabled={audioEnabled}
-            onMove={onMoveCard}
-          />
-        </div>
+            <div className="mt-4">
+              <WorkColumns
+                columns={activity.columns}
+                placements={placements}
+                itemResults={visibleItemResults}
+                readOnly={readOnly}
+                audioEnabled={audioEnabled}
+                onMove={onMoveCard}
+              />
+            </div>
+          </>
+        )}
 
         {!readOnly ? (
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3">
