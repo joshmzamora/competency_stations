@@ -568,7 +568,7 @@ export function HostPage() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8">
+    <section className="w-full max-w-none px-3 py-6 sm:px-4 lg:px-5">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex-1 min-w-[300px]">
           <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-monitor">Evaluator control room</div>
@@ -608,13 +608,12 @@ export function HostPage() {
           </AnimatedButton>
         </div>
       ) : (
-        <div className="-mx-4 overflow-x-auto px-4 pb-2">
-          <div className="grid min-w-[1440px] grid-cols-[330px_minmax(620px,1fr)_360px] gap-6">
-          <aside className="grid content-start gap-4">
+        <div className="grid gap-5 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(240px,300px)] xl:grid-cols-[320px_minmax(0,1fr)_340px] 2xl:grid-cols-[330px_minmax(0,1fr)_360px]">
+          <aside className="grid min-w-0 content-start gap-4 overflow-hidden">
             {room.status === "lobby" && (
-              <div className="rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+              <div className="min-w-0 overflow-hidden rounded-md border border-scrub/20 bg-[linear-gradient(180deg,rgba(34,245,199,0.07),rgba(0,0,0,0.32))] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <div className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Room code</div>
                     <div className="mt-1 font-display text-5xl font-black leading-none text-scrub">{room.code}</div>
                   </div>
@@ -623,17 +622,17 @@ export function HostPage() {
 
                 <div className="mt-4 grid gap-2">
                   {launchChecklist.map((item) => (
-                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
-                      <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
-                      <div className={`flex items-center gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
+                    <div key={item.label} className="grid min-w-0 grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] items-center gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                      <div className="min-w-0 truncate font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">{item.label}</div>
+                      <div className={`flex min-w-0 items-center justify-end gap-2 text-right text-xs font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
                         <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
-                        <span>{item.value}</span>
+                        <span className="min-w-0 truncate">{item.value}</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-3 rounded-md border border-monitor/20 bg-monitor/10 p-3">
+                <div className="mt-3 min-w-0 overflow-hidden rounded-md border border-monitor/20 bg-monitor/10 p-3">
                   <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-monitor">Learner website URL</div>
                   <div className="mt-1 break-all text-sm text-white/75">{learnerUrl}</div>
                 </div>
@@ -663,7 +662,7 @@ export function HostPage() {
               </div>
             )}
 
-            <div className="rounded-md border border-white/10 bg-black/35 p-4">
+            <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-black/35 p-4">
               <div className="mb-3 font-display text-sm font-bold uppercase tracking-[0.18em] text-monitor">Station navigation</div>
               <div className="mb-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-white/55">
                 Pick the first station before starting. After each station, choose the next station here; scores and results stay in one continuous session.
@@ -681,7 +680,7 @@ export function HostPage() {
                         if (completedStation) return;
                         send({ type: "open-station", station: item });
                       }}
-                      className={`rounded-md border px-3 py-3 text-left transition ${isActive
+                      className={`min-w-0 rounded-md border px-3 py-3 text-left transition ${isActive
                         ? "border-scrub/50 bg-scrub/10 text-scrub"
                         : completedStation
                           ? "border-scrub/25 bg-scrub/[0.055] text-white/55"
@@ -689,7 +688,7 @@ export function HostPage() {
                         } ${stationNavigationLocked || completedStation ? "cursor-not-allowed opacity-45" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
+                        <div className="min-w-0 truncate font-display text-sm font-bold uppercase tracking-[0.12em]">{index + 1}. {item.shortTitle}</div>
                         {completedStation ? (
                           <span className="rounded-full border border-scrub/35 bg-scrub/10 px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-[0.12em] text-scrub">
                             Complete
@@ -824,7 +823,7 @@ export function HostPage() {
             </div>
           </aside>
 
-          <div className="col-span-3">
+          <div className="lg:col-span-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-monitor">Participants</div>
@@ -849,7 +848,6 @@ export function HostPage() {
                 />
               ))}
             </div>
-          </div>
           </div>
         </div>
       )}
