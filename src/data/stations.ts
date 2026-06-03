@@ -141,10 +141,9 @@ const chestTubePrompts: CompetencyPrompt[] = [
     stationId: "chest-tube",
     type: "verbal-response",
     title: "",
-    scenario: "Your patient is on continuous -20 cmH2O suction and a STAT CT chest is ordered. How would you transport this patient?",
-    instructions: ["Answer verbally.", "State how ordered suction is maintained during transport."],
-    expectedResponse: "Transport the patient using portable suction so the ordered continuous suction is maintained.",
-    explanation: "A patient ordered for continuous suction should not be disconnected from suction for transport unless directed by provider/policy.",
+    scenario: "What lethal complication is indicated by sudden tracheal deviation, severe dyspnea, and absent breath sounds on the affected side after a chest tube is clamped?",
+    instructions: ["Answer verbally."],
+    expectedResponse: "Tension pneumothorax.",
   }),
   prompt({
     id: "chest-tube-suction-indicator",
