@@ -924,7 +924,18 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       return;
     }
 
-    const rawNames = Array.isArray(message.names) ? message.names : [String(message.name ?? "Player")];
+    const savedGroupPlayers = room.players
+      .filter((player) => player.id.startsWith(`${groupId}-`))
+      .sort((a, b) => Number(a.id.split("-").at(-1) ?? 0) - Number(b.id.split("-").at(-1) ?? 0));
+    const savedGroupNames = savedGroupPlayers.map((player) => {
+      const match = player.name.match(/\((.*)\)/);
+      return match?.[1] || player.name.replace(/^Player\s+\d+\s*/i, "").trim();
+    }).filter(Boolean);
+    const rawNames = Array.isArray(message.names) && message.names.length > 0
+      ? message.names
+      : savedGroupNames.length > 0
+        ? savedGroupNames
+        : [String(message.name ?? "Player")];
     const names = rawNames
       .map((n) => String(n).trim().slice(0, 24))
       .filter(Boolean)

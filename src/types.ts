@@ -184,7 +184,7 @@ export type ClientMessage =
   | { type: "create-room" }
   | { type: "client-heartbeat" }
   | { type: "resume-host"; code: string; room?: RoomState }
-  | { type: "join-room"; code: string; names: string[]; groupId?: string }
+  | { type: "join-room"; code: string; names?: string[]; groupId?: string }
   | { type: "leave-room" }
   | { type: "start-session" }
   | { type: "start-session-now" }

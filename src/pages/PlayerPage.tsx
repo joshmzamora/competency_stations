@@ -368,7 +368,7 @@ export function PlayerPage() {
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const groupIdRef = useRef(usableInitialPlayerBackup?.groupId ?? getLearnerGroupId());
-  const joinedRoomCodeRef = useRef(usableInitialPlayerBackup?.code ?? "");
+  const joinedRoomCodeRef = useRef(usableInitialPlayerBackup?.code ?? initialUrlRoomCode ?? "");
   const joinedNamesRef = useRef<string[]>(usableInitialPlayerBackup?.names ?? []);
   const reconnectAttemptedForClientRef = useRef("");
   const roomRecoveryAttemptsRef = useRef(0);
@@ -456,7 +456,7 @@ export function PlayerPage() {
   }, [clearError, room?.serverTime, roomRecoveryPending]);
 
   useEffect(() => {
-    if (status !== "open" || !clientId || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
+    if (status !== "open" || !clientId || !joinedRoomCodeRef.current) return;
     if (reconnectAttemptedForClientRef.current === clientId) return;
     reconnectAttemptedForClientRef.current = clientId;
     send({ type: "join-room", code: joinedRoomCodeRef.current, names: joinedNamesRef.current, groupId: groupIdRef.current });
@@ -464,14 +464,15 @@ export function PlayerPage() {
 
   useEffect(() => {
     if (!error || room) return;
+    if (error.includes("Room not found")) return;
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];
   }, [error, room]);
 
   useEffect(() => {
-    if (!error.includes("Room not found") || !room || !joinedRoomCodeRef.current || joinedNamesRef.current.length < 2) return;
+    if (!error.includes("Room not found") || !joinedRoomCodeRef.current) return;
     if (roomRecoveryAttemptsRef.current >= 20) return;
-    roomRecoveryStartedServerTimeRef.current = room.serverTime ?? null;
+    roomRecoveryStartedServerTimeRef.current = room?.serverTime ?? null;
     setRoomRecoveryPending(true);
     clearError();
   }, [clearError, error, room]);
