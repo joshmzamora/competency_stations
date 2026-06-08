@@ -555,62 +555,78 @@ const strokePrompts: CompetencyPrompt[] = [
     stationId: "stroke",
     type: "activity",
     title: "",
-    scenario: "Identify the stroke risk factors from the option bank.",
+    scenario: "Review Emma Gonnadye's case file and select the stroke risk factors that specifically apply to her.",
     instructions: [
-      "Review each option on the learner screen.",
-      "Select only the options that are stroke risk factors.",
-      "Explain why selected items increase stroke risk."
+      "Review the full risk-factor checklist on the learner screen.",
+      "Select only the items supported by Emma's case file.",
+      "Leave anything not documented in the case unselected."
     ],
     activity: {
       mode: "select",
-      question: "Select the options that are stroke risk factors.",
-      itemBankLabel: "Risk-factor option bank",
+      question: "Which stroke risk factors apply to Emma Gonnadye?",
+      itemBankLabel: "Patient-specific stroke risk checklist",
       itemBank: [
-        "High blood pressure (hypertension)",
-        "Type 2 diabetes",
-        "High cholesterol",
-        "Atrial fibrillation (AFib)",
-        "Sleep apnea",
-        "Smoking",
-        "Physical inactivity",
-        "Overweight",
-        "Atrial flutter",
-        "History of heart attack",
-        "Seasonal allergies",
-        "Recent flu vaccination",
-        "Cataracts",
-        "Wearing reading glasses",
-        "Appendectomy as a child",
-        "Mild sunburn",
-        "Lactose intolerance",
-        "Healed ankle sprain"
+        "You have high blood pressure.",
+        "You're overweight.",
+        "You have unhealthy cholesterol levels.",
+        "You have atrial fibrillation.",
+        "You have atrial flutter.",
+        "You've had a heart attack.",
+        "You have narrowed arteries.",
+        "You have diabetes.",
+        "You are a man.",
+        "You are an African American.",
+        "You are an Alaska Native.",
+        "You are an American Indian.",
+        "You rarely exercise.",
+        "You often eat salty, fried, or greasy foods.",
+        "You smoke.",
+        "You have more than 2 alcoholic drinks per day.",
+        "You're over age 60.",
+        "A parent, brother, or sister has had a stroke."
       ],
       columns: [
-        { title: "Stroke risk factors", items: [] }
+        { title: "Applies to Emma", items: [] }
       ]
     },
     answerKey: [
       {
-        title: "Stroke risk factors",
+        title: "Applies to Emma",
         items: [
-          "High blood pressure (hypertension)",
-          "Type 2 diabetes",
-          "High cholesterol",
-          "Atrial fibrillation (AFib)",
-          "Sleep apnea",
-          "Smoking",
-          "Physical inactivity",
-          "Overweight",
-          "Atrial flutter",
-          "History of heart attack"
+          "You have high blood pressure.",
+          "You're overweight.",
+          "You have atrial fibrillation.",
+          "You have narrowed arteries.",
+          "You have diabetes.",
+          "You're over age 60."
+        ]
+      },
+      {
+        title: "Not supported by case file",
+        items: [
+          "You have unhealthy cholesterol levels.",
+          "You have atrial flutter.",
+          "You've had a heart attack.",
+          "You are a man.",
+          "You are an African American.",
+          "You are an Alaska Native.",
+          "You are an American Indian.",
+          "You rarely exercise.",
+          "You often eat salty, fried, or greasy foods.",
+          "You smoke.",
+          "You have more than 2 alcoholic drinks per day.",
+          "A parent, brother, or sister has had a stroke."
         ]
       }
     ],
     expectedResponse:
-      "Stroke risk factors include high blood pressure, type 2 diabetes, high cholesterol, atrial fibrillation, sleep apnea, smoking, physical inactivity, overweight, atrial flutter, and history of heart attack.",
+      "Emma's documented stroke risk factors are hypertension, overweight/obesity, chronic atrial fibrillation, narrowed arteries/CAD with stent, diabetes, and age over 60.",
     explanation:
-      "This activity reinforces patient-specific stroke education by separating true stroke risk factors from unrelated distractors.",
-    criticalActions: ["Identifies hypertension, diabetes, cholesterol, smoking, inactivity, and dysrhythmia/cardiac history as stroke risks."]
+      "Emma is 67, weighs 90 kg, and has hypertension, diabetes, CAD with stent, and chronic atrial fibrillation documented in the case file. Other listed risk factors are not documented in the provided case.",
+    criticalActions: [
+      "Selects only risk factors supported by Emma's case file.",
+      "Recognizes atrial fibrillation, diabetes, hypertension, age over 60, overweight/obesity, and CAD/narrowed arteries as patient-specific stroke risks."
+    ]
   })
 ];
 
