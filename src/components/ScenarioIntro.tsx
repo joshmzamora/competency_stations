@@ -24,11 +24,13 @@ const sceneMs = durationMs / 6;
 const fadeOutMs = 6000;
 const maxIntroVolume = 0.15;
 const introAudioSrc = "/audio/squid_game_intro.mp3";
+const voiceoverVolume = 0.82;
 
 type IntroScene = {
   eyebrow: string;
   title: string;
   lines: string[];
+  voiceover: string;
   purpose: string;
   image?: string;
   visual: "video" | "manikin" | "monitor" | "shapes" | "bedside" | "launch";
@@ -40,6 +42,8 @@ const scenes: IntroScene[] = [
     eyebrow: "Simulation Briefing",
     title: "Simulation Briefing",
     lines: ["Welcome to the competency stations.", "This briefing shows how the simulation will feel before the patient case opens."],
+    voiceover:
+      "Welcome to competency stations. Listen carefully. The simulation begins before the first question is asked.",
     purpose: "Start the scenario with a shared frame before patient details are revealed.",
     image: "/images/intro/medical-mannequin.webp",
     visual: "video",
@@ -49,6 +53,8 @@ const scenes: IntroScene[] = [
     eyebrow: "High Fidelity Manikin",
     title: "Realistic Patient Encounter",
     lines: ["The manikin breathes, has a pulse, talks, and has heart sounds.", "Assess Emma like a real patient."],
+    voiceover:
+      "The manikin breathes. She has a pulse. She can speak. She has heart sounds. Treat Emma like a real ICU patient.",
     purpose: "The manikin is interactive. Assessment should be physical, verbal, and realistic.",
     image: "/images/intro/human-patient-simulation.jpg",
     visual: "manikin",
@@ -58,6 +64,8 @@ const scenes: IntroScene[] = [
     eyebrow: "Monitor Awareness",
     title: "Watch The Monitor",
     lines: ["Vital signs and EKG will be on the monitor.", "Pay attention. ICU changes can happen fast."],
+    voiceover:
+      "Vital signs and EKG will appear on the monitor. Watch closely. In the ICU, a stable patient can change fast.",
     purpose: "Monitor data is part of the scenario, not background decoration.",
     image: "/images/intro/icu-monitor-front.jpg",
     visual: "monitor",
@@ -67,6 +75,8 @@ const scenes: IntroScene[] = [
     eyebrow: "Shape Selection",
     title: "Shape Selection",
     lines: ["Each participant receives a shape.", "When a station question begins, the selection screen will show whose turn it is."],
+    voiceover:
+      "Each participant will receive a shape. When the station begins, the selection screen decides who is active.",
     purpose: "This prepares participants for the fair selection sequence after the briefing.",
     visual: "shapes",
     Icon: Activity
@@ -75,6 +85,8 @@ const scenes: IntroScene[] = [
     eyebrow: "Bedside Orientation",
     title: "Orient To The Patient",
     lines: ["Before the first station, take a moment to orient yourself.", "Feel for a pulse. Auscultate heart and lung sounds. Speak with Emma."],
+    voiceover:
+      "Before the first station, orient yourself to the bedside. Feel for a pulse. Listen to heart and lung sounds. Speak with Emma.",
     purpose: "Learners should touch, listen, and communicate before the scenario accelerates.",
     image: "/images/intro/checking-vital-signs.jpg",
     visual: "bedside",
@@ -84,12 +96,34 @@ const scenes: IntroScene[] = [
     eyebrow: "Scenario Launch",
     title: "Stand By",
     lines: ["Briefing complete.", "Next, review the patient case file.", "Then the first station begins."],
+    voiceover:
+      "Briefing complete. Next, open the patient case file. Review the details. Then the first station begins.",
     purpose: "The briefing ends here. Patient chart review comes next.",
     image: "/images/intro/vital-signs-monitor.jpg",
     visual: "launch",
     Icon: Gauge
   }
 ];
+
+function chooseIntroVoice(voices: SpeechSynthesisVoice[]) {
+  const preferredNames = [
+    "Microsoft Zira",
+    "Microsoft Jenny",
+    "Microsoft Aria",
+    "Google UK English Female",
+    "Google US English",
+    "Samantha",
+    "Victoria",
+    "Karen",
+    "Moira"
+  ];
+  return (
+    voices.find((voice) => preferredNames.some((name) => voice.name.toLowerCase().includes(name.toLowerCase()))) ??
+    voices.find((voice) => /female|woman|zira|jenny|aria|samantha|victoria|karen|moira/i.test(voice.name)) ??
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ??
+    null
+  );
+}
 
 function ShapeConstellation() {
   const shapeItems = [
@@ -174,10 +208,13 @@ export function ScenarioIntro({
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState<"scenes" | "patient">("scenes");
   const [patientBriefVisible, setPatientBriefVisible] = useState(false);
+  const [speechVoices, setSpeechVoices] = useState<SpeechSynthesisVoice[]>([]);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStartKeyRef = useRef<string>("");
   const audioRetryNeededRef = useRef(false);
+  const voiceoverKeyRef = useRef("");
+  const voiceoverTimeoutRef = useRef<number | null>(null);
   const patientBriefShownRef = useRef(false);
   const timelineKeyRef = useRef<string>("");
   const sceneIndex = Math.min(scenes.length - 1, Math.floor(elapsed / sceneMs));
@@ -217,6 +254,16 @@ export function ScenarioIntro({
     }
   }
 
+  function cancelVoiceover() {
+    if (voiceoverTimeoutRef.current) {
+      window.clearTimeout(voiceoverTimeoutRef.current);
+      voiceoverTimeoutRef.current = null;
+    }
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
   useEffect(() => {
     if (!open || !startedAt) return;
     patientBriefShownRef.current = false;
@@ -243,13 +290,67 @@ export function ScenarioIntro({
   }, [open, startedAt]);
 
   useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const loadVoices = () => {
+      setSpeechVoices(window.speechSynthesis.getVoices());
+    };
+    loadVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       timelineKeyRef.current = "";
+      voiceoverKeyRef.current = "";
+      cancelVoiceover();
     }
   }, [open]);
 
   useEffect(() => {
+    if (!open || phase !== "scenes" || !audioTracksEnabled || !("speechSynthesis" in window)) {
+      cancelVoiceover();
+      return;
+    }
+
+    const key = `${startedAt ?? "no-start"}-${sceneIndex}`;
+    if (voiceoverKeyRef.current === key) return;
+
+    const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
+    const sceneElapsed = syncedElapsed - sceneIndex * sceneMs;
+    if (sceneElapsed > sceneMs - 1600) return;
+
+    voiceoverKeyRef.current = key;
+    cancelVoiceover();
+
+    const utterance = new SpeechSynthesisUtterance(scene.voiceover);
+    const selectedVoice = chooseIntroVoice(speechVoices);
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.lang = selectedVoice?.lang ?? "en-US";
+    utterance.volume = voiceoverVolume;
+    utterance.rate = 0.78;
+    utterance.pitch = 1.36;
+
+    const delay = sceneElapsed < 500 ? 700 : 140;
+    voiceoverTimeoutRef.current = window.setTimeout(() => {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+      voiceoverTimeoutRef.current = null;
+    }, delay);
+
+    return () => {
+      if (voiceoverTimeoutRef.current) {
+        window.clearTimeout(voiceoverTimeoutRef.current);
+        voiceoverTimeoutRef.current = null;
+      }
+    };
+  }, [audioTracksEnabled, open, phase, sceneIndex, scene.voiceover, speechVoices, startedAt]);
+
+  useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
+    cancelVoiceover();
     patientBriefShownRef.current = true;
     setPatientBriefVisible(true);
     const timeout = window.setTimeout(() => setPatientBriefVisible(false), 2400);
@@ -300,6 +401,7 @@ export function ScenarioIntro({
 
   function skipIntro() {
     if (canSkip) {
+      cancelVoiceover();
       onSkip?.();
     }
   }
