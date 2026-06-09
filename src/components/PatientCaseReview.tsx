@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { playFileClickCue } from "../utils/sound";
+import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
 
 const caseAudioSrc = "/audio/cinematic_tension.mp3";
 
@@ -22,6 +23,8 @@ type CaseFile = {
   id: string;
   title: string;
   Icon: typeof FileText;
+  voiceover: string;
+  voiceoverSrc: string;
   critical?: string[];
   rows: Array<[string, string]>;
 };
@@ -31,6 +34,9 @@ const caseFiles: CaseFile[] = [
     id: "identity",
     title: "Patient Identity",
     Icon: UserRound,
+    voiceover:
+      "Patient identity file opened. Emma Gonnadye is a sixty seven year old female. Her diagnosis includes acute congestive heart failure with an ejection fraction of twenty percent, COPD, and chronic atrial fibrillation.",
+    voiceoverSrc: "/audio/voiceover/case-identity.mp3",
     critical: ["EF 20%", "COPD", "Chronic atrial fibrillation"],
     rows: [
       ["Patient Name", "Emma Gonnadye"],
@@ -46,12 +52,18 @@ const caseFiles: CaseFile[] = [
     id: "complaint",
     title: "Chief Complaint",
     Icon: Stethoscope,
+    voiceover:
+      "Chief complaint file opened. Emma reports worsening shortness of breath and cough over the last couple of days.",
+    voiceoverSrc: "/audio/voiceover/case-complaint.mp3",
     rows: [["Chief Complaint", "Worsening shortness of breath and cough over the last couple of days"]]
   },
   {
     id: "hpi",
     title: "HPI",
     Icon: FileSearch,
+    voiceover:
+      "History of present illness file opened. Emma was brought in by her husband. Her shortness of breath started with exertion and has progressed to shortness of breath at rest.",
+    voiceoverSrc: "/audio/voiceover/case-hpi.mp3",
     critical: ["Shortness of breath at rest"],
     rows: [
       [
@@ -64,6 +76,9 @@ const caseFiles: CaseFile[] = [
     id: "history",
     title: "Past Medical History",
     Icon: HeartPulse,
+    voiceover:
+      "Past medical history file opened. Emma has hypertension, diabetes, coronary artery disease with stent, stage three chronic kidney disease, and chronic atrial fibrillation.",
+    voiceoverSrc: "/audio/voiceover/case-history.mp3",
     critical: ["Chronic atrial fibrillation"],
     rows: [
       ["History", "Hypertension"],
@@ -77,6 +92,9 @@ const caseFiles: CaseFile[] = [
     id: "meds",
     title: "Medications",
     Icon: Pill,
+    voiceover:
+      "Medication file opened. Current medications include insulin glargine, furosemide, aspirin, Eliquis, and carvedilol.",
+    voiceoverSrc: "/audio/voiceover/case-meds.mp3",
     rows: [
       ["Medication", "Insulin glargine 20 units at bedtime"],
       ["Medication", "Furosemide 40 mg daily"],
@@ -89,6 +107,9 @@ const caseFiles: CaseFile[] = [
     id: "report",
     title: "Report Snapshot",
     Icon: ClipboardList,
+    voiceover:
+      "Report snapshot opened. Emma is awake, alert, and oriented. Cardiovascular rhythm is atrial fibrillation. Respiratory assessment shows bilateral crackles. Peripheral vascular assessment shows three plus pitting edema to both lower extremities.",
+    voiceoverSrc: "/audio/voiceover/case-report.mp3",
     critical: ["Crackles bilaterally", "3+ pitting edema BLE"],
     rows: [
       ["General", "Awake, alert, and oriented x4"],
@@ -104,6 +125,9 @@ const caseFiles: CaseFile[] = [
     id: "diagnostics",
     title: "Diagnostics",
     Icon: Monitor,
+    voiceover:
+      "Diagnostic file opened. EKG shows atrial fibrillation. Blood glucose is four hundred sixty milligrams per deciliter.",
+    voiceoverSrc: "/audio/voiceover/case-diagnostics.mp3",
     critical: ["EKG: atrial fibrillation", "Blood glucose 460 mg/dL"],
     rows: [
       ["EKG", "Atrial fibrillation"],
@@ -321,6 +345,8 @@ export function PatientCaseReview({
   audioTracksEnabled?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const voiceoverRef = useRef<VoiceoverHandle | null>(null);
+  const voicedFileRef = useRef("");
   const reviewedIds = new Set(["identity", ...reviewedFileIds]);
   const activeId = activeFileId && caseFiles.some((file) => file.id === activeFileId) ? activeFileId : caseFiles[0].id;
   const activeFile = caseFiles.find((file) => file.id === activeId) ?? caseFiles[0];
@@ -340,7 +366,32 @@ export function PatientCaseReview({
     };
   }, [audioTracksEnabled]);
 
+  useEffect(() => {
+    if (!audioTracksEnabled) return;
+    if (voicedFileRef.current === activeFile.id) return;
+    voicedFileRef.current = activeFile.id;
+    voiceoverRef.current?.cancel();
+    voiceoverRef.current = playVoiceoverLine({
+      text: activeFile.voiceover,
+      audioSrc: activeFile.voiceoverSrc,
+      volume: 0.78,
+      rate: 0.82,
+      pitch: 1.28
+    });
+    return () => {
+      voiceoverRef.current?.cancel();
+      voiceoverRef.current = null;
+    };
+  }, [activeFile, audioTracksEnabled]);
+
+  useEffect(() => {
+    return () => {
+      voiceoverRef.current?.cancel();
+    };
+  }, []);
+
   function handleContinue() {
+    voiceoverRef.current?.cancel();
     const audio = audioRef.current;
     if (!audio) {
       onContinue();

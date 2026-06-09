@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Diamond, Hexagon, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
+import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
 import { PhaseBrief } from "./PhaseBrief";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
@@ -207,6 +208,10 @@ export function ProtocolIntro({
   const offsetRef = useRef(0);
   const audioStartKeyRef = useRef("");
   const audioRetryNeededRef = useRef(false);
+  const voiceoverRef = useRef<VoiceoverHandle | null>(null);
+  const spokenParticipantIdsRef = useRef(new Set<string>());
+  const spokenOpeningRef = useRef(false);
+  const spokenSummaryRef = useRef(false);
   const timelineKeyRef = useRef("");
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -241,10 +246,26 @@ export function ProtocolIntro({
     }
   }
 
+  function playAssignmentVoiceover(text: string, audioSrc?: string) {
+    if (!audioEnabled) return;
+    voiceoverRef.current?.cancel();
+    voiceoverRef.current = playVoiceoverLine({
+      text,
+      audioSrc,
+      volume: 0.76,
+      rate: 0.8,
+      pitch: 1.34
+    });
+  }
+
   useEffect(() => {
     if (!open || !startedAt) {
       completedRef.current = false;
       setElapsed(0);
+      spokenParticipantIdsRef.current.clear();
+      spokenOpeningRef.current = false;
+      spokenSummaryRef.current = false;
+      voiceoverRef.current?.cancel();
       return;
     }
 
@@ -271,6 +292,10 @@ export function ProtocolIntro({
   useEffect(() => {
     if (!open) {
       timelineKeyRef.current = "";
+      spokenParticipantIdsRef.current.clear();
+      spokenOpeningRef.current = false;
+      spokenSummaryRef.current = false;
+      voiceoverRef.current?.cancel();
     }
   }, [open]);
 
@@ -326,9 +351,41 @@ export function ProtocolIntro({
     [elapsed, players]
   );
   const showSummary = players.length > 0 && elapsed >= totalDurationMs - closingMs;
+  const activeRevealReady =
+    Boolean(activePlayer) && activeIndex >= 0 && elapsed >= revealAt(activeIndex, players.length) + segmentMs(players.length) * 0.34;
+
+  useEffect(() => {
+    if (!open || !audioEnabled || spokenOpeningRef.current || elapsed > openingMs - 900) return;
+    spokenOpeningRef.current = true;
+    playAssignmentVoiceover(
+      "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.",
+      "/audio/voiceover/shape-opening.mp3"
+    );
+  }, [audioEnabled, elapsed, open]);
+
+  useEffect(() => {
+    if (!open || !audioEnabled || !activePlayer || !activePlayer.shape || !activeRevealReady) return;
+    if (spokenParticipantIdsRef.current.has(activePlayer.id)) return;
+    spokenParticipantIdsRef.current.add(activePlayer.id);
+    playAssignmentVoiceover(`${publicName(activePlayer.name)}. Your shape is ${activePlayer.shape}.`);
+  }, [activePlayer, activeRevealReady, audioEnabled, open]);
+
+  useEffect(() => {
+    return () => {
+      voiceoverRef.current?.cancel();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open || !audioEnabled || !showSummary || spokenSummaryRef.current) return;
+    spokenSummaryRef.current = true;
+    const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
+    playAssignmentVoiceover(`All shapes are assigned. ${roster}. Stand by for the first station.`, "/audio/voiceover/shape-summary.mp3");
+  }, [audioEnabled, open, players, showSummary]);
 
   function stopAudio() {
     const audio = audioRef.current;
+    voiceoverRef.current?.cancel();
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;

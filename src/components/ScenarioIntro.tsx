@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { PatientCaseReview } from "./PatientCaseReview";
 import { PhaseBrief } from "./PhaseBrief";
+import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
 
 const durationMs = 45000;
 const sceneMs = durationMs / 6;
@@ -31,6 +32,7 @@ type IntroScene = {
   title: string;
   lines: string[];
   voiceover: string;
+  voiceoverSrc: string;
   purpose: string;
   image?: string;
   visual: "video" | "manikin" | "monitor" | "shapes" | "bedside" | "launch";
@@ -44,6 +46,7 @@ const scenes: IntroScene[] = [
     lines: ["Welcome to the competency stations.", "This briefing shows how the simulation will feel before the patient case opens."],
     voiceover:
       "Welcome to competency stations. Listen carefully. The simulation begins before the first question is asked.",
+    voiceoverSrc: "/audio/voiceover/intro-1.mp3",
     purpose: "Start the scenario with a shared frame before patient details are revealed.",
     image: "/images/intro/medical-mannequin.webp",
     visual: "video",
@@ -55,6 +58,7 @@ const scenes: IntroScene[] = [
     lines: ["The manikin breathes, has a pulse, talks, and has heart sounds.", "Assess Emma like a real patient."],
     voiceover:
       "The manikin breathes. She has a pulse. She can speak. She has heart sounds. Treat Emma like a real ICU patient.",
+    voiceoverSrc: "/audio/voiceover/intro-2.mp3",
     purpose: "The manikin is interactive. Assessment should be physical, verbal, and realistic.",
     image: "/images/intro/human-patient-simulation.jpg",
     visual: "manikin",
@@ -66,6 +70,7 @@ const scenes: IntroScene[] = [
     lines: ["Vital signs and EKG will be on the monitor.", "Pay attention. ICU changes can happen fast."],
     voiceover:
       "Vital signs and EKG will appear on the monitor. Watch closely. In the ICU, a stable patient can change fast.",
+    voiceoverSrc: "/audio/voiceover/intro-3.mp3",
     purpose: "Monitor data is part of the scenario, not background decoration.",
     image: "/images/intro/icu-monitor-front.jpg",
     visual: "monitor",
@@ -77,6 +82,7 @@ const scenes: IntroScene[] = [
     lines: ["Each participant receives a shape.", "When a station question begins, the selection screen will show whose turn it is."],
     voiceover:
       "Each participant will receive a shape. When the station begins, the selection screen decides who is active.",
+    voiceoverSrc: "/audio/voiceover/intro-4.mp3",
     purpose: "This prepares participants for the fair selection sequence after the briefing.",
     visual: "shapes",
     Icon: Activity
@@ -87,6 +93,7 @@ const scenes: IntroScene[] = [
     lines: ["Before the first station, take a moment to orient yourself.", "Feel for a pulse. Auscultate heart and lung sounds. Speak with Emma."],
     voiceover:
       "Before the first station, orient yourself to the bedside. Feel for a pulse. Listen to heart and lung sounds. Speak with Emma.",
+    voiceoverSrc: "/audio/voiceover/intro-5.mp3",
     purpose: "Learners should touch, listen, and communicate before the scenario accelerates.",
     image: "/images/intro/checking-vital-signs.jpg",
     visual: "bedside",
@@ -98,32 +105,13 @@ const scenes: IntroScene[] = [
     lines: ["Briefing complete.", "Next, review the patient case file.", "Then the first station begins."],
     voiceover:
       "Briefing complete. Next, open the patient case file. Review the details. Then the first station begins.",
+    voiceoverSrc: "/audio/voiceover/intro-6.mp3",
     purpose: "The briefing ends here. Patient chart review comes next.",
     image: "/images/intro/vital-signs-monitor.jpg",
     visual: "launch",
     Icon: Gauge
   }
 ];
-
-function chooseIntroVoice(voices: SpeechSynthesisVoice[]) {
-  const preferredNames = [
-    "Microsoft Zira",
-    "Microsoft Jenny",
-    "Microsoft Aria",
-    "Google UK English Female",
-    "Google US English",
-    "Samantha",
-    "Victoria",
-    "Karen",
-    "Moira"
-  ];
-  return (
-    voices.find((voice) => preferredNames.some((name) => voice.name.toLowerCase().includes(name.toLowerCase()))) ??
-    voices.find((voice) => /female|woman|zira|jenny|aria|samantha|victoria|karen|moira/i.test(voice.name)) ??
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ??
-    null
-  );
-}
 
 function ShapeConstellation() {
   const shapeItems = [
@@ -206,23 +194,23 @@ export function ScenarioIntro({
   serverTime?: number;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [introSceneIndex, setIntroSceneIndex] = useState(0);
+  const [sceneProgressValue, setSceneProgressValue] = useState(0);
   const [phase, setPhase] = useState<"scenes" | "patient">("scenes");
   const [patientBriefVisible, setPatientBriefVisible] = useState(false);
-  const [speechVoices, setSpeechVoices] = useState<SpeechSynthesisVoice[]>([]);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStartKeyRef = useRef<string>("");
   const audioRetryNeededRef = useRef(false);
-  const voiceoverKeyRef = useRef("");
-  const voiceoverTimeoutRef = useRef<number | null>(null);
+  const voiceoverRef = useRef<VoiceoverHandle | null>(null);
   const patientBriefShownRef = useRef(false);
   const timelineKeyRef = useRef<string>("");
-  const sceneIndex = Math.min(scenes.length - 1, Math.floor(elapsed / sceneMs));
+  const sceneIndex = introSceneIndex;
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
-  const secondsLeft = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
-  const progress = Math.min(100, (elapsed / durationMs) * 100);
-  const sceneProgress = Math.min(100, ((elapsed - sceneIndex * sceneMs) / sceneMs) * 100);
+  const secondsLeft = Math.max(0, Math.ceil(((scenes.length - sceneIndex - 1) * sceneMs + (sceneMs * (100 - sceneProgressValue)) / 100) / 1000));
+  const progress = Math.min(100, ((sceneIndex + sceneProgressValue / 100) / scenes.length) * 100);
+  const sceneProgress = sceneProgressValue;
 
   function getSyncedElapsed() {
     return startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0;
@@ -255,13 +243,8 @@ export function ScenarioIntro({
   }
 
   function cancelVoiceover() {
-    if (voiceoverTimeoutRef.current) {
-      window.clearTimeout(voiceoverTimeoutRef.current);
-      voiceoverTimeoutRef.current = null;
-    }
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    voiceoverRef.current?.cancel();
+    voiceoverRef.current = null;
   }
 
   useEffect(() => {
@@ -271,82 +254,92 @@ export function ScenarioIntro({
     if (timelineKeyRef.current !== timelineKey) {
       offsetRef.current = serverTime ? Date.now() - serverTime : 0;
       timelineKeyRef.current = timelineKey;
+      setIntroSceneIndex(0);
+      setSceneProgressValue(0);
+      setElapsed(0);
+      setPhase("scenes");
     }
-    const getElapsed = () => (startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0);
-    const initialElapsed = Math.min(durationMs, getElapsed());
-    setElapsed(initialElapsed);
-    setPhase(initialElapsed >= durationMs ? "patient" : "scenes");
-    const interval = window.setInterval(() => {
-      const next = getElapsed();
-      if (next >= durationMs) {
-        setElapsed(durationMs);
-        setPhase("patient");
-        window.clearInterval(interval);
-      } else {
-        setElapsed(next);
-      }
-    }, 120);
-    return () => window.clearInterval(interval);
-  }, [open, startedAt]);
-
-  useEffect(() => {
-    if (!("speechSynthesis" in window)) return;
-    const loadVoices = () => {
-      setSpeechVoices(window.speechSynthesis.getVoices());
-    };
-    loadVoices();
-    window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
-    };
-  }, []);
+  }, [open, serverTime, startedAt]);
 
   useEffect(() => {
     if (!open) {
       timelineKeyRef.current = "";
-      voiceoverKeyRef.current = "";
       cancelVoiceover();
     }
   }, [open]);
 
   useEffect(() => {
-    if (!open || phase !== "scenes" || !audioTracksEnabled || !("speechSynthesis" in window)) {
+    if (!open || phase !== "scenes") {
       cancelVoiceover();
       return;
     }
 
-    const key = `${startedAt ?? "no-start"}-${sceneIndex}`;
-    if (voiceoverKeyRef.current === key) return;
-
-    const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
-    const sceneElapsed = syncedElapsed - sceneIndex * sceneMs;
-    if (sceneElapsed > sceneMs - 1600) return;
-
-    voiceoverKeyRef.current = key;
     cancelVoiceover();
+    let minimumTimePassed = false;
+    let voiceoverFinished = !audioTracksEnabled;
+    let advanced = false;
+    const sceneStartedAt = Date.now();
 
-    const utterance = new SpeechSynthesisUtterance(scene.voiceover);
-    const selectedVoice = chooseIntroVoice(speechVoices);
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.lang = selectedVoice?.lang ?? "en-US";
-    utterance.volume = voiceoverVolume;
-    utterance.rate = 0.78;
-    utterance.pitch = 1.36;
-
-    const delay = sceneElapsed < 500 ? 700 : 140;
-    voiceoverTimeoutRef.current = window.setTimeout(() => {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-      voiceoverTimeoutRef.current = null;
-    }, delay);
-
-    return () => {
-      if (voiceoverTimeoutRef.current) {
-        window.clearTimeout(voiceoverTimeoutRef.current);
-        voiceoverTimeoutRef.current = null;
+    const advance = (force = false) => {
+      if (advanced || (!force && (!minimumTimePassed || !voiceoverFinished))) return;
+      advanced = true;
+      setSceneProgressValue(100);
+      if (sceneIndex >= scenes.length - 1) {
+        setElapsed(durationMs);
+        setPhase("patient");
+      } else {
+        setIntroSceneIndex((current) => Math.min(scenes.length - 1, current + 1));
       }
     };
-  }, [audioTracksEnabled, open, phase, sceneIndex, scene.voiceover, speechVoices, startedAt]);
+
+    const progressInterval = window.setInterval(() => {
+      const nextProgress = Math.min(98, ((Date.now() - sceneStartedAt) / sceneMs) * 100);
+      setSceneProgressValue(nextProgress);
+      setElapsed((sceneIndex + nextProgress / 100) * sceneMs);
+    }, 90);
+
+    const minimumTimer = window.setTimeout(() => {
+      minimumTimePassed = true;
+      advance();
+    }, 2600);
+
+    const forceTimer = window.setTimeout(() => {
+      voiceoverFinished = true;
+      minimumTimePassed = true;
+      advance(true);
+    }, 12000);
+
+    if (audioTracksEnabled) {
+      const voiceTimer = window.setTimeout(() => {
+        voiceoverRef.current = playVoiceoverLine({
+          text: scene.voiceover,
+          audioSrc: scene.voiceoverSrc,
+          volume: voiceoverVolume,
+          rate: 0.78,
+          pitch: 1.36,
+          onEnd: () => {
+            voiceoverFinished = true;
+            advance();
+          }
+        });
+      }, 550);
+
+      return () => {
+        window.clearTimeout(voiceTimer);
+        window.clearInterval(progressInterval);
+        window.clearTimeout(minimumTimer);
+        window.clearTimeout(forceTimer);
+        cancelVoiceover();
+      };
+    }
+
+    return () => {
+      window.clearInterval(progressInterval);
+      window.clearTimeout(minimumTimer);
+      window.clearTimeout(forceTimer);
+      cancelVoiceover();
+    };
+  }, [audioTracksEnabled, open, phase, scene.voiceover, scene.voiceoverSrc, sceneIndex]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
