@@ -199,6 +199,7 @@ export function ScenarioIntro({
   const narrationActiveRef = useRef(false);
   const patientBriefShownRef = useRef(false);
   const timelineKeyRef = useRef<string>("");
+  const narratedSceneKeyRef = useRef<string>("");
   const sceneIndex = introSceneIndex;
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
@@ -260,9 +261,36 @@ export function ScenarioIntro({
   useEffect(() => {
     if (!open) {
       timelineKeyRef.current = "";
+      narratedSceneKeyRef.current = "";
       cancelVoiceover();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !startedAt) return;
+
+    const updateFromRoomClock = () => {
+      const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
+      setElapsed(syncedElapsed);
+
+      if (syncedElapsed >= durationMs) {
+        setIntroSceneIndex(scenes.length - 1);
+        setSceneProgressValue(100);
+        setPhase("patient");
+        return;
+      }
+
+      const nextSceneIndex = Math.min(scenes.length - 1, Math.floor(syncedElapsed / sceneMs));
+      const nextSceneProgress = ((syncedElapsed - nextSceneIndex * sceneMs) / sceneMs) * 100;
+      setPhase("scenes");
+      setIntroSceneIndex(nextSceneIndex);
+      setSceneProgressValue(Math.min(100, Math.max(0, nextSceneProgress)));
+    };
+
+    updateFromRoomClock();
+    const interval = window.setInterval(updateFromRoomClock, 90);
+    return () => window.clearInterval(interval);
+  }, [open, serverTime, startedAt]);
 
   useEffect(() => {
     if (!open || phase !== "scenes") {
@@ -270,81 +298,38 @@ export function ScenarioIntro({
       return;
     }
 
+    const narrationKey = `${startedAt ?? "no-start"}-${sceneIndex}`;
+    if (narratedSceneKeyRef.current === narrationKey) return;
+    narratedSceneKeyRef.current = narrationKey;
     cancelVoiceover();
-    let minimumTimePassed = false;
-    const shouldNarrate = role === "host" && audioTracksEnabled;
-    let voiceoverFinished = !shouldNarrate;
-    let advanced = false;
-    const sceneStartedAt = Date.now();
 
-    const advance = (force = false) => {
-      if (advanced || (!force && (!minimumTimePassed || !voiceoverFinished))) return;
-      advanced = true;
-      setSceneProgressValue(100);
-      if (sceneIndex >= scenes.length - 1) {
-        setElapsed(durationMs);
-        setPhase("patient");
-      } else {
-        setIntroSceneIndex((current) => Math.min(scenes.length - 1, current + 1));
-      }
-    };
+    if (role !== "host" || !audioTracksEnabled) return;
 
-    const progressInterval = window.setInterval(() => {
-      const nextProgress = Math.min(98, ((Date.now() - sceneStartedAt) / sceneMs) * 100);
-      setSceneProgressValue(nextProgress);
-      setElapsed((sceneIndex + nextProgress / 100) * sceneMs);
-    }, 90);
-
-    const minimumTimer = window.setTimeout(() => {
-      minimumTimePassed = true;
-      advance();
-    }, 2600);
-
-    const forceTimer = window.setTimeout(() => {
-      voiceoverFinished = true;
-      minimumTimePassed = true;
-      advance(true);
-    }, 60000);
-
-    if (shouldNarrate) {
-      const voiceTimer = window.setTimeout(() => {
-        voiceoverRef.current = playVoiceoverLine({
-          text: scene.voiceover,
-          volume: voiceoverVolume,
-          rate: 0.78,
-          pitch: 1.36,
-          browserFallback: false,
-          onStart: () => {
-            narrationActiveRef.current = true;
-            const audio = audioRef.current;
-            if (audio) syncIntroAudio(audio);
-          },
-          onEnd: () => {
-            narrationActiveRef.current = false;
-            const audio = audioRef.current;
-            if (audio) syncIntroAudio(audio);
-            voiceoverFinished = true;
-            advance();
-          }
-        });
-      }, 550);
-
-      return () => {
-        window.clearTimeout(voiceTimer);
-        window.clearInterval(progressInterval);
-        window.clearTimeout(minimumTimer);
-        window.clearTimeout(forceTimer);
-        cancelVoiceover();
-      };
-    }
+    const voiceTimer = window.setTimeout(() => {
+      voiceoverRef.current = playVoiceoverLine({
+        text: scene.voiceover,
+        volume: voiceoverVolume,
+        rate: 0.78,
+        pitch: 1.36,
+        browserFallback: false,
+        onStart: () => {
+          narrationActiveRef.current = true;
+          const audio = audioRef.current;
+          if (audio) syncIntroAudio(audio);
+        },
+        onEnd: () => {
+          narrationActiveRef.current = false;
+          const audio = audioRef.current;
+          if (audio) syncIntroAudio(audio);
+        }
+      });
+    }, 360);
 
     return () => {
-      window.clearInterval(progressInterval);
-      window.clearTimeout(minimumTimer);
-      window.clearTimeout(forceTimer);
+      window.clearTimeout(voiceTimer);
       cancelVoiceover();
     };
-  }, [audioTracksEnabled, open, phase, role, scene.voiceover, sceneIndex]);
+  }, [audioTracksEnabled, open, phase, role, scene.voiceover, sceneIndex, startedAt]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
