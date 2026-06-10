@@ -225,7 +225,7 @@ export function ProtocolIntro({
     const syncedElapsed = Math.min(totalDurationMs, getSyncedElapsed());
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, totalDurationMs - syncedElapsed);
-    const duckedVolume = narrationActiveRef.current ? maxVolume * 0.34 : maxVolume;
+    const duckedVolume = narrationActiveRef.current ? maxVolume * 0.82 : maxVolume;
     audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
     if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.9) {
       audio.currentTime = targetTime;

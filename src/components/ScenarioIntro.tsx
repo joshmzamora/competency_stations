@@ -227,14 +227,8 @@ export function ScenarioIntro({
   }
 
   function syncIntroAudio(audio: HTMLAudioElement) {
-    const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
-    const targetTime = syncedElapsed / 1000;
-    const remaining = Math.max(0, durationMs - syncedElapsed);
-    const duckedVolume = narrationActiveRef.current ? maxIntroVolume * 0.42 : maxIntroVolume;
-    audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
-    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 1.2) {
-      audio.currentTime = targetTime;
-    }
+    const duckedVolume = narrationActiveRef.current ? maxIntroVolume * 0.82 : maxIntroVolume;
+    audio.volume = duckedVolume;
   }
 
   function playSyncedIntroAudio() {
@@ -403,8 +397,8 @@ export function ScenarioIntro({
       syncIntroAudio(audio);
     };
 
-    audio.loop = false;
-    audio.currentTime = Math.min(durationMs, getSyncedElapsed()) / 1000;
+    audio.loop = true;
+    audio.currentTime = 0;
     syncAudio();
     playSyncedIntroAudio();
 

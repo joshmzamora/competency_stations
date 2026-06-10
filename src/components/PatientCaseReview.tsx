@@ -413,7 +413,7 @@ export function PatientCaseReview({
   function setCaseMusicDucked(ducked: boolean) {
     narrationActiveRef.current = ducked;
     const audio = audioRef.current;
-    if (audio) audio.volume = ducked ? 0.045 : 0.15;
+    if (audio) audio.volume = ducked ? 0.12 : 0.15;
   }
 
   useEffect(() => {
