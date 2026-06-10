@@ -307,7 +307,7 @@ export function ScenarioIntro({
       voiceoverFinished = true;
       minimumTimePassed = true;
       advance(true);
-    }, 12000);
+    }, 60000);
 
     if (audioTracksEnabled) {
       const voiceTimer = window.setTimeout(() => {

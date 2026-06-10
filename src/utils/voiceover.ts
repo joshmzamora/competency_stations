@@ -12,6 +12,11 @@ type VoiceoverOptions = {
   onEnd?: () => void;
 };
 
+const piperVoiceId = "en_US-hfc_female-medium";
+const localPiperModelBase = "/models/voice/en_US-hfc_female-medium";
+let piperSeedPromise: Promise<void> | null = null;
+let piperUnavailable = false;
+
 const preferredVoiceNames = [
   "Microsoft Zira",
   "Microsoft Jenny",
@@ -45,6 +50,48 @@ export function estimateVoiceoverMs(text: string, rate = 0.82) {
   return Math.min(11000, Math.max(1800, (wordCount / wordsPerMinute) * 60_000 + 700));
 }
 
+async function cacheLocalFileInOpfs(url: string, fileName: string) {
+  if (!navigator.storage?.getDirectory) return;
+  const root = await navigator.storage.getDirectory();
+  const dir = await root.getDirectoryHandle("piper", { create: true });
+  try {
+    await dir.getFileHandle(fileName);
+    return;
+  } catch {
+    // File is not cached yet.
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Could not load local Piper asset: ${url}`);
+  const file = await dir.getFileHandle(fileName, { create: true });
+  const writable = await file.createWritable();
+  await writable.write(await response.blob());
+  await writable.close();
+}
+
+function seedLocalPiperVoice() {
+  if (!piperSeedPromise) {
+    piperSeedPromise = Promise.all([
+      cacheLocalFileInOpfs(`${localPiperModelBase}.onnx`, `${piperVoiceId}.onnx`),
+      cacheLocalFileInOpfs(`${localPiperModelBase}.onnx.json`, `${piperVoiceId}.onnx.json`)
+    ]).then(() => undefined);
+  }
+  return piperSeedPromise;
+}
+
+async function synthesizeWithPiper(text: string) {
+  if (piperUnavailable) return null;
+  try {
+    await seedLocalPiperVoice();
+    const tts = await import("@mintplex-labs/piper-tts-web");
+    return await tts.predict({ text, voiceId: piperVoiceId });
+  } catch (error) {
+    piperUnavailable = true;
+    console.warn("Piper voiceover unavailable, falling back to browser speech.", error);
+    return null;
+  }
+}
+
 export function playVoiceoverLine({
   text,
   audioSrc,
@@ -62,15 +109,43 @@ export function playVoiceoverLine({
   let cancelled = false;
   let audio: HTMLAudioElement | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let objectUrl: string | null = null;
 
   const finish = () => {
     if (cancelled) return;
     cancelled = true;
     if (timeoutId) clearTimeout(timeoutId);
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
     onEnd?.();
   };
 
-  const speakFallback = () => {
+  const playAudioFile = (src: string, onError: () => void) => {
+    if (cancelled) return;
+    audio = new Audio(src);
+    audio.preload = "auto";
+    audio.volume = volume;
+    audio.onended = finish;
+    audio.onerror = onError;
+    audio.play().catch(onError);
+  };
+
+  const playPiperFallback = () => {
+    if (cancelled) return;
+    synthesizeWithPiper(text).then((blob) => {
+      if (cancelled) return;
+      if (!blob) {
+        browserSpeechFallback();
+        return;
+      }
+      objectUrl = URL.createObjectURL(blob);
+      playAudioFile(objectUrl, browserSpeechFallback);
+    });
+  };
+
+  const browserSpeechFallback = () => {
     if (cancelled) return;
     if (!("speechSynthesis" in window)) {
       timeoutId = setTimeout(finish, estimateVoiceoverMs(text, rate));
@@ -92,14 +167,9 @@ export function playVoiceoverLine({
   };
 
   if (audioSrc) {
-    audio = new Audio(audioSrc);
-    audio.preload = "auto";
-    audio.volume = volume;
-    audio.onended = finish;
-    audio.onerror = speakFallback;
-    audio.play().catch(speakFallback);
+    playAudioFile(audioSrc, playPiperFallback);
   } else {
-    speakFallback();
+    playPiperFallback();
   }
 
   return {
@@ -110,6 +180,7 @@ export function playVoiceoverLine({
         audio.pause();
         audio.currentTime = 0;
       }
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     }
   };
