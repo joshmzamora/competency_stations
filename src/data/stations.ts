@@ -347,12 +347,12 @@ const strokePrompts: CompetencyPrompt[] = [
       itemBankLabel: "Action cards",
       itemBank: [
         "Stool softener",
-        "Accuchek",
-        "Tylenol",
-        "Physical therapy / 14 hours post TNK",
         "NGT insertion",
+        "Accuchek",
         "Blood draw",
+        "Tylenol",
         "Foley catheter insertion",
+        "Physical therapy / 14 hours post TNK",
         "Heparin"
       ],
       columns: [
