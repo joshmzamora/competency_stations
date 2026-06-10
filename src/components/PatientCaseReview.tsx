@@ -164,30 +164,34 @@ function CaseFileCard({
   active,
   reviewed,
   readOnly,
+  locked,
   onOpen
 }: {
   file: CaseFile;
   active: boolean;
   reviewed: boolean;
   readOnly: boolean;
+  locked: boolean;
   onOpen: () => void;
 }) {
   const Icon = file.Icon;
+  const disabled = readOnly || locked;
 
   return (
     <motion.button
       type="button"
-      whileHover={{ y: -5, scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={disabled ? undefined : { y: -5, scale: 1.01 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       onClick={() => {
-        if (!readOnly) onOpen();
+        if (!disabled) onOpen();
       }}
+      disabled={disabled}
       className={`group relative min-h-[210px] overflow-hidden rounded-md border p-6 text-left shadow-[0_18px_44px_rgba(0,0,0,0.28)] transition ${active
         ? "border-scrub/55 bg-[#071817] shadow-[0_0_46px_rgba(34,245,199,0.18)]"
         : reviewed
           ? "border-scrub/35 bg-scrub/[0.075] shadow-[0_0_26px_rgba(34,245,199,0.1)]"
           : "border-white/10 bg-[#090d12] hover:border-monitor/35 hover:shadow-[0_0_34px_rgba(110,247,255,0.1)]"
-        }`}
+        } ${disabled && !readOnly ? "cursor-not-allowed opacity-55" : ""}`}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-monitor to-transparent opacity-70" />
       <motion.div
@@ -211,7 +215,7 @@ function CaseFileCard({
           </span>
         ) : (
           <span className="rounded-full border border-monitor/20 bg-monitor/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.12em] text-monitor">
-            {readOnly ? "Awaiting Learner" : "Access File"}
+            {readOnly ? "Awaiting Learner" : locked ? "Listening" : "Access File"}
           </span>
         )}
       </div>
@@ -340,6 +344,7 @@ export function PatientCaseReview({
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
   const narrationActiveRef = useRef(false);
   const voicedFileRef = useRef("");
+  const [fileNarrationActive, setFileNarrationActive] = useState(false);
   const reviewedIds = new Set(["identity", ...reviewedFileIds]);
   const activeId = activeFileId && caseFiles.some((file) => file.id === activeFileId) ? activeFileId : caseFiles[0].id;
   const activeFile = caseFiles.find((file) => file.id === activeId) ?? caseFiles[0];
@@ -366,22 +371,30 @@ export function PatientCaseReview({
   }
 
   useEffect(() => {
-    if (!audioTracksEnabled) return;
+    if (!audioTracksEnabled) {
+      setFileNarrationActive(false);
+      return;
+    }
     if (voicedFileRef.current === activeFile.id) return;
     voicedFileRef.current = activeFile.id;
     voiceoverRef.current?.cancel();
     setCaseMusicDucked(false);
+    setFileNarrationActive(true);
     voiceoverRef.current = playVoiceoverLine({
       text: activeFile.voiceover,
       volume: 0.78,
       rate: 0.82,
       pitch: 1.28,
       onStart: () => setCaseMusicDucked(true),
-      onEnd: () => setCaseMusicDucked(false)
+      onEnd: () => {
+        setFileNarrationActive(false);
+        setCaseMusicDucked(false);
+      }
     });
     return () => {
       voiceoverRef.current?.cancel();
       setCaseMusicDucked(false);
+      setFileNarrationActive(false);
       voiceoverRef.current = null;
     };
   }, [activeFile, audioTracksEnabled]);
@@ -395,6 +408,7 @@ export function PatientCaseReview({
 
   function handleContinue() {
     voiceoverRef.current?.cancel();
+    setFileNarrationActive(false);
     setCaseMusicDucked(false);
     const audio = audioRef.current;
     if (!audio) {
@@ -419,6 +433,8 @@ export function PatientCaseReview({
 
   function openFile(id: string) {
     if (role === "player") {
+      if (fileNarrationActive && id !== activeId) return;
+      if (id === activeId) return;
       if (audioEffectsEnabled) playFileClickCue();
       onOpenFile(id);
     }
@@ -479,6 +495,7 @@ export function PatientCaseReview({
                 active={file.id === activeId}
                 reviewed={reviewedIds.has(file.id)}
                 readOnly={role === "host"}
+                locked={role === "player" && fileNarrationActive && file.id !== activeId}
                 onOpen={() => openFile(file.id)}
               />
             ))}
