@@ -3,7 +3,6 @@ import { Circle, Download, Flag, Medal, PartyPopper, ShieldCheck, Square, Star, 
 import { useEffect, useRef } from "react";
 import { stations } from "../data/stations";
 import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from "../types";
-import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
 import { AnimatedButton } from "./AnimatedButton";
 
 const debriefAudioSrc = "/audio/squid_game_theme.mp3";
@@ -195,11 +194,6 @@ export function SessionDebrief({
   const focusedMiss = report.missed.find((item) => item.id === room?.debriefFocusedPromptId);
   const missedExpanded = Boolean(room?.debriefMissedExpanded);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const voiceoverRef = useRef<VoiceoverHandle | null>(null);
-  const narrationActiveRef = useRef(false);
-  const debriefVoiceKeyRef = useRef("");
-  const focusedVoiceKeyRef = useRef("");
-  const closingVoiceKeyRef = useRef("");
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -212,7 +206,7 @@ export function SessionDebrief({
     }
 
     audio.loop = true;
-    audio.volume = narrationActiveRef.current ? debriefAudioVolume * 0.42 : debriefAudioVolume;
+    audio.volume = debriefAudioVolume;
     const playPromise = audio.play();
     if (playPromise) playPromise.catch(() => undefined);
 
@@ -222,80 +216,6 @@ export function SessionDebrief({
       audio.currentTime = 0;
     };
   }, [audioEnabled, closingOpen, debriefOpen]);
-
-  function setDebriefMusicDucked(ducked: boolean) {
-    narrationActiveRef.current = ducked;
-    const audio = audioRef.current;
-    if (audio) audio.volume = ducked ? debriefAudioVolume * 0.42 : debriefAudioVolume;
-  }
-
-  useEffect(() => {
-    if (!audioEnabled || !debriefOpen || !room) return;
-    const key = `${room.code}-${room.debriefStartedAt ?? "debrief"}`;
-    if (debriefVoiceKeyRef.current === key) return;
-    debriefVoiceKeyRef.current = key;
-    voiceoverRef.current?.cancel();
-    setDebriefMusicDucked(false);
-    const missedText =
-      report.missed.length === 0
-        ? "No missed questions were recorded."
-        : `${report.missed.length} missed or partial item${report.missed.length === 1 ? " was" : "s were"} recorded.`;
-    voiceoverRef.current = playVoiceoverLine({
-      text: `Debrief started. Review missed questions first. ${missedText} Then review participant accuracy before closing the session.`,
-      volume: 0.7,
-      rate: 0.82,
-      pitch: 1.24,
-      onStart: () => setDebriefMusicDucked(true),
-      onEnd: () => setDebriefMusicDucked(false)
-    });
-  }, [audioEnabled, debriefOpen, report.missed.length, room]);
-
-  useEffect(() => {
-    if (!audioEnabled || !debriefOpen || !focusedMiss) return;
-    const key = `${focusedMiss.id}-${focusedMiss.status}`;
-    if (focusedVoiceKeyRef.current === key) return;
-    focusedVoiceKeyRef.current = key;
-    voiceoverRef.current?.cancel();
-    setDebriefMusicDucked(false);
-    voiceoverRef.current = playVoiceoverLine({
-      text: `Review item. ${focusedMiss.station}. ${focusedMiss.question}. Correct answer. ${focusedMiss.answer}`,
-      volume: 0.68,
-      rate: 0.84,
-      pitch: 1.2,
-      onStart: () => setDebriefMusicDucked(true),
-      onEnd: () => setDebriefMusicDucked(false)
-    });
-  }, [audioEnabled, debriefOpen, focusedMiss]);
-
-  useEffect(() => {
-    if (!audioEnabled || !closingOpen || !room) return;
-    const key = `${room.code}-${room.closingStartedAt ?? "closing"}`;
-    if (closingVoiceKeyRef.current === key) return;
-    closingVoiceKeyRef.current = key;
-    voiceoverRef.current?.cancel();
-    setDebriefMusicDucked(false);
-    voiceoverRef.current = playVoiceoverLine({
-      text: "Simulation complete. Debrief finished. Enjoy your Squid Game cookies.",
-      volume: 0.72,
-      rate: 0.8,
-      pitch: 1.32,
-      onStart: () => setDebriefMusicDucked(true),
-      onEnd: () => setDebriefMusicDucked(false)
-    });
-  }, [audioEnabled, closingOpen, room]);
-
-  useEffect(() => {
-    if (debriefOpen || closingOpen) return;
-    voiceoverRef.current?.cancel();
-    setDebriefMusicDucked(false);
-  }, [closingOpen, debriefOpen]);
-
-  useEffect(() => {
-    return () => {
-      voiceoverRef.current?.cancel();
-      setDebriefMusicDucked(false);
-    };
-  }, []);
 
   return (
     <>
