@@ -795,6 +795,8 @@ export function PlayerPage() {
           audioEffectsEnabled={effectsAudioEnabled}
           audioTracksEnabled={trackAudioEnabled}
           startedAt={room?.introStartedAt}
+          introSceneIndex={room?.introSceneIndex ?? 0}
+          introSceneStartedAt={room?.introSceneStartedAt}
           serverTime={room?.serverTime}
           patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
           patientReviewActiveFileId={room?.patientReviewActiveFileId}

@@ -134,6 +134,8 @@ export type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  introSceneIndex: number;
+  introSceneStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   patientReviewActiveFileId: string | null;
@@ -194,6 +196,7 @@ export type ClientMessage =
   | { type: "leave-room" }
   | { type: "start-session" }
   | { type: "start-session-now" }
+  | { type: "advance-intro-scene"; sceneIndex: number }
   | { type: "skip-intro" }
   | { type: "skip-intro-to-patient-review"; elapsedMs: number }
   | { type: "review-patient-file"; fileId: string }

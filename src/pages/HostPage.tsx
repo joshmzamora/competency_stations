@@ -943,6 +943,8 @@ export function HostPage() {
         audioEffectsEnabled={effectsAudioEnabled}
         audioTracksEnabled={trackAudioEnabled}
         startedAt={room?.introStartedAt}
+        introSceneIndex={room?.introSceneIndex ?? 0}
+        introSceneStartedAt={room?.introSceneStartedAt}
         serverTime={room?.serverTime}
         patientReviewReviewedFileIds={room?.patientReviewReviewedFileIds ?? []}
         patientReviewActiveFileId={room?.patientReviewActiveFileId}
@@ -951,6 +953,7 @@ export function HostPage() {
         canSkip
         onClose={closeIntro}
         onSkip={skipIntro}
+        onAdvanceScene={(sceneIndex) => send({ type: "advance-intro-scene", sceneIndex })}
       />
       <ProtocolIntro
         open={protocolIntroVisible}

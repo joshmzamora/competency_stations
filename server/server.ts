@@ -54,6 +54,8 @@ type RoomState = {
   status: "lobby" | "in-progress" | "ended";
   serverTime: number;
   introStartedAt: number | null;
+  introSceneIndex: number;
+  introSceneStartedAt: number | null;
   introCompletedAt: number | null;
   protocolIntroStartedAt: number | null;
   patientReviewActiveFileId: string | null;
@@ -132,6 +134,8 @@ function createInitialRoom(code: string): RoomState {
     status: "lobby",
     serverTime: Date.now(),
     introStartedAt: null,
+    introSceneIndex: 0,
+    introSceneStartedAt: null,
     introCompletedAt: null,
     protocolIntroStartedAt: null,
     patientReviewActiveFileId: null,
@@ -368,6 +372,8 @@ function restoreRoomSnapshot(value: unknown, code: string): RoomState | null {
     status: snapshot.status,
     serverTime: Date.now(),
     introStartedAt: null,
+    introSceneIndex: 0,
+    introSceneStartedAt: null,
     introCompletedAt: numberOrNull(snapshot.introCompletedAt),
     protocolIntroStartedAt: null,
     patientReviewActiveFileId: typeof snapshot.patientReviewActiveFileId === "string" ? snapshot.patientReviewActiveFileId : null,
@@ -670,6 +676,8 @@ function serializableRoom(room: RoomState): RoomState {
     ...room,
     serverTime: Date.now(),
     introStartedAt: null,
+    introSceneIndex: Math.max(0, Math.min(6, Math.floor(typeof room.introSceneIndex === "number" ? room.introSceneIndex : 0))),
+    introSceneStartedAt: null,
     protocolIntroStartedAt: null,
     patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
     patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
@@ -720,6 +728,8 @@ async function loadRooms() {
         ...room,
         serverTime: Date.now(),
         introStartedAt: null,
+        introSceneIndex: Math.max(0, Math.min(6, Math.floor(typeof room.introSceneIndex === "number" ? room.introSceneIndex : 0))),
+        introSceneStartedAt: null,
         protocolIntroStartedAt: null,
         patientReviewActiveFileId: room.patientReviewActiveFileId ?? null,
         patientReviewReviewedFileIds: Array.isArray(room.patientReviewReviewedFileIds) ? room.patientReviewReviewedFileIds : [],
@@ -1076,9 +1086,11 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.status = "in-progress";
       room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
+      room.introSceneIndex = room.introCompletedAt ? 6 : 0;
+      room.introSceneStartedAt = room.introCompletedAt ? null : room.introStartedAt;
       room.protocolIntroStartedAt = null;
-      room.patientReviewActiveFileId = "identity";
-      room.patientReviewReviewedFileIds = ["identity"];
+      room.patientReviewActiveFileId = null;
+      room.patientReviewReviewedFileIds = [];
       room.selection = null;
       room.debriefStartedAt = null;
       room.closingStartedAt = null;
@@ -1101,6 +1113,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.status = "in-progress";
       room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
       room.introStartedAt = null;
+      room.introSceneIndex = 6;
+      room.introSceneStartedAt = null;
       room.introCompletedAt = room.introCompletedAt ?? Date.now();
       room.protocolIntroStartedAt = null;
       room.patientReviewActiveFileId = null;
@@ -1118,7 +1132,19 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "skip-intro": {
       if (client.role !== "host") return;
       room.introStartedAt = null;
+      room.introSceneIndex = 6;
+      room.introSceneStartedAt = null;
       room.introCompletedAt = room.introCompletedAt ?? Date.now();
+      broadcastState(room.code);
+      break;
+    }
+    case "advance-intro-scene": {
+      if (client.role !== "host") return;
+      if (!room.introStartedAt) return;
+      const sceneIndex = Math.floor(Number(message.sceneIndex));
+      if (!Number.isFinite(sceneIndex) || sceneIndex !== room.introSceneIndex) return;
+      room.introSceneIndex = Math.min(6, room.introSceneIndex + 1);
+      room.introSceneStartedAt = room.introSceneIndex >= 6 ? null : Date.now();
       broadcastState(room.code);
       break;
     }
@@ -1126,10 +1152,12 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       if (client.role !== "host") return;
       const elapsedMs = Math.max(0, Math.min(120000, Number(message.elapsedMs ?? 45000)));
       room.introStartedAt = Date.now() - elapsedMs;
+      room.introSceneIndex = 6;
+      room.introSceneStartedAt = null;
       room.introCompletedAt = null;
       room.protocolIntroStartedAt = null;
-      room.patientReviewActiveFileId = "identity";
-      room.patientReviewReviewedFileIds = ["identity"];
+      room.patientReviewActiveFileId = null;
+      room.patientReviewReviewedFileIds = [];
       room.selection = null;
       broadcastState(room.code);
       break;
@@ -1156,6 +1184,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       }
       assignShapesToRoom(room);
       room.introStartedAt = null;
+      room.introSceneIndex = 6;
+      room.introSceneStartedAt = null;
       room.introCompletedAt = room.introCompletedAt ?? Date.now();
       room.protocolIntroStartedAt = Date.now();
       room.patientReviewActiveFileId = null;
@@ -1237,6 +1267,8 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       }
       room.status = room.introCompletedAt ? "in-progress" : "lobby";
       room.introStartedAt = null;
+      room.introSceneIndex = room.introCompletedAt ? 6 : 0;
+      room.introSceneStartedAt = null;
       room.selectedStation = message.station ?? null;
       if (!room.sessionStartedAt) {
         room.stationRouteStartId = selectedStationId(room) || null;

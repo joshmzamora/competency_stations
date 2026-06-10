@@ -307,6 +307,45 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
   );
 }
 
+function CaseIntroViewer() {
+  return (
+    <motion.div
+      key="case-introduction"
+      initial={{ opacity: 0, x: 22 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -14 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+      className="relative grid h-full min-h-0 content-center overflow-hidden rounded-md border border-monitor/30 bg-[#050d10] p-8 shadow-[0_0_110px_rgba(110,247,255,0.13)]"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(110,247,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(110,247,255,0.035)_1px,transparent_1px)] bg-[size:34px_34px]" />
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-monitor/20 to-transparent"
+        animate={{ y: [-110, 680] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="relative z-[1] mx-auto max-w-4xl text-center">
+        <div className="mx-auto grid h-28 w-28 place-items-center rounded-md border border-scrub/30 bg-scrub/10 text-scrub shadow-[0_0_56px_rgba(34,245,199,0.18)]">
+          <FileSearch className="h-16 w-16" />
+        </div>
+        <div className="mt-8 font-display text-sm font-black uppercase tracking-[0.28em] text-monitor">Patient Intel Ready</div>
+        <h3 className="mt-4 font-display text-6xl font-black uppercase leading-none text-white md:text-7xl">
+          Begin Case Review
+        </h3>
+        <p className="mx-auto mt-8 max-w-3xl text-3xl font-semibold leading-[3rem] text-white/82">
+          Click each patient case file to learn more about Emma Gonnadye before the simulation begins.
+        </p>
+        <div className="mt-10 grid gap-3 sm:grid-cols-3">
+          {["Open files", "Listen fully", "Review all 7"].map((item) => (
+            <div key={item} className="rounded-md border border-white/10 bg-white/[0.055] px-5 py-4 font-display text-lg font-black uppercase text-white/75">
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function DeskArtifacts() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -344,10 +383,10 @@ export function PatientCaseReview({
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
   const narrationActiveRef = useRef(false);
   const voicedFileRef = useRef("");
-  const [fileNarrationActive, setFileNarrationActive] = useState(false);
-  const reviewedIds = new Set(["identity", ...reviewedFileIds]);
-  const activeId = activeFileId && caseFiles.some((file) => file.id === activeFileId) ? activeFileId : caseFiles[0].id;
-  const activeFile = caseFiles.find((file) => file.id === activeId) ?? caseFiles[0];
+  const [narrationLockFileId, setNarrationLockFileId] = useState<string | null>(null);
+  const reviewedIds = new Set(reviewedFileIds);
+  const activeId = activeFileId && caseFiles.some((file) => file.id === activeFileId) ? activeFileId : null;
+  const activeFile = activeId ? caseFiles.find((file) => file.id === activeId) ?? null : null;
   const progress = Math.round((reviewedIds.size / caseFiles.length) * 100);
   const ready = reviewedIds.size >= caseFiles.length;
 
@@ -377,14 +416,21 @@ export function PatientCaseReview({
 
   useEffect(() => {
     if (!audioTracksEnabled) {
-      setFileNarrationActive(false);
+      setNarrationLockFileId(null);
+      return;
+    }
+    if (!activeFile) {
+      voiceoverRef.current?.cancel();
+      voicedFileRef.current = "";
+      setNarrationLockFileId(null);
+      setCaseMusicDucked(false);
       return;
     }
     if (voicedFileRef.current === activeFile.id) return;
     voicedFileRef.current = activeFile.id;
     voiceoverRef.current?.cancel();
     setCaseMusicDucked(false);
-    setFileNarrationActive(true);
+    setNarrationLockFileId(activeFile.id);
     voiceoverRef.current = playVoiceoverLine({
       text: activeFile.voiceover,
       volume: 0.78,
@@ -392,14 +438,13 @@ export function PatientCaseReview({
       pitch: 1.28,
       onStart: () => setCaseMusicDucked(true),
       onEnd: () => {
-        setFileNarrationActive(false);
+        setNarrationLockFileId(null);
         setCaseMusicDucked(false);
       }
     });
     return () => {
       voiceoverRef.current?.cancel();
       setCaseMusicDucked(false);
-      setFileNarrationActive(false);
       voiceoverRef.current = null;
     };
   }, [activeFile, audioTracksEnabled]);
@@ -413,7 +458,7 @@ export function PatientCaseReview({
 
   function handleContinue() {
     voiceoverRef.current?.cancel();
-    setFileNarrationActive(false);
+    setNarrationLockFileId(null);
     setCaseMusicDucked(false);
     const audio = audioRef.current;
     if (!audio) {
@@ -438,7 +483,7 @@ export function PatientCaseReview({
 
   function openFile(id: string) {
     if (role === "player") {
-      if (fileNarrationActive && id !== activeId) return;
+      if (narrationLockFileId && id !== activeId) return;
       if (id === activeId) return;
       if (audioEffectsEnabled) playFileClickCue();
       onOpenFile(id);
@@ -500,14 +545,16 @@ export function PatientCaseReview({
                 active={file.id === activeId}
                 reviewed={reviewedIds.has(file.id)}
                 readOnly={role === "host"}
-                locked={role === "player" && fileNarrationActive && file.id !== activeId}
+                locked={role === "player" && Boolean(narrationLockFileId) && file.id !== activeId}
                 onOpen={() => openFile(file.id)}
               />
             ))}
           </div>
         </section>
 
-        <CaseFileViewer file={activeFile} />
+        <AnimatePresence mode="wait">
+          {activeFile ? <CaseFileViewer file={activeFile} /> : <CaseIntroViewer />}
+        </AnimatePresence>
       </main>
 
       <footer className="relative z-[1] flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
