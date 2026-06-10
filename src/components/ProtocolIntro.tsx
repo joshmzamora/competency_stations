@@ -209,6 +209,7 @@ export function ProtocolIntro({
   const audioStartKeyRef = useRef("");
   const audioRetryNeededRef = useRef(false);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
+  const narrationActiveRef = useRef(false);
   const spokenParticipantIdsRef = useRef(new Set<string>());
   const spokenOpeningRef = useRef(false);
   const spokenSummaryRef = useRef(false);
@@ -224,7 +225,8 @@ export function ProtocolIntro({
     const syncedElapsed = Math.min(totalDurationMs, getSyncedElapsed());
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, totalDurationMs - syncedElapsed);
-    audio.volume = Math.min(maxVolume, maxVolume * (remaining / fadeOutMs));
+    const duckedVolume = narrationActiveRef.current ? maxVolume * 0.34 : maxVolume;
+    audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
     if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.9) {
       audio.currentTime = targetTime;
     }
@@ -246,15 +248,23 @@ export function ProtocolIntro({
     }
   }
 
-  function playAssignmentVoiceover(text: string, audioSrc?: string) {
+  function setAssignmentMusicDucked(ducked: boolean) {
+    narrationActiveRef.current = ducked;
+    const audio = audioRef.current;
+    if (audio) syncAssignmentAudio(audio);
+  }
+
+  function playAssignmentVoiceover(text: string) {
     if (!audioEnabled) return;
     voiceoverRef.current?.cancel();
+    setAssignmentMusicDucked(false);
     voiceoverRef.current = playVoiceoverLine({
       text,
-      audioSrc,
       volume: 0.76,
       rate: 0.8,
-      pitch: 1.34
+      pitch: 1.34,
+      onStart: () => setAssignmentMusicDucked(true),
+      onEnd: () => setAssignmentMusicDucked(false)
     });
   }
 
@@ -266,6 +276,7 @@ export function ProtocolIntro({
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
       voiceoverRef.current?.cancel();
+      setAssignmentMusicDucked(false);
       return;
     }
 
@@ -296,6 +307,7 @@ export function ProtocolIntro({
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
       voiceoverRef.current?.cancel();
+      setAssignmentMusicDucked(false);
     }
   }, [open]);
 
@@ -358,8 +370,7 @@ export function ProtocolIntro({
     if (!open || !audioEnabled || spokenOpeningRef.current || elapsed > openingMs - 900) return;
     spokenOpeningRef.current = true;
     playAssignmentVoiceover(
-      "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.",
-      "/audio/voiceover/shape-opening.mp3"
+      "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts."
     );
   }, [audioEnabled, elapsed, open]);
 
@@ -373,6 +384,7 @@ export function ProtocolIntro({
   useEffect(() => {
     return () => {
       voiceoverRef.current?.cancel();
+      setAssignmentMusicDucked(false);
     };
   }, []);
 
@@ -380,12 +392,13 @@ export function ProtocolIntro({
     if (!open || !audioEnabled || !showSummary || spokenSummaryRef.current) return;
     spokenSummaryRef.current = true;
     const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-    playAssignmentVoiceover(`All shapes are assigned. ${roster}. Stand by for the first station.`, "/audio/voiceover/shape-summary.mp3");
+    playAssignmentVoiceover(`All shapes are assigned. ${roster}. Stand by for the first station.`);
   }, [audioEnabled, open, players, showSummary]);
 
   function stopAudio() {
     const audio = audioRef.current;
     voiceoverRef.current?.cancel();
+    setAssignmentMusicDucked(false);
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;

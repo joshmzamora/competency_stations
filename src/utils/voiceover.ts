@@ -4,18 +4,19 @@ export type VoiceoverHandle = {
 
 type VoiceoverOptions = {
   text: string;
-  audioSrc?: string;
   enabled?: boolean;
   volume?: number;
   rate?: number;
   pitch?: number;
   onEnd?: () => void;
+  onStart?: () => void;
 };
 
 const piperVoiceId = "en_US-hfc_female-medium";
 const localPiperModelBase = "/models/voice/en_US-hfc_female-medium";
 let piperSeedPromise: Promise<void> | null = null;
 let piperUnavailable = false;
+let piperWarmupPromise: Promise<boolean> | null = null;
 
 const preferredVoiceNames = [
   "Microsoft Zira",
@@ -34,7 +35,7 @@ function browserVoices() {
   return window.speechSynthesis.getVoices();
 }
 
-export function chooseNarratorVoice() {
+function chooseNarratorVoice() {
   const voices = browserVoices();
   return (
     voices.find((voice) => preferredVoiceNames.some((name) => voice.name.toLowerCase().includes(name.toLowerCase()))) ??
@@ -87,19 +88,30 @@ async function synthesizeWithPiper(text: string) {
     return await tts.predict({ text, voiceId: piperVoiceId });
   } catch (error) {
     piperUnavailable = true;
-    console.warn("Piper voiceover unavailable, falling back to browser speech.", error);
+    console.warn("Piper voiceover unavailable. Falling back to browser speech for this line.", error);
     return null;
   }
 }
 
+export function prepareVoiceoverEngine() {
+  if (!piperWarmupPromise) {
+    piperWarmupPromise = synthesizeWithPiper("Voice ready.")
+      .then((blob) => {
+        if (blob) URL.revokeObjectURL(URL.createObjectURL(blob));
+        return true;
+      })
+      .catch(() => true);
+  }
+  return piperWarmupPromise;
+}
+
 export function playVoiceoverLine({
   text,
-  audioSrc,
   enabled = true,
   volume = 0.82,
   rate = 0.78,
-  pitch = 1.34,
-  onEnd
+  onEnd,
+  onStart
 }: VoiceoverOptions): VoiceoverHandle {
   if (!enabled || typeof window === "undefined") {
     const fallbackId = window.setTimeout(() => onEnd?.(), estimateVoiceoverMs(text, rate));
@@ -110,9 +122,11 @@ export function playVoiceoverLine({
   let audio: HTMLAudioElement | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let objectUrl: string | null = null;
+  let finished = false;
 
   const finish = () => {
-    if (cancelled) return;
+    if (cancelled || finished) return;
+    finished = true;
     cancelled = true;
     if (timeoutId) clearTimeout(timeoutId);
     if (objectUrl) {
@@ -122,17 +136,23 @@ export function playVoiceoverLine({
     onEnd?.();
   };
 
-  const playAudioFile = (src: string, onError: () => void) => {
+  const finishSilently = () => {
     if (cancelled) return;
+    timeoutId = setTimeout(finish, estimateVoiceoverMs(text, rate));
+  };
+
+  const playAudioFile = (src: string, onError: () => void = browserSpeechFallback) => {
+    if (cancelled || finished) return;
     audio = new Audio(src);
     audio.preload = "auto";
     audio.volume = volume;
+    audio.onplay = () => onStart?.();
     audio.onended = finish;
     audio.onerror = onError;
     audio.play().catch(onError);
   };
 
-  const playPiperFallback = () => {
+  const playPiper = () => {
     if (cancelled) return;
     synthesizeWithPiper(text).then((blob) => {
       if (cancelled) return;
@@ -141,14 +161,14 @@ export function playVoiceoverLine({
         return;
       }
       objectUrl = URL.createObjectURL(blob);
-      playAudioFile(objectUrl, browserSpeechFallback);
+      playAudioFile(objectUrl);
     });
   };
 
   const browserSpeechFallback = () => {
-    if (cancelled) return;
+    if (cancelled || finished) return;
     if (!("speechSynthesis" in window)) {
-      timeoutId = setTimeout(finish, estimateVoiceoverMs(text, rate));
+      finishSilently();
       return;
     }
 
@@ -159,29 +179,26 @@ export function playVoiceoverLine({
     utterance.lang = selectedVoice?.lang ?? "en-US";
     utterance.volume = volume;
     utterance.rate = rate;
-    utterance.pitch = pitch;
+    utterance.pitch = 1.2;
+    utterance.onstart = () => onStart?.();
     utterance.onend = finish;
     utterance.onerror = finish;
     timeoutId = setTimeout(finish, estimateVoiceoverMs(text, rate) + 2500);
     window.speechSynthesis.speak(utterance);
   };
 
-  if (audioSrc) {
-    playAudioFile(audioSrc, playPiperFallback);
-  } else {
-    playPiperFallback();
-  }
+  playPiper();
 
   return {
     cancel: () => {
       cancelled = true;
+      finished = true;
       if (timeoutId) clearTimeout(timeoutId);
       if (audio) {
         audio.pause();
         audio.currentTime = 0;
       }
       if (objectUrl) URL.revokeObjectURL(objectUrl);
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     }
   };
 }

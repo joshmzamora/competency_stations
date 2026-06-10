@@ -18,6 +18,7 @@ import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
 import { createClientId } from "../utils/id";
 import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { prepareVoiceoverEngine } from "../utils/voiceover";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type PlayerPerformance = PlayerState & {
@@ -366,6 +367,7 @@ export function PlayerPage() {
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [timesUpVisible, setTimesUpVisible] = useState(false);
+  const [localVoiceReady, setLocalVoiceReady] = useState(false);
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
@@ -542,6 +544,20 @@ export function PlayerPage() {
   }, [introKey, introKeySeen]);
 
   useEffect(() => {
+    if (!room || room.voiceoverReady.player) return;
+    let cancelled = false;
+    setLocalVoiceReady(false);
+    prepareVoiceoverEngine().then(() => {
+      if (cancelled) return;
+      setLocalVoiceReady(true);
+      send({ type: "voiceover-ready", ready: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [room?.code, room?.voiceoverReady.player, send]);
+
+  useEffect(() => {
     setNavHidden(Boolean(room));
     return () => setNavHidden(false);
   }, [room, setNavHidden]);
@@ -703,6 +719,12 @@ export function PlayerPage() {
               {station && !isLive && <p className="mt-1 text-sm text-amber">Station ready. Waiting to begin.</p>}
             </div>
             <div className="flex items-center gap-2">
+              <div className={`rounded-md border px-4 py-3 text-right ${room.voiceoverReady.player ? "border-scrub/35 bg-scrub/10" : "border-amber/35 bg-amber/10"}`}>
+                <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Narration</div>
+                <div className={`font-display text-sm font-black uppercase ${room.voiceoverReady.player ? "text-scrub" : "text-amber"}`}>
+                  {room.voiceoverReady.player || localVoiceReady ? "Ready" : "Warming"}
+                </div>
+              </div>
               <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
                 <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
                 <div className="font-display text-3xl font-black text-scrub">{room.code}</div>

@@ -39,6 +39,7 @@ import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation, RoomState } from "../types";
 import { downloadFile } from "../utils/results";
 import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { prepareVoiceoverEngine } from "../utils/voiceover";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
 type ParticipantPerformance = PlayerState & {
@@ -287,6 +288,7 @@ export function HostPage() {
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [timesUpVisible, setTimesUpVisible] = useState(false);
+  const [localVoiceReady, setLocalVoiceReady] = useState(false);
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
@@ -319,10 +321,22 @@ export function HostPage() {
   }, []);
   const learnerUrl = room?.code ? `${window.location.origin}/player?room=${encodeURIComponent(room.code)}` : `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
-  const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 7);
+  const voiceoverReady = Boolean(room?.voiceoverReady.host && room?.voiceoverReady.player);
+  const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 7 && voiceoverReady);
   const launchChecklist = [
     { label: "Station", value: station?.shortTitle ?? "Choose station", ready: Boolean(station) },
     { label: "Participants", value: `${connectedParticipants}/7 connected`, ready: connectedParticipants >= 2 && connectedParticipants <= 7 },
+    {
+      label: "Voice",
+      value: voiceoverReady
+        ? "Ready"
+        : !localVoiceReady
+          ? "Host warming"
+          : room?.voiceoverReady.player
+            ? "Ready"
+            : "Learner warming",
+      ready: voiceoverReady
+    },
     { label: "Intro", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
   ];
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
@@ -492,6 +506,20 @@ export function HostPage() {
     if (!introKey || introKeySeen === introKey) return;
     setIntroVisible(true);
   }, [introKey, introKeySeen]);
+
+  useEffect(() => {
+    if (!room || room.voiceoverReady.host) return;
+    let cancelled = false;
+    setLocalVoiceReady(false);
+    prepareVoiceoverEngine().then(() => {
+      if (cancelled) return;
+      setLocalVoiceReady(true);
+      send({ type: "voiceover-ready", ready: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [room?.code, room?.voiceoverReady.host, send]);
 
   useEffect(() => {
     setNavHidden(introVisible || Boolean(room && room.status !== "lobby"));

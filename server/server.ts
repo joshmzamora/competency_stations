@@ -75,6 +75,10 @@ type RoomState = {
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
   activityStates: Record<string, ActivityState>;
+  voiceoverReady: {
+    host: boolean;
+    player: boolean;
+  };
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -149,6 +153,10 @@ function createInitialRoom(code: string): RoomState {
     players: [],
     evaluations: {},
     activityStates: {},
+    voiceoverReady: {
+      host: false,
+      player: false
+    },
     createdAt: now,
     stats: {
       answered: 0,
@@ -392,6 +400,10 @@ function restoreRoomSnapshot(value: unknown, code: string): RoomState | null {
       : [],
     evaluations: recordMap(snapshot.evaluations) as Record<string, PromptEvaluation>,
     activityStates: recordMap(snapshot.activityStates) as Record<string, ActivityState>,
+    voiceoverReady: {
+      host: Boolean(objectField(snapshot.voiceoverReady, "host")),
+      player: Boolean(objectField(snapshot.voiceoverReady, "player"))
+    },
     createdAt: typeof snapshot.createdAt === "string" ? snapshot.createdAt : base.createdAt,
     endedAt: typeof snapshot.endedAt === "string" ? snapshot.endedAt : undefined,
     stats: snapshot.stats && typeof snapshot.stats === "object" ? snapshot.stats as GameStats : base.stats
@@ -405,6 +417,7 @@ function detachPlayerClient(client: WsClient, reason?: string, removeSavedPartic
   const roomCode = client.roomCode;
   const groupId = client.groupId;
   const room = roomCode ? rooms.get(roomCode) : null;
+  const role = client.role;
 
   if (room && groupId && removeSavedParticipants) {
     room.players = room.players.filter((player) => !player.id.startsWith(`${groupId}-`));
@@ -414,6 +427,7 @@ function detachPlayerClient(client: WsClient, reason?: string, removeSavedPartic
     }
     recalculateStats(room);
   }
+  if (room && role === "player") room.voiceoverReady.player = false;
 
   client.role = undefined;
   client.roomCode = undefined;
@@ -431,6 +445,7 @@ function detachCurrentRoom(client: WsClient, reason?: string, removeSavedPartici
   const roomCode = client.roomCode;
   const groupId = client.groupId;
   const room = roomCode ? rooms.get(roomCode) : null;
+  const role = client.role;
 
   if (room && groupId && removeSavedParticipants) {
     room.players = room.players.filter((player) => !player.id.startsWith(`${groupId}-`));
@@ -440,6 +455,8 @@ function detachCurrentRoom(client: WsClient, reason?: string, removeSavedPartici
     }
     recalculateStats(room);
   }
+  if (room && role === "host") room.voiceoverReady.host = false;
+  if (room && role === "player") room.voiceoverReady.player = false;
 
   client.role = undefined;
   client.roomCode = undefined;
@@ -886,6 +903,15 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     return;
   }
 
+  if (message.type === "voiceover-ready") {
+    const room = client.roomCode ? rooms.get(client.roomCode) : null;
+    if (!room || !client.role) return;
+    if (client.role === "host") room.voiceoverReady.host = Boolean(message.ready);
+    if (client.role === "player") room.voiceoverReady.player = Boolean(message.ready);
+    broadcastState(room.code);
+    return;
+  }
+
   if (message.type === "create-room") {
     if (client.roomCode) {
       detachCurrentRoom(client, undefined, client.role === "player", false);
@@ -896,6 +922,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     scheduleRoomsSave();
     client.role = "host";
     client.roomCode = code;
+    room.voiceoverReady.host = false;
     sendState(client, room, "room-created");
     return;
   }
@@ -928,6 +955,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
 
     client.role = "host";
     client.roomCode = code;
+    room.voiceoverReady.host = false;
     client.names = undefined;
     client.groupId = undefined;
     sendState(client, room, "room-created");
@@ -989,6 +1017,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     client.roomCode = code;
     client.names = names;
     client.groupId = groupId;
+    room.voiceoverReady.player = false;
 
     const existingPlayers = new Map(room.players.map((player) => [player.id, player]));
 
@@ -1040,6 +1069,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         sendError(client, `Connect exactly one learner screen with ${minParticipants}-${maxParticipants} participants before starting the session.`);
         return;
       }
+      if (!room.voiceoverReady.host || !room.voiceoverReady.player) {
+        sendError(client, "Narration is still warming up. Wait for voice readiness on the host and learner screens before starting.");
+        return;
+      }
       room.status = "in-progress";
       room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
       room.introStartedAt = room.introCompletedAt ? null : Date.now();
@@ -1058,6 +1091,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       const connectedParticipantCount = connectedPlayers(room.code).filter((player) => player.connected).length;
       if (playerConnections.length !== 1 || connectedParticipantCount < minParticipants || connectedParticipantCount > maxParticipants) {
         sendError(client, `Connect exactly one learner screen with ${minParticipants}-${maxParticipants} participants before starting the session.`);
+        return;
+      }
+      if (!room.voiceoverReady.host || !room.voiceoverReady.player) {
+        sendError(client, "Narration is still warming up. Wait for voice readiness on the host and learner screens before starting.");
         return;
       }
       assignShapesToRoom(room);
@@ -1434,6 +1471,9 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
 
 function removeClient(client: WsClient) {
   const roomCode = client.roomCode;
+  const room = roomCode ? rooms.get(roomCode) : null;
+  if (room && client.role === "host") room.voiceoverReady.host = false;
+  if (room && client.role === "player") room.voiceoverReady.player = false;
   client.connected = false;
   clients.delete(client);
   if (roomCode) {

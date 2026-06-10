@@ -155,6 +155,10 @@ export type RoomState = {
   players: PlayerState[];
   evaluations: Record<string, PromptEvaluation>;
   activityStates: Record<string, ActivityState>;
+  voiceoverReady: {
+    host: boolean;
+    player: boolean;
+  };
   createdAt: string;
   endedAt?: string;
   stats: GameStats;
@@ -184,6 +188,7 @@ export type ResultRecord = {
 export type ClientMessage =
   | { type: "create-room" }
   | { type: "client-heartbeat" }
+  | { type: "voiceover-ready"; ready: boolean }
   | { type: "resume-host"; code: string; room?: RoomState }
   | { type: "join-room"; code: string; names?: string[]; groupId?: string }
   | { type: "leave-room" }

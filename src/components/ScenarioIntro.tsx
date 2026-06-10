@@ -32,7 +32,6 @@ type IntroScene = {
   title: string;
   lines: string[];
   voiceover: string;
-  voiceoverSrc: string;
   purpose: string;
   image?: string;
   visual: "video" | "manikin" | "monitor" | "shapes" | "bedside" | "launch";
@@ -43,10 +42,9 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "Simulation Briefing",
     title: "Simulation Briefing",
-    lines: ["Welcome to the competency stations.", "This briefing shows how the simulation will feel before the patient case opens."],
+    lines: ["Welcome to the competency stations.", "You will move through a realistic ICU simulation and respond as you would at the bedside."],
     voiceover:
-      "Welcome to competency stations. Listen carefully. The simulation begins before the first question is asked.",
-    voiceoverSrc: "/audio/voiceover/intro-1.mp3",
+      "Welcome to the competency stations. Listen carefully. You will move through a realistic ICU simulation and respond as you would at the bedside.",
     purpose: "Start the scenario with a shared frame before patient details are revealed.",
     image: "/images/intro/medical-mannequin.webp",
     visual: "video",
@@ -58,7 +56,6 @@ const scenes: IntroScene[] = [
     lines: ["The manikin breathes, has a pulse, talks, and has heart sounds.", "Assess Emma like a real patient."],
     voiceover:
       "The manikin breathes. She has a pulse. She can speak. She has heart sounds. Treat Emma like a real ICU patient.",
-    voiceoverSrc: "/audio/voiceover/intro-2.mp3",
     purpose: "The manikin is interactive. Assessment should be physical, verbal, and realistic.",
     image: "/images/intro/human-patient-simulation.jpg",
     visual: "manikin",
@@ -70,7 +67,6 @@ const scenes: IntroScene[] = [
     lines: ["Vital signs and EKG will be on the monitor.", "Pay attention. ICU changes can happen fast."],
     voiceover:
       "Vital signs and EKG will appear on the monitor. Watch closely. In the ICU, a stable patient can change fast.",
-    voiceoverSrc: "/audio/voiceover/intro-3.mp3",
     purpose: "Monitor data is part of the scenario, not background decoration.",
     image: "/images/intro/icu-monitor-front.jpg",
     visual: "monitor",
@@ -79,10 +75,9 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "Shape Selection",
     title: "Shape Selection",
-    lines: ["Each participant receives a shape.", "When a station question begins, the selection screen will show whose turn it is."],
+    lines: ["Each participant receives a shape.", "When a question begins, the selection screen will show who is up."],
     voiceover:
-      "Each participant will receive a shape. When the station begins, the selection screen decides who is active.",
-    voiceoverSrc: "/audio/voiceover/intro-4.mp3",
+      "Each participant will receive a shape. When a question begins, the selection screen will show who is up.",
     purpose: "This prepares participants for the fair selection sequence after the briefing.",
     visual: "shapes",
     Icon: Activity
@@ -93,7 +88,6 @@ const scenes: IntroScene[] = [
     lines: ["Before the first station, take a moment to orient yourself.", "Feel for a pulse. Auscultate heart and lung sounds. Speak with Emma."],
     voiceover:
       "Before the first station, orient yourself to the bedside. Feel for a pulse. Listen to heart and lung sounds. Speak with Emma.",
-    voiceoverSrc: "/audio/voiceover/intro-5.mp3",
     purpose: "Learners should touch, listen, and communicate before the scenario accelerates.",
     image: "/images/intro/checking-vital-signs.jpg",
     visual: "bedside",
@@ -102,10 +96,9 @@ const scenes: IntroScene[] = [
   {
     eyebrow: "Scenario Launch",
     title: "Stand By",
-    lines: ["Briefing complete.", "Next, review the patient case file.", "Then the first station begins."],
+    lines: ["Briefing complete.", "Next, review Emma's patient case file.", "Then the first station begins."],
     voiceover:
-      "Briefing complete. Next, open the patient case file. Review the details. Then the first station begins.",
-    voiceoverSrc: "/audio/voiceover/intro-6.mp3",
+      "Briefing complete. Next, review Emma's patient case file. After the chart review, the first station begins.",
     purpose: "The briefing ends here. Patient chart review comes next.",
     image: "/images/intro/vital-signs-monitor.jpg",
     visual: "launch",
@@ -203,12 +196,12 @@ export function ScenarioIntro({
   const audioStartKeyRef = useRef<string>("");
   const audioRetryNeededRef = useRef(false);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
+  const narrationActiveRef = useRef(false);
   const patientBriefShownRef = useRef(false);
   const timelineKeyRef = useRef<string>("");
   const sceneIndex = introSceneIndex;
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
-  const secondsLeft = Math.max(0, Math.ceil(((scenes.length - sceneIndex - 1) * sceneMs + (sceneMs * (100 - sceneProgressValue)) / 100) / 1000));
   const progress = Math.min(100, ((sceneIndex + sceneProgressValue / 100) / scenes.length) * 100);
   const sceneProgress = sceneProgressValue;
 
@@ -220,7 +213,8 @@ export function ScenarioIntro({
     const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, durationMs - syncedElapsed);
-    audio.volume = Math.min(maxIntroVolume, maxIntroVolume * (remaining / fadeOutMs));
+    const duckedVolume = narrationActiveRef.current ? maxIntroVolume * 0.34 : maxIntroVolume;
+    audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
     if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 1.2) {
       audio.currentTime = targetTime;
     }
@@ -243,8 +237,11 @@ export function ScenarioIntro({
   }
 
   function cancelVoiceover() {
+    narrationActiveRef.current = false;
     voiceoverRef.current?.cancel();
     voiceoverRef.current = null;
+    const audio = audioRef.current;
+    if (audio) syncIntroAudio(audio);
   }
 
   useEffect(() => {
@@ -313,11 +310,18 @@ export function ScenarioIntro({
       const voiceTimer = window.setTimeout(() => {
         voiceoverRef.current = playVoiceoverLine({
           text: scene.voiceover,
-          audioSrc: scene.voiceoverSrc,
           volume: voiceoverVolume,
           rate: 0.78,
           pitch: 1.36,
+          onStart: () => {
+            narrationActiveRef.current = true;
+            const audio = audioRef.current;
+            if (audio) syncIntroAudio(audio);
+          },
           onEnd: () => {
+            narrationActiveRef.current = false;
+            const audio = audioRef.current;
+            if (audio) syncIntroAudio(audio);
             voiceoverFinished = true;
             advance();
           }
@@ -339,7 +343,7 @@ export function ScenarioIntro({
       window.clearTimeout(forceTimer);
       cancelVoiceover();
     };
-  }, [audioTracksEnabled, open, phase, scene.voiceover, scene.voiceoverSrc, sceneIndex]);
+  }, [audioTracksEnabled, open, phase, scene.voiceover, sceneIndex]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
@@ -461,8 +465,10 @@ export function ScenarioIntro({
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="rounded-md border border-white/10 bg-white/[0.045] px-4 py-3 text-right">
-                    <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Patient details in</div>
-                    <div className="font-display text-3xl font-black text-monitor">{secondsLeft}s</div>
+                    <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Narration</div>
+                    <div className="font-display text-2xl font-black uppercase text-monitor">
+                      {sceneProgress >= 98 ? "Finishing" : "Playing"}
+                    </div>
                   </div>
                 </div>
               </header>
@@ -521,7 +527,7 @@ export function ScenarioIntro({
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-display text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                    Scene progress {Math.round(sceneProgress)} percent - synced to room clock
+                    Briefing progress {Math.round(progress)} percent / current scene {Math.round(sceneProgress)} percent
                   </div>
                   {canSkip ? (
                     <AnimatedButton variant="ghost" onClick={skipIntro}>
