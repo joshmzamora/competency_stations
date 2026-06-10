@@ -218,26 +218,23 @@ function shuffledValues<T>(items: T[]) {
   return next;
 }
 
-function randomizeStationCardBanks(station: unknown) {
+function randomizeStrokeActivityAnswerBanks(station: unknown) {
   if (!station || typeof station !== "object") return station;
   const clonedStation = JSON.parse(JSON.stringify(station)) as Record<string, unknown>;
-  const prompts = Array.isArray(clonedStation.prompts) ? clonedStation.prompts : [];
+  if (String(clonedStation.id ?? "") !== "stroke") return clonedStation;
 
+  const prompts = Array.isArray(clonedStation.prompts) ? clonedStation.prompts : [];
   clonedStation.prompts = prompts.map((entry) => {
     if (!entry || typeof entry !== "object") return entry;
     const prompt = entry as Record<string, unknown>;
     const activity = prompt.activity;
 
-    if (activity && typeof activity === "object" && !Array.isArray(activity)) {
+    if (prompt.type === "activity" && activity && typeof activity === "object" && !Array.isArray(activity)) {
       const nextActivity = { ...(activity as Record<string, unknown>) };
       if (Array.isArray(nextActivity.itemBank)) {
         nextActivity.itemBank = shuffledValues(nextActivity.itemBank);
       }
       prompt.activity = nextActivity;
-    }
-
-    if (Array.isArray(prompt.choices)) {
-      prompt.choices = shuffledValues(prompt.choices);
     }
 
     return prompt;
@@ -1306,7 +1303,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.introStartedAt = null;
       room.introSceneIndex = room.introCompletedAt ? 6 : 0;
       room.introSceneStartedAt = null;
-      room.selectedStation = randomizeStationCardBanks(message.station ?? null);
+      room.selectedStation = randomizeStrokeActivityAnswerBanks(message.station ?? null);
       if (!room.sessionStartedAt) {
         room.stationRouteStartId = selectedStationId(room) || null;
       }
