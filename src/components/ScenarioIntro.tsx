@@ -202,7 +202,6 @@ export function ScenarioIntro({
   const sceneIndex = introSceneIndex;
   const scene = scenes[sceneIndex];
   const SceneIcon = scene.Icon;
-  const progress = Math.min(100, ((sceneIndex + sceneProgressValue / 100) / scenes.length) * 100);
   const sceneProgress = sceneProgressValue;
 
   function getSyncedElapsed() {
@@ -213,7 +212,7 @@ export function ScenarioIntro({
     const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
     const targetTime = syncedElapsed / 1000;
     const remaining = Math.max(0, durationMs - syncedElapsed);
-    const duckedVolume = narrationActiveRef.current ? maxIntroVolume * 0.34 : maxIntroVolume;
+    const duckedVolume = narrationActiveRef.current ? maxIntroVolume * 0.42 : maxIntroVolume;
     audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
     if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 1.2) {
       audio.currentTime = targetTime;
@@ -273,7 +272,8 @@ export function ScenarioIntro({
 
     cancelVoiceover();
     let minimumTimePassed = false;
-    let voiceoverFinished = !audioTracksEnabled;
+    const shouldNarrate = role === "host" && audioTracksEnabled;
+    let voiceoverFinished = !shouldNarrate;
     let advanced = false;
     const sceneStartedAt = Date.now();
 
@@ -306,13 +306,14 @@ export function ScenarioIntro({
       advance(true);
     }, 60000);
 
-    if (audioTracksEnabled) {
+    if (shouldNarrate) {
       const voiceTimer = window.setTimeout(() => {
         voiceoverRef.current = playVoiceoverLine({
           text: scene.voiceover,
           volume: voiceoverVolume,
           rate: 0.78,
           pitch: 1.36,
+          browserFallback: false,
           onStart: () => {
             narrationActiveRef.current = true;
             const audio = audioRef.current;
@@ -343,7 +344,7 @@ export function ScenarioIntro({
       window.clearTimeout(forceTimer);
       cancelVoiceover();
     };
-  }, [audioTracksEnabled, open, phase, scene.voiceover, sceneIndex]);
+  }, [audioTracksEnabled, open, phase, role, scene.voiceover, sceneIndex]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
@@ -523,11 +524,15 @@ export function ScenarioIntro({
 
               <footer className="grid gap-3 border-t border-white/10 pt-4">
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub" style={{ width: `${progress}%` }} />
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub"
+                    animate={{ width: `${Math.min(100, ((sceneIndex + sceneProgressValue / 100) / scenes.length) * 100)}%` }}
+                    transition={{ duration: 0.18, ease: "linear" }}
+                  />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-display text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                    Briefing progress {Math.round(progress)} percent / current scene {Math.round(sceneProgress)} percent
+                    Briefing scene {sceneIndex + 1} of {scenes.length}
                   </div>
                   {canSkip ? (
                     <AnimatedButton variant="ghost" onClick={skipIntro}>

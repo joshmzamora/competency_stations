@@ -8,6 +8,7 @@ type VoiceoverOptions = {
   volume?: number;
   rate?: number;
   pitch?: number;
+  browserFallback?: boolean;
   onEnd?: () => void;
   onStart?: () => void;
 };
@@ -17,6 +18,7 @@ const localPiperModelBase = "/models/voice/en_US-hfc_female-medium";
 let piperSeedPromise: Promise<void> | null = null;
 let piperUnavailable = false;
 let piperWarmupPromise: Promise<boolean> | null = null;
+let activeVoiceoverCancel: (() => void) | null = null;
 
 const preferredVoiceNames = [
   "Microsoft Zira",
@@ -110,6 +112,7 @@ export function playVoiceoverLine({
   enabled = true,
   volume = 0.82,
   rate = 0.78,
+  browserFallback = true,
   onEnd,
   onStart
 }: VoiceoverOptions): VoiceoverHandle {
@@ -124,10 +127,13 @@ export function playVoiceoverLine({
   let objectUrl: string | null = null;
   let finished = false;
 
+  activeVoiceoverCancel?.();
+
   const finish = () => {
     if (cancelled || finished) return;
     finished = true;
     cancelled = true;
+    if (activeVoiceoverCancel === cancel) activeVoiceoverCancel = null;
     if (timeoutId) clearTimeout(timeoutId);
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
@@ -152,16 +158,33 @@ export function playVoiceoverLine({
     audio.play().catch(onError);
   };
 
+  const cancel = () => {
+    cancelled = true;
+    finished = true;
+    if (activeVoiceoverCancel === cancel) activeVoiceoverCancel = null;
+    if (timeoutId) clearTimeout(timeoutId);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  };
+
   const playPiper = () => {
     if (cancelled) return;
     synthesizeWithPiper(text).then((blob) => {
       if (cancelled) return;
       if (!blob) {
-        browserSpeechFallback();
+        if (browserFallback) {
+          browserSpeechFallback();
+        } else {
+          finishSilently();
+        }
         return;
       }
       objectUrl = URL.createObjectURL(blob);
-      playAudioFile(objectUrl);
+      playAudioFile(objectUrl, browserFallback ? browserSpeechFallback : finishSilently);
     });
   };
 
@@ -187,18 +210,10 @@ export function playVoiceoverLine({
     window.speechSynthesis.speak(utterance);
   };
 
+  activeVoiceoverCancel = cancel;
   playPiper();
 
   return {
-    cancel: () => {
-      cancelled = true;
-      finished = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    }
+    cancel
   };
 }
