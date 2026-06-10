@@ -19,6 +19,8 @@ let piperSeedPromise: Promise<void> | null = null;
 let piperUnavailable = false;
 let piperWarmupPromise: Promise<boolean> | null = null;
 let activeVoiceoverCancel: (() => void) | null = null;
+const piperBlobCache = new Map<string, Blob>();
+const piperBlobPromiseCache = new Map<string, Promise<Blob | null>>();
 
 const preferredVoiceNames = [
   "Microsoft Zira",
@@ -82,16 +84,46 @@ function seedLocalPiperVoice() {
   return piperSeedPromise;
 }
 
+function piperCacheKey(text: string) {
+  return `${piperVoiceId}:${text}`;
+}
+
 async function synthesizeWithPiper(text: string) {
   if (piperUnavailable) return null;
+  const cacheKey = piperCacheKey(text);
+  const cached = piperBlobCache.get(cacheKey);
+  if (cached) return cached;
+  const cachedPromise = piperBlobPromiseCache.get(cacheKey);
+  if (cachedPromise) return cachedPromise;
+
+  const promise = (async () => {
+    try {
+      await seedLocalPiperVoice();
+      const tts = await import("@mintplex-labs/piper-tts-web");
+      const blob = await tts.predict({ text, voiceId: piperVoiceId });
+      if (blob) piperBlobCache.set(cacheKey, blob);
+      return blob;
+    } catch (error) {
+      piperUnavailable = true;
+      console.warn("Piper voiceover unavailable. Falling back to browser speech for this line.", error);
+      return null;
+    } finally {
+      piperBlobPromiseCache.delete(cacheKey);
+    }
+  })();
+
+  piperBlobPromiseCache.set(cacheKey, promise);
+  return promise;
+}
+
+export async function preloadVoiceoverLines(lines: string[]) {
+  if (piperUnavailable || !lines.length) return false;
   try {
-    await seedLocalPiperVoice();
-    const tts = await import("@mintplex-labs/piper-tts-web");
-    return await tts.predict({ text, voiceId: piperVoiceId });
-  } catch (error) {
-    piperUnavailable = true;
-    console.warn("Piper voiceover unavailable. Falling back to browser speech for this line.", error);
-    return null;
+    const uniqueLines = [...new Set(lines.map((line) => line.trim()).filter(Boolean))];
+    const results = await Promise.all(uniqueLines.map((line) => synthesizeWithPiper(line)));
+    return results.every(Boolean);
+  } catch {
+    return false;
   }
 }
 

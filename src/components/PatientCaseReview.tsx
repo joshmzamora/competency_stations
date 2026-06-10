@@ -15,7 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { playFileClickCue } from "../utils/sound";
-import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
+import { playVoiceoverLine, preloadVoiceoverLines, type VoiceoverHandle } from "../utils/voiceover";
 
 const caseAudioSrc = "/audio/cinematic_tension.mp3";
 
@@ -362,6 +362,11 @@ export function PatientCaseReview({
       audio.pause();
       audio.currentTime = 0;
     };
+  }, [audioTracksEnabled]);
+
+  useEffect(() => {
+    if (!audioTracksEnabled) return;
+    preloadVoiceoverLines(caseFiles.map((file) => file.voiceover)).catch(() => undefined);
   }, [audioTracksEnabled]);
 
   function setCaseMusicDucked(ducked: boolean) {

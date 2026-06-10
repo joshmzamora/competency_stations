@@ -376,9 +376,6 @@ export function PlayerPage() {
   const joinedRoomCodeRef = useRef(usableInitialPlayerBackup?.code ?? initialUrlRoomCode ?? "");
   const joinedNamesRef = useRef<string[]>(usableInitialPlayerBackup?.names ?? []);
   const reconnectAttemptedForClientRef = useRef("");
-  const roomRecoveryAttemptsRef = useRef(0);
-  const roomRecoveryStartedServerTimeRef = useRef<number | null>(null);
-  const [roomRecoveryPending, setRoomRecoveryPending] = useState(false);
   const effectsAudioEnabled = isAudioEnabledForRole("player", "effects");
   const trackAudioEnabled = isAudioEnabledForRole("player", "tracks");
 
@@ -452,15 +449,6 @@ export function PlayerPage() {
   }, [room?.code]);
 
   useEffect(() => {
-    if (!roomRecoveryPending || roomRecoveryStartedServerTimeRef.current === null || !room?.serverTime) return;
-    if (room.serverTime === roomRecoveryStartedServerTimeRef.current) return;
-    roomRecoveryAttemptsRef.current = 0;
-    roomRecoveryStartedServerTimeRef.current = null;
-    setRoomRecoveryPending(false);
-    clearError();
-  }, [clearError, room?.serverTime, roomRecoveryPending]);
-
-  useEffect(() => {
     if (status !== "open" || !clientId || !joinedRoomCodeRef.current) return;
     if (reconnectAttemptedForClientRef.current === clientId) return;
     reconnectAttemptedForClientRef.current = clientId;
@@ -469,31 +457,29 @@ export function PlayerPage() {
 
   useEffect(() => {
     if (!error || room) return;
-    if (error.includes("Room not found")) return;
+    const staleRoomError =
+      error.includes("Room not found") ||
+      error.includes("This room no longer exists") ||
+      error.includes("Host left the room");
+
+    if (staleRoomError) {
+      joinedRoomCodeRef.current = "";
+      joinedNamesRef.current = [];
+      reconnectAttemptedForClientRef.current = "";
+      clearPlayerRoomBackup();
+      setCode("");
+      setNames(["", ""]);
+      setIntroVisible(false);
+      setStationTransitionVisible(false);
+      setProtocolIntroSeenAt(null);
+      clearError();
+      navigate("/player", { replace: true });
+      return;
+    }
+
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];
-  }, [error, room]);
-
-  useEffect(() => {
-    if (!error.includes("Room not found") || !joinedRoomCodeRef.current) return;
-    if (roomRecoveryAttemptsRef.current >= 20) return;
-    roomRecoveryStartedServerTimeRef.current = room?.serverTime ?? null;
-    setRoomRecoveryPending(true);
-    clearError();
-  }, [clearError, error, room]);
-
-  useEffect(() => {
-    if (!roomRecoveryPending || status !== "open") return;
-    const retryId = window.setInterval(() => {
-      if (roomRecoveryAttemptsRef.current >= 20) {
-        setRoomRecoveryPending(false);
-        return;
-      }
-      roomRecoveryAttemptsRef.current += 1;
-      send({ type: "join-room", code: joinedRoomCodeRef.current, names: joinedNamesRef.current, groupId: groupIdRef.current });
-    }, 1000);
-    return () => window.clearInterval(retryId);
-  }, [roomRecoveryPending, send, status]);
+  }, [clearError, error, navigate, room]);
 
   useEffect(() => {
     if (!currentEvaluation?.evaluatedAt) return;
