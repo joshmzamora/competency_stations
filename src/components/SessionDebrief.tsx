@@ -6,7 +6,7 @@ import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from 
 import { AnimatedButton } from "./AnimatedButton";
 
 const debriefAudioSrc = "/audio/squid_game_theme.mp3";
-const debriefAudioVolume = 0.07;
+const debriefAudioVolume = 0.12;
 
 function publicName(name?: string) {
   if (!name) return "Participant";
