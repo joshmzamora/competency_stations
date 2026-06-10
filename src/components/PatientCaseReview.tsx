@@ -368,7 +368,8 @@ export function PatientCaseReview({
   onContinue,
   isClosing,
   audioEffectsEnabled = true,
-  audioTracksEnabled = true
+  audioTracksEnabled = true,
+  voiceoverEnabled = true
 }: {
   role: "host" | "player";
   reviewedFileIds: string[];
@@ -378,6 +379,7 @@ export function PatientCaseReview({
   isClosing?: boolean;
   audioEffectsEnabled?: boolean;
   audioTracksEnabled?: boolean;
+  voiceoverEnabled?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
@@ -415,7 +417,7 @@ export function PatientCaseReview({
   }
 
   useEffect(() => {
-    if (!audioTracksEnabled) {
+    if (!audioTracksEnabled || !voiceoverEnabled) {
       setNarrationLockFileId(null);
       return;
     }
@@ -447,7 +449,7 @@ export function PatientCaseReview({
       setCaseMusicDucked(false);
       voiceoverRef.current = null;
     };
-  }, [activeFile, audioTracksEnabled]);
+  }, [activeFile, audioTracksEnabled, voiceoverEnabled]);
 
   useEffect(() => {
     return () => {

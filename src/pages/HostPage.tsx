@@ -515,6 +515,11 @@ export function HostPage() {
   }, [introKey, introKeySeen]);
 
   useEffect(() => {
+    if (!room?.introStartedAt || (room.introSceneIndex ?? 0) < 6) return;
+    setIntroVisible(true);
+  }, [room?.introSceneIndex, room?.introStartedAt]);
+
+  useEffect(() => {
     let cancelled = false;
     setLocalVoiceReady(false);
     setLocalVoiceMode("warming");

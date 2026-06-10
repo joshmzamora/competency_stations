@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { PatientCaseReview } from "./PatientCaseReview";
 import { PhaseBrief } from "./PhaseBrief";
-import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
+import { playVoiceoverLine, preloadVoiceoverLines, type VoiceoverHandle } from "../utils/voiceover";
 
 const durationMs = 45000;
 const sceneMs = durationMs / 6;
@@ -197,6 +197,7 @@ export function ScenarioIntro({
   const [sceneProgressValue, setSceneProgressValue] = useState(0);
   const [phase, setPhase] = useState<"scenes" | "patient">("scenes");
   const [patientBriefVisible, setPatientBriefVisible] = useState(false);
+  const [patientReviewNarrationEnabled, setPatientReviewNarrationEnabled] = useState(false);
   const offsetRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStartKeyRef = useRef<string>("");
@@ -270,6 +271,7 @@ export function ScenarioIntro({
       setIntroSceneIndex(Math.max(0, Math.min(scenes.length, syncedIntroSceneIndex)));
       setSceneProgressValue(0);
       setElapsed(0);
+      setPatientReviewNarrationEnabled(false);
     }
   }, [open, serverTime, startedAt, syncedIntroSceneIndex]);
 
@@ -277,9 +279,15 @@ export function ScenarioIntro({
     if (!open) {
       timelineKeyRef.current = "";
       narratedSceneKeyRef.current = "";
+      setPatientReviewNarrationEnabled(false);
       cancelVoiceover();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || role !== "host" || !audioTracksEnabled) return;
+    preloadVoiceoverLines(scenes.map((item) => item.voiceover)).catch(() => undefined);
+  }, [audioTracksEnabled, open, role]);
 
   useEffect(() => {
     if (!open || !startedAt) return;
@@ -320,31 +328,23 @@ export function ScenarioIntro({
 
     if (role !== "host") return;
 
-    let minimumTimePassed = false;
     let voiceoverFinished = !audioTracksEnabled;
     let advanced = false;
 
     const tryAdvance = (force = false) => {
-      if (advanced || (!force && (!minimumTimePassed || !voiceoverFinished))) return;
+      if (advanced || (!force && !voiceoverFinished)) return;
       advanced = true;
       setSceneProgressValue(100);
       onAdvanceSceneRef.current?.(sceneIndex);
     };
 
-    const minimumTimer = window.setTimeout(() => {
-      minimumTimePassed = true;
-      tryAdvance();
-    }, 2600);
-
     const forceTimer = window.setTimeout(() => {
       voiceoverFinished = true;
-      minimumTimePassed = true;
       tryAdvance(true);
-    }, 65000);
+    }, audioTracksEnabled ? 90000 : sceneMs);
 
     if (!audioTracksEnabled) {
       return () => {
-        window.clearTimeout(minimumTimer);
         window.clearTimeout(forceTimer);
       };
     }
@@ -355,7 +355,7 @@ export function ScenarioIntro({
         volume: voiceoverVolume,
         rate: 0.78,
         pitch: 1.36,
-        browserFallback: false,
+        browserFallback: true,
         onStart: () => {
           narrationActiveRef.current = true;
           const audio = audioRef.current;
@@ -373,7 +373,6 @@ export function ScenarioIntro({
 
     return () => {
       window.clearTimeout(voiceTimer);
-      window.clearTimeout(minimumTimer);
       window.clearTimeout(forceTimer);
       cancelVoiceover();
     };
@@ -384,7 +383,11 @@ export function ScenarioIntro({
     cancelVoiceover();
     patientBriefShownRef.current = true;
     setPatientBriefVisible(true);
-    const timeout = window.setTimeout(() => setPatientBriefVisible(false), 2400);
+    setPatientReviewNarrationEnabled(false);
+    const timeout = window.setTimeout(() => {
+      setPatientBriefVisible(false);
+      setPatientReviewNarrationEnabled(true);
+    }, 2400);
     return () => window.clearTimeout(timeout);
   }, [open, phase]);
 
@@ -465,6 +468,7 @@ export function ScenarioIntro({
                 onOpenFile={(fileId) => onReviewPatientFile?.(fileId)}
                 onContinue={onClose}
                 isClosing={isClosing}
+                voiceoverEnabled={patientReviewNarrationEnabled}
               />
               <PhaseBrief
                 visible={patientBriefVisible}
