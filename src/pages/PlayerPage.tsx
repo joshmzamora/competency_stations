@@ -368,6 +368,7 @@ export function PlayerPage() {
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [timesUpVisible, setTimesUpVisible] = useState(false);
   const [localVoiceReady, setLocalVoiceReady] = useState(false);
+  const [localVoiceMode, setLocalVoiceMode] = useState<"warming" | "piper" | "fallback">("warming");
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
@@ -544,18 +545,23 @@ export function PlayerPage() {
   }, [introKey, introKeySeen]);
 
   useEffect(() => {
-    if (!room || room.voiceoverReady.player) return;
     let cancelled = false;
     setLocalVoiceReady(false);
-    prepareVoiceoverEngine().then(() => {
+    setLocalVoiceMode("warming");
+    prepareVoiceoverEngine().then((piperReady) => {
       if (cancelled) return;
       setLocalVoiceReady(true);
-      send({ type: "voiceover-ready", ready: true });
+      setLocalVoiceMode(piperReady ? "piper" : "fallback");
     });
     return () => {
       cancelled = true;
     };
-  }, [room?.code, room?.voiceoverReady.player, send]);
+  }, []);
+
+  useEffect(() => {
+    if (!room || room.voiceoverReady.player || !localVoiceReady) return;
+    send({ type: "voiceover-ready", ready: true });
+  }, [localVoiceReady, room?.code, room?.voiceoverReady.player, send]);
 
   useEffect(() => {
     setNavHidden(Boolean(room));
@@ -722,7 +728,7 @@ export function PlayerPage() {
               <div className={`rounded-md border px-4 py-3 text-right ${room.voiceoverReady.player ? "border-scrub/35 bg-scrub/10" : "border-amber/35 bg-amber/10"}`}>
                 <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Narration</div>
                 <div className={`font-display text-sm font-black uppercase ${room.voiceoverReady.player ? "text-scrub" : "text-amber"}`}>
-                  {room.voiceoverReady.player || localVoiceReady ? "Ready" : "Warming"}
+                  {room.voiceoverReady.player || localVoiceReady ? (localVoiceMode === "fallback" ? "Fallback ready" : "Piper ready") : "Warming"}
                 </div>
               </div>
               <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">

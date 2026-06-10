@@ -100,9 +100,9 @@ export function prepareVoiceoverEngine() {
     piperWarmupPromise = synthesizeWithPiper("Voice ready.")
       .then((blob) => {
         if (blob) URL.revokeObjectURL(URL.createObjectURL(blob));
-        return true;
+        return Boolean(blob);
       })
-      .catch(() => true);
+      .catch(() => false);
   }
   return piperWarmupPromise;
 }

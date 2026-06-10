@@ -289,6 +289,7 @@ export function HostPage() {
   const [now, setNow] = useState(Date.now());
   const [timesUpVisible, setTimesUpVisible] = useState(false);
   const [localVoiceReady, setLocalVoiceReady] = useState(false);
+  const [localVoiceMode, setLocalVoiceMode] = useState<"warming" | "piper" | "fallback">("warming");
   const stationIdRef = useRef<string>("");
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
@@ -322,6 +323,14 @@ export function HostPage() {
   const learnerUrl = room?.code ? `${window.location.origin}/player?room=${encodeURIComponent(room.code)}` : `${window.location.origin}/player`;
   const introKey = room?.introStartedAt && station ? `${room.code}-${room.introStartedAt}` : "";
   const voiceoverReady = Boolean(room?.voiceoverReady.host && room?.voiceoverReady.player);
+  const hostVoiceLabel = room?.voiceoverReady.host
+    ? localVoiceMode === "fallback"
+      ? "Host fallback ready"
+      : "Host Piper ready"
+    : localVoiceReady
+      ? "Host ready, syncing"
+      : "Host warming";
+  const learnerVoiceLabel = room?.voiceoverReady.player ? "Learner ready" : "Learner warming";
   const canStartSession = Boolean(station && room && room.status !== "in-progress" && connectedParticipants >= 2 && connectedParticipants <= 7 && voiceoverReady);
   const launchChecklist = [
     { label: "Station", value: station?.shortTitle ?? "Choose station", ready: Boolean(station) },
@@ -330,11 +339,9 @@ export function HostPage() {
       label: "Voice",
       value: voiceoverReady
         ? "Ready"
-        : !localVoiceReady
-          ? "Host warming"
-          : room?.voiceoverReady.player
-            ? "Ready"
-            : "Learner warming",
+        : room?.voiceoverReady.host
+          ? learnerVoiceLabel
+          : hostVoiceLabel,
       ready: voiceoverReady
     },
     { label: "Intro", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
@@ -508,18 +515,23 @@ export function HostPage() {
   }, [introKey, introKeySeen]);
 
   useEffect(() => {
-    if (!room || room.voiceoverReady.host) return;
     let cancelled = false;
     setLocalVoiceReady(false);
-    prepareVoiceoverEngine().then(() => {
+    setLocalVoiceMode("warming");
+    prepareVoiceoverEngine().then((piperReady) => {
       if (cancelled) return;
       setLocalVoiceReady(true);
-      send({ type: "voiceover-ready", ready: true });
+      setLocalVoiceMode(piperReady ? "piper" : "fallback");
     });
     return () => {
       cancelled = true;
     };
-  }, [room?.code, room?.voiceoverReady.host, send]);
+  }, []);
+
+  useEffect(() => {
+    if (!room || room.voiceoverReady.host || !localVoiceReady) return;
+    send({ type: "voiceover-ready", ready: true });
+  }, [localVoiceReady, room?.code, room?.voiceoverReady.host, send]);
 
   useEffect(() => {
     setNavHidden(introVisible || Boolean(room && room.status !== "lobby"));
@@ -682,6 +694,22 @@ export function HostPage() {
                       <div className={`flex min-w-0 items-center justify-end gap-2 text-right text-sm font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
                         <span className={`h-2 w-2 rounded-full ${item.ready ? "bg-scrub shadow-scrub" : "bg-amber"}`} />
                         <span className="min-w-0 truncate">{item.value}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 grid gap-2 rounded-md border border-white/10 bg-black/25 p-3">
+                  <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-white/42">Narration readiness</div>
+                  {[
+                    { label: "Host", ready: Boolean(room.voiceoverReady.host), value: hostVoiceLabel },
+                    { label: "Learner", ready: Boolean(room.voiceoverReady.player), value: learnerVoiceLabel }
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2">
+                      <div className="font-display text-xs font-black uppercase tracking-[0.14em] text-white/50">{item.label}</div>
+                      <div className={`flex items-center gap-2 text-sm font-semibold ${item.ready ? "text-scrub" : "text-amber"}`}>
+                        <span className={`h-2.5 w-2.5 rounded-full ${item.ready ? "bg-scrub shadow-[0_0_14px_rgba(34,245,199,0.7)]" : "bg-amber"}`} />
+                        {item.value}
                       </div>
                     </div>
                   ))}
