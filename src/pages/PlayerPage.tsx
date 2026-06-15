@@ -716,12 +716,6 @@ export function PlayerPage() {
               {station && !isLive && <p className="mt-1 text-sm text-amber">Station ready. Waiting to begin.</p>}
             </div>
             <div className="flex items-center gap-2">
-              <div className={`rounded-md border px-4 py-3 text-right ${room.voiceoverReady.player ? "border-scrub/35 bg-scrub/10" : "border-amber/35 bg-amber/10"}`}>
-                <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Narration</div>
-                <div className={`font-display text-sm font-black uppercase ${room.voiceoverReady.player ? "text-scrub" : "text-amber"}`}>
-                  {room.voiceoverReady.player || localVoiceReady ? (localVoiceMode === "fallback" ? "Fallback ready" : "Piper ready") : "Warming"}
-                </div>
-              </div>
               <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
                 <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
                 <div className="font-display text-3xl font-black text-scrub">{room.code}</div>

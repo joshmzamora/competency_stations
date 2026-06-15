@@ -391,6 +391,11 @@ export function PatientCaseReview({
   const activeFile = activeId ? caseFiles.find((file) => file.id === activeId) ?? null : null;
   const progress = Math.round((reviewedIds.size / caseFiles.length) * 100);
   const ready = reviewedIds.size >= caseFiles.length;
+  const fileSwitchLocked =
+    role === "player" &&
+    Boolean(activeId) &&
+    audioTracksEnabled &&
+    (!voiceoverEnabled || Boolean(narrationLockFileId) || voicedFileRef.current !== activeId);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -417,7 +422,7 @@ export function PatientCaseReview({
   }
 
   useEffect(() => {
-    if (!audioTracksEnabled || !voiceoverEnabled) {
+    if (!audioTracksEnabled) {
       setNarrationLockFileId(null);
       return;
     }
@@ -426,6 +431,10 @@ export function PatientCaseReview({
       voicedFileRef.current = "";
       setNarrationLockFileId(null);
       setCaseMusicDucked(false);
+      return;
+    }
+    if (!voiceoverEnabled) {
+      setNarrationLockFileId(activeFile.id);
       return;
     }
     if (voicedFileRef.current === activeFile.id) return;
@@ -485,7 +494,7 @@ export function PatientCaseReview({
 
   function openFile(id: string) {
     if (role === "player") {
-      if (narrationLockFileId && id !== activeId) return;
+      if (fileSwitchLocked && id !== activeId) return;
       if (id === activeId) return;
       if (audioEffectsEnabled) playFileClickCue();
       onOpenFile(id);
@@ -547,7 +556,7 @@ export function PatientCaseReview({
                 active={file.id === activeId}
                 reviewed={reviewedIds.has(file.id)}
                 readOnly={role === "host"}
-                locked={role === "player" && Boolean(narrationLockFileId) && file.id !== activeId}
+                locked={fileSwitchLocked && file.id !== activeId}
                 onOpen={() => openFile(file.id)}
               />
             ))}

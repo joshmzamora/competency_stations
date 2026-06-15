@@ -2,21 +2,31 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Diamond, Hexagon, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerShape, PlayerState } from "../types";
-import { playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
+import { estimateVoiceoverMs, playVoiceoverLine, type VoiceoverHandle } from "../utils/voiceover";
 import { PhaseBrief } from "./PhaseBrief";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
-const totalDurationMs = 22000;
+const baseVisualDurationMs = 22000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
-const fadeOutMs = 2200;
 const openingMs = 5200;
 const closingMs = 7000;
 const visualTickMs = 90;
 const audioSyncMs = 220;
+const openingNarrationText =
+  "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.";
+const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 500;
 
 function segmentMs(playerCount: number) {
-  return Math.max(1200, (totalDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
+  return Math.max(3400, (baseVisualDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
+}
+
+function assignmentVisualDuration(playerCount: number) {
+  return Math.max(baseVisualDurationMs, openingMs + segmentMs(playerCount) * Math.max(1, playerCount) + closingMs);
+}
+
+function protocolDuration(playerCount: number) {
+  return openingNarrationHoldMs + assignmentVisualDuration(playerCount);
 }
 
 function revealAt(index: number, playerCount: number) {
@@ -77,6 +87,14 @@ function publicName(name: string) {
   return match?.[1] || name;
 }
 
+function participantNarrationText(player: PlayerState) {
+  return `${publicName(player.name)}. Your shape is ${player.shape ?? "being assigned"}.`;
+}
+
+function participantRevealDelay(player: PlayerState) {
+  return estimateVoiceoverMs(participantNarrationText(player), 0.8) + 250;
+}
+
 function activeIndexForElapsed(elapsed: number, playerCount: number) {
   if (elapsed < openingMs || playerCount === 0) return -1;
   return Math.min(playerCount - 1, Math.floor((elapsed - openingMs) / segmentMs(playerCount)));
@@ -86,7 +104,7 @@ const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: {
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       {players.map((player, index) => {
-        const revealed = elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34;
+        const revealed = elapsed >= revealAt(index, players.length) + participantRevealDelay(player);
         const active = index === activeIndex;
         const shape = player.shape;
         return (
@@ -114,7 +132,7 @@ const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: {
 function FeaturedReveal({ player, index, elapsed, playerCount }: { player: PlayerState; index: number; elapsed: number; playerCount: number }) {
   const shape = player.shape;
   const localElapsed = Math.max(0, elapsed - revealAt(index, playerCount));
-  const revealShape = localElapsed >= segmentMs(playerCount) * 0.34;
+  const revealShape = localElapsed >= participantRevealDelay(player);
   const cyclingShape = ALL_SHAPES[Math.floor(elapsed / 110) % ALL_SHAPES.length];
   const displayedShape = revealShape && shape ? shape : cyclingShape;
 
@@ -222,14 +240,7 @@ export function ProtocolIntro({
   }
 
   function syncAssignmentAudio(audio: HTMLAudioElement) {
-    const syncedElapsed = Math.min(totalDurationMs, getSyncedElapsed());
-    const targetTime = syncedElapsed / 1000;
-    const remaining = Math.max(0, totalDurationMs - syncedElapsed);
-    const duckedVolume = narrationActiveRef.current ? maxVolume * 0.82 : maxVolume;
-    audio.volume = Math.min(duckedVolume, duckedVolume * (remaining / fadeOutMs));
-    if (Number.isFinite(targetTime) && Math.abs(audio.currentTime - targetTime) > 0.9) {
-      audio.currentTime = targetTime;
-    }
+    audio.volume = narrationActiveRef.current ? maxVolume * 0.9 : maxVolume;
   }
 
   function playSyncedAssignmentAudio() {
@@ -288,8 +299,9 @@ export function ProtocolIntro({
 
     const tick = () => {
       const nextElapsed = getSyncedElapsed();
+      const totalMs = protocolDuration(players.length);
       setElapsed(nextElapsed);
-      if (nextElapsed >= totalDurationMs && !completedRef.current) {
+      if (nextElapsed >= totalMs && !completedRef.current) {
         completedRef.current = true;
         onCompleteRef.current();
       }
@@ -298,7 +310,7 @@ export function ProtocolIntro({
     tick();
     const id = window.setInterval(tick, visualTickMs);
     return () => window.clearInterval(id);
-  }, [open, startedAt]);
+  }, [open, players.length, startedAt]);
 
   useEffect(() => {
     if (!open) {
@@ -323,9 +335,9 @@ export function ProtocolIntro({
       syncAssignmentAudio(audio);
     };
 
-    audio.loop = false;
+    audio.loop = true;
     audio.volume = maxVolume;
-    audio.currentTime = Math.min(totalDurationMs, getSyncedElapsed()) / 1000;
+    audio.currentTime = 0;
     syncAudio();
     playSyncedAssignmentAudio();
     const volumeId = window.setInterval(syncAudio, audioSyncMs);
@@ -354,32 +366,33 @@ export function ProtocolIntro({
     };
   }, [audioEnabled, open, startedAt]);
 
-  const progress = Math.min(100, (elapsed / totalDurationMs) * 100);
-  const activeIndex = activeIndexForElapsed(elapsed, players.length);
+  const visualDuration = assignmentVisualDuration(players.length);
+  const fullDuration = protocolDuration(players.length);
+  const visualElapsed = Math.max(0, elapsed - openingNarrationHoldMs);
+  const progress = Math.min(100, (elapsed / fullDuration) * 100);
+  const activeIndex = activeIndexForElapsed(visualElapsed, players.length);
   const activePlayer = activeIndex >= 0 ? players[activeIndex] : undefined;
-  const openingShape = ALL_SHAPES[Math.floor(elapsed / 105) % ALL_SHAPES.length];
+  const openingShape = ALL_SHAPES[Math.floor(visualElapsed / 105) % ALL_SHAPES.length];
   const assignedCount = useMemo(
-    () => players.filter((_, index) => elapsed >= revealAt(index, players.length) + segmentMs(players.length) * 0.34).length,
-    [elapsed, players]
+    () => players.filter((player, index) => visualElapsed >= revealAt(index, players.length) + participantRevealDelay(player)).length,
+    [players, visualElapsed]
   );
-  const showSummary = players.length > 0 && elapsed >= totalDurationMs - closingMs;
-  const activeRevealReady =
-    Boolean(activePlayer) && activeIndex >= 0 && elapsed >= revealAt(activeIndex, players.length) + segmentMs(players.length) * 0.34;
+  const showSummary = players.length > 0 && visualElapsed >= visualDuration - closingMs;
+  const activeSegmentStarted =
+    Boolean(activePlayer) && activeIndex >= 0 && visualElapsed >= revealAt(activeIndex, players.length);
 
   useEffect(() => {
-    if (!open || !audioEnabled || spokenOpeningRef.current || elapsed > openingMs - 900) return;
+    if (!open || !audioEnabled || spokenOpeningRef.current) return;
     spokenOpeningRef.current = true;
-    playAssignmentVoiceover(
-      "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts."
-    );
-  }, [audioEnabled, elapsed, open]);
+    playAssignmentVoiceover(openingNarrationText);
+  }, [audioEnabled, open]);
 
   useEffect(() => {
-    if (!open || !audioEnabled || !activePlayer || !activePlayer.shape || !activeRevealReady) return;
+    if (!open || !audioEnabled || !activePlayer || !activePlayer.shape || !activeSegmentStarted) return;
     if (spokenParticipantIdsRef.current.has(activePlayer.id)) return;
     spokenParticipantIdsRef.current.add(activePlayer.id);
-    playAssignmentVoiceover(`${publicName(activePlayer.name)}. Your shape is ${activePlayer.shape}.`);
-  }, [activePlayer, activeRevealReady, audioEnabled, open]);
+    playAssignmentVoiceover(participantNarrationText(activePlayer));
+  }, [activePlayer, activeSegmentStarted, audioEnabled, open]);
 
   useEffect(() => {
     return () => {
@@ -464,20 +477,20 @@ export function ProtocolIntro({
                     </p>
                   </motion.div>
                 ) : (
-                  <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={elapsed} playerCount={players.length} />
+                  <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={visualElapsed} playerCount={players.length} />
                 )}
               </AnimatePresence>
             </main>
 
             <footer className="grid gap-4">
-              <MiniRoster players={players} activeIndex={activeIndex} elapsed={elapsed} />
+              <MiniRoster players={players} activeIndex={activeIndex} elapsed={visualElapsed} />
               <div className="grid gap-3 border-t border-white/10 pt-4">
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <motion.div className="h-full rounded-full bg-gradient-to-r from-trauma via-amber to-scrub" style={{ width: `${progress}%` }} />
                 </div>
                 <div className="flex justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                   <span>{assignedCount}/{players.length} shapes ready</span>
-                  <span>{Math.max(0, Math.ceil((totalDurationMs - elapsed) / 1000))}s</span>
+                  <span>{Math.max(0, Math.ceil((fullDuration - elapsed) / 1000))}s</span>
                 </div>
               </div>
             </footer>

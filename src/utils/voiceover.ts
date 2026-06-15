@@ -21,6 +21,7 @@ let piperWarmupPromise: Promise<boolean> | null = null;
 let activeVoiceoverCancel: (() => void) | null = null;
 const piperBlobCache = new Map<string, Blob>();
 const piperBlobPromiseCache = new Map<string, Promise<Blob | null>>();
+const piperSynthesisTimeoutMs = 12000;
 
 const preferredVoiceNames = [
   "Microsoft Zira",
@@ -100,7 +101,14 @@ async function synthesizeWithPiper(text: string) {
     try {
       await seedLocalPiperVoice();
       const tts = await import("@mintplex-labs/piper-tts-web");
-      const blob = await tts.predict({ text, voiceId: piperVoiceId });
+      const blob = await Promise.race([
+        tts.predict({ text, voiceId: piperVoiceId }),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), piperSynthesisTimeoutMs))
+      ]);
+      if (!blob) {
+        piperUnavailable = true;
+        return null;
+      }
       if (blob) piperBlobCache.set(cacheKey, blob);
       return blob;
     } catch (error) {

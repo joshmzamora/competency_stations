@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { PatientCaseReview } from "./PatientCaseReview";
 import { PhaseBrief } from "./PhaseBrief";
-import { playVoiceoverLine, preloadVoiceoverLines, type VoiceoverHandle } from "../utils/voiceover";
+import { estimateVoiceoverMs, playVoiceoverLine, preloadVoiceoverLines, type VoiceoverHandle } from "../utils/voiceover";
 
 const durationMs = 45000;
 const sceneMs = durationMs / 6;
@@ -298,10 +298,11 @@ export function ScenarioIntro({
         return;
       }
 
-      const nextSceneProgress = (getSyncedSceneElapsed() / sceneMs) * 100;
+      const sceneProgressDuration = Math.max(3200, estimateVoiceoverMs(scenes[nextSceneIndex].voiceover, 0.78) + 900);
+      const nextSceneProgress = (getSyncedSceneElapsed() / sceneProgressDuration) * 100;
       setPhase("scenes");
       setIntroSceneIndex(nextSceneIndex);
-      setSceneProgressValue(Math.min(98, Math.max(0, nextSceneProgress)));
+      setSceneProgressValue(Math.min(96, Math.max(0, nextSceneProgress)));
     };
 
     updateFromRoomState();
@@ -335,7 +336,7 @@ export function ScenarioIntro({
     const forceTimer = window.setTimeout(() => {
       voiceoverFinished = true;
       tryAdvance(true);
-    }, audioTracksEnabled ? 90000 : sceneMs);
+    }, audioTracksEnabled ? estimateVoiceoverMs(scene.voiceover, 0.78) + 15000 : sceneMs);
 
     if (!audioTracksEnabled) {
       return () => {
@@ -499,7 +500,7 @@ export function ScenarioIntro({
                   <div className="rounded-md border border-white/10 bg-white/[0.045] px-4 py-3 text-right">
                     <div className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Narration</div>
                     <div className="font-display text-2xl font-black uppercase text-monitor">
-                      {sceneProgress >= 98 ? "Finishing" : "Playing"}
+                      {sceneProgress >= 96 ? "Finishing" : "Playing"}
                     </div>
                   </div>
                 </div>
