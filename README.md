@@ -121,7 +121,6 @@ The homepage and host page include these station cards:
 
 - Code Blue
 - Hemodynamics
-- Pacemaker
 - Chest tube
 - Code BERT
 - Stroke

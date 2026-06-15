@@ -94,21 +94,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
   })
 ];
 
-const pacemakerPrompts: CompetencyPrompt[] = [
-  prompt({
-    id: "pacemaker-facilitator-led",
-    stationId: "pacemaker",
-    type: "scenario-walkthrough",
-    title: "",
-    scenario: "This station is facilitator-led. Look to the host for pacemaker rhythm strips, device setup, and bedside instructions.",
-    instructions: [
-      "Wait for the host to provide the next pacemaker task.",
-      "Follow the bedside equipment and rhythm-strip instructions given in person."
-    ],
-    expectedResponse: "Learner follows the host-led pacemaker checkoff instructions."
-  })
-];
-
 const chestTubePrompts: CompetencyPrompt[] = [
   prompt({
     id: "chest-tube-clamping",
@@ -787,16 +772,6 @@ export const stations: CompetencyStation[] = [
     competencyType: "PA catheter and arterial line simulation",
     accent: "monitor",
     prompts: hemodynamicsPrompts
-  },
-  {
-    id: "pacemaker",
-    title: "Pacemaker",
-    shortTitle: "Pacemaker",
-    description: "Transvenous pacemaker orders, secure connections, catheter markings, capture, sensing, and pacemaker box troubleshooting.",
-    estimatedMinutes: 10,
-    competencyType: "Device troubleshooting",
-    accent: "amber",
-    prompts: pacemakerPrompts
   },
   {
     id: "chest-tube",
