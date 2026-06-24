@@ -3,6 +3,8 @@ import { CheckCircle2, ClipboardList, MoveRight, RotateCcw } from "lucide-react"
 import type { ActivityColumn, ActivityState, CompetencyPrompt, PlayerPrompt, PromptActivity } from "../types";
 import { playActivityCheckCue, playActivityDropCue } from "../utils/sound";
 
+type ActivityLayoutSize = "standard" | "learner";
+
 function FormattedText({ text }: { text: string }) {
   const parts = text.split(/(~~.*?~~)/g);
   return (
@@ -21,13 +23,19 @@ function ActivityCard({
   item,
   result,
   readOnly,
+  size = "standard",
   onDragStart
 }: {
   item: string;
   result?: boolean;
   readOnly?: boolean;
+  size?: ActivityLayoutSize;
   onDragStart: (item: string) => void;
 }) {
+  const sizeClass =
+    size === "learner"
+      ? "min-h-[76px] px-5 py-4 text-2xl font-bold leading-8 md:text-3xl md:leading-10"
+      : "px-3 py-2 text-sm font-semibold";
   const resultClass =
     result === true
       ? "border-scrub/55 bg-scrub/10 text-white shadow-[0_0_20px_rgba(34,245,199,0.1)]"
@@ -42,7 +50,7 @@ function ActivityCard({
         event.dataTransfer.setData("text/plain", item);
         onDragStart(item);
       }}
-      className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${resultClass} ${readOnly ? "" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-md border transition ${sizeClass} ${resultClass} ${readOnly ? "" : "cursor-grab active:cursor-grabbing"}`}
     >
       <FormattedText text={item} />
     </div>
@@ -54,14 +62,17 @@ function SelectableOptionCard({
   selected,
   result,
   readOnly,
+  size = "standard",
   onToggle
 }: {
   item: string;
   selected: boolean;
   result?: boolean;
   readOnly?: boolean;
+  size?: ActivityLayoutSize;
   onToggle: (item: string) => void;
 }) {
+  const learner = size === "learner";
   const resultClass =
     result === true
       ? "border-scrub/55 bg-scrub/10 text-white shadow-[0_0_20px_rgba(34,245,199,0.1)]"
@@ -76,10 +87,10 @@ function SelectableOptionCard({
       type="button"
       onClick={() => onToggle(item)}
       disabled={readOnly}
-      className={`flex min-h-[52px] items-start gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold leading-5 transition ${resultClass} ${readOnly ? "" : "hover:border-monitor/40 hover:bg-monitor/10"}`}
+      className={`flex items-start rounded-md border text-left font-semibold transition ${learner ? "min-h-[88px] gap-4 px-5 py-4 text-2xl leading-8 md:text-3xl md:leading-10" : "min-h-[52px] gap-3 px-3 py-2 text-sm leading-5"} ${resultClass} ${readOnly ? "" : "hover:border-monitor/40 hover:bg-monitor/10"}`}
     >
       <span
-        className={`mt-1 h-3.5 w-3.5 flex-none rounded-sm border ${
+        className={`${learner ? "mt-2 h-6 w-6" : "mt-1 h-3.5 w-3.5"} flex-none rounded-sm border ${
           selected ? "border-monitor bg-monitor shadow-[0_0_14px_rgba(110,247,255,0.2)]" : "border-white/25 bg-black/30"
         }`}
       />
@@ -94,6 +105,7 @@ function WorkColumns({
   itemResults,
   readOnly,
   audioEnabled,
+  size = "standard",
   onMove
 }: {
   columns: ActivityColumn[];
@@ -101,10 +113,12 @@ function WorkColumns({
   itemResults?: Record<string, boolean>;
   readOnly?: boolean;
   audioEnabled: boolean;
+  size?: ActivityLayoutSize;
   onMove?: (item: string, column: string | null) => void;
 }) {
+  const learner = size === "learner";
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className={`grid md:grid-cols-2 ${learner ? "gap-5" : "gap-3"}`}>
       {columns.map((column) => (
         <div
           key={column.title}
@@ -117,10 +131,10 @@ function WorkColumns({
               onMove?.(item, column.title);
             }
           }}
-          className="min-h-[170px] rounded-md border border-white/10 bg-black/30 p-4"
+          className={`${learner ? "min-h-[280px] p-5 md:p-6" : "min-h-[170px] p-4"} rounded-md border border-white/10 bg-black/30`}
         >
-          <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-monitor">{column.title}</div>
-          <div className="mt-4 flex min-h-[105px] flex-wrap content-start gap-2 rounded-md border border-dashed border-white/15 bg-white/[0.025] p-3">
+          <div className={`font-display font-black uppercase tracking-[0.18em] text-monitor ${learner ? "text-base" : "text-xs"}`}>{column.title}</div>
+          <div className={`${learner ? "mt-5 min-h-[190px] gap-3 p-4" : "mt-4 min-h-[105px] gap-2 p-3"} flex flex-wrap content-start rounded-md border border-dashed border-white/15 bg-white/[0.025]`}>
             {Object.entries(placements)
               .filter(([, placedColumn]) => placedColumn === column.title)
               .map(([item]) => (
@@ -129,11 +143,12 @@ function WorkColumns({
                   item={item}
                   result={itemResults?.[item]}
                   readOnly={readOnly}
+                  size={size}
                   onDragStart={() => undefined}
                 />
               ))}
             {!Object.values(placements).includes(column.title) && (
-              <div className="grid min-h-[76px] flex-1 place-items-center px-4 text-center text-sm text-white/30">
+              <div className={`grid min-h-[76px] flex-1 place-items-center px-4 text-center text-white/30 ${learner ? "text-xl" : "text-sm"}`}>
                 Drop cards here
               </div>
             )}
@@ -150,6 +165,7 @@ function SelectionActivityPanel({
   itemResults,
   readOnly,
   audioEnabled,
+  size = "standard",
   onMove
 }: {
   activity: PromptActivity;
@@ -157,19 +173,21 @@ function SelectionActivityPanel({
   itemResults?: Record<string, boolean>;
   readOnly?: boolean;
   audioEnabled: boolean;
+  size?: ActivityLayoutSize;
   onMove?: (item: string, column: string | null) => void;
 }) {
+  const learner = size === "learner";
   const selectedColumn = activity.columns[0]?.title ?? "Selected";
   const selectedItems = activity.itemBank.filter((item) => placements[item] === selectedColumn);
 
   return (
-    <div className="mt-6 grid gap-4">
-      <div className="rounded-md border border-white/10 bg-white/[0.035] p-4">
-        <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">
-          <ClipboardList className="h-4 w-4 text-monitor" />
+    <div className={`grid ${learner ? "mt-8 gap-6" : "mt-6 gap-4"}`}>
+      <div className={`rounded-md border border-white/10 bg-white/[0.035] ${learner ? "p-5 md:p-6" : "p-4"}`}>
+        <div className={`flex items-center gap-2 font-display font-black uppercase tracking-[0.18em] text-white/45 ${learner ? "mb-5 text-sm" : "mb-3 text-xs"}`}>
+          <ClipboardList className={`${learner ? "h-5 w-5" : "h-4 w-4"} text-monitor`} />
           {activity.itemBankLabel}
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className={`grid ${learner ? "gap-3 lg:grid-cols-2" : "gap-2 sm:grid-cols-2 xl:grid-cols-3"}`}>
           {activity.itemBank.map((item) => {
             const selected = placements[item] === selectedColumn;
 
@@ -180,6 +198,7 @@ function SelectionActivityPanel({
                 selected={selected}
                 result={itemResults?.[item]}
                 readOnly={readOnly}
+                size={size}
                 onToggle={(selectedItem) => {
                   if (audioEnabled) playActivityDropCue();
                   onMove?.(selectedItem, selected ? null : selectedColumn);
@@ -190,14 +209,14 @@ function SelectionActivityPanel({
         </div>
       </div>
 
-      <div className="rounded-md border border-monitor/20 bg-monitor/10 p-4">
-        <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-monitor">{selectedColumn}</div>
-        <div className="mt-3 flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-monitor/20 bg-black/20 p-3">
+      <div className={`rounded-md border border-monitor/20 bg-monitor/10 ${learner ? "p-5 md:p-6" : "p-4"}`}>
+        <div className={`font-display font-black uppercase tracking-[0.18em] text-monitor ${learner ? "text-base" : "text-xs"}`}>{selectedColumn}</div>
+        <div className={`${learner ? "mt-4 min-h-[92px] gap-3 p-4" : "mt-3 min-h-[56px] gap-2 p-3"} flex flex-wrap rounded-md border border-dashed border-monitor/20 bg-black/20`}>
           {selectedItems.map((item) => (
-            <ActivityCard key={item} item={item} readOnly result={itemResults?.[item]} onDragStart={() => undefined} />
+            <ActivityCard key={item} item={item} readOnly result={itemResults?.[item]} size={size} onDragStart={() => undefined} />
           ))}
           {!selectedItems.length && (
-            <div className="grid min-h-10 flex-1 place-items-center text-sm text-white/30">
+            <div className={`grid min-h-10 flex-1 place-items-center text-white/30 ${learner ? "text-xl" : "text-sm"}`}>
               None selected
             </div>
           )}
@@ -239,6 +258,7 @@ export function ActivityPromptLayout({
   activityState,
   readOnly = false,
   audioEnabled = true,
+  size = "standard",
   onMoveCard,
   onCheck
 }: {
@@ -247,6 +267,7 @@ export function ActivityPromptLayout({
   activityState?: ActivityState;
   readOnly?: boolean;
   audioEnabled?: boolean;
+  size?: ActivityLayoutSize;
   onMoveCard?: (item: string, column: string | null) => void;
   onCheck?: () => void;
 }) {
@@ -265,6 +286,7 @@ export function ActivityPromptLayout({
   const visibleItemResults = showAnswer ? itemResults : undefined;
   const remainingChecks = Math.max(0, 2 - checkCount);
   const unassignedItems = mode === "sort" ? activity.itemBank.filter((item) => !placements[item]) : [];
+  const learner = size === "learner";
 
   return (
     <motion.div
@@ -272,11 +294,11 @@ export function ActivityPromptLayout({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32 }}
-      className="grid gap-4"
+      className={`grid ${learner ? "gap-6" : "gap-4"}`}
     >
-      <div className="rounded-md border border-monitor/25 bg-black/45 p-5 shadow-[0_0_38px_rgba(110,247,255,0.08)] md:p-6">
+      <div className={`rounded-md border border-monitor/25 bg-black/45 shadow-[0_0_38px_rgba(110,247,255,0.08)] ${learner ? "p-6 md:p-8 xl:p-10" : "p-5 md:p-6"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="rounded-sm border border-monitor/35 bg-monitor/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-[0.18em] text-monitor">
+          <span className={`rounded-sm border border-monitor/35 bg-monitor/10 font-display font-bold uppercase tracking-[0.18em] text-monitor ${learner ? "px-4 py-2 text-sm" : "px-3 py-1 text-xs"}`}>
             Activity
           </span>
           {showAnswer ? (
@@ -286,7 +308,7 @@ export function ActivityPromptLayout({
           ) : null}
         </div>
 
-        <p className="mt-5 text-2xl leading-9 text-white/80">{activity.question || prompt.scenario}</p>
+        <p className={`${learner ? "mt-6 max-w-6xl text-4xl font-semibold leading-[3.1rem] md:text-5xl md:leading-[4rem]" : "mt-5 text-2xl leading-9"} text-white/80`}>{activity.question || prompt.scenario}</p>
 
         {mode === "select" ? (
           <>
@@ -296,18 +318,19 @@ export function ActivityPromptLayout({
               itemResults={visibleItemResults}
               readOnly={readOnly}
               audioEnabled={audioEnabled}
+              size={size}
               onMove={onMoveCard}
             />
-            <div className="mt-5 flex items-center gap-3 text-sm text-white/45">
-              <MoveRight className="h-4 w-4 text-monitor" />
+            <div className={`mt-5 flex items-center gap-3 text-white/45 ${learner ? "text-xl" : "text-sm"}`}>
+              <MoveRight className={`${learner ? "h-6 w-6" : "h-4 w-4"} text-monitor`} />
               Select the relevant options and leave the distractors unselected.
             </div>
           </>
         ) : (
           <>
-            <div className="mt-6 rounded-md border border-white/10 bg-white/[0.035] p-4">
-              <div className="mb-3 flex items-center gap-2 font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                <ClipboardList className="h-4 w-4 text-monitor" />
+            <div className={`mt-6 rounded-md border border-white/10 bg-white/[0.035] ${learner ? "p-5 md:p-6" : "p-4"}`}>
+              <div className={`flex items-center gap-2 font-display font-black uppercase tracking-[0.18em] text-white/45 ${learner ? "mb-5 text-sm" : "mb-3 text-xs"}`}>
+                <ClipboardList className={`${learner ? "h-5 w-5" : "h-4 w-4"} text-monitor`} />
                 {activity.itemBankLabel}
               </div>
               <div
@@ -320,7 +343,7 @@ export function ActivityPromptLayout({
                     onMoveCard?.(item, null);
                   }
                 }}
-                className="flex min-h-[56px] flex-wrap gap-2 rounded-md border border-dashed border-white/10 bg-black/20 p-3"
+                className={`${learner ? "min-h-[116px] gap-3 p-4" : "min-h-[56px] gap-2 p-3"} flex flex-wrap rounded-md border border-dashed border-white/10 bg-black/20`}
               >
                 {unassignedItems.map((item) => (
                   <ActivityCard
@@ -328,19 +351,20 @@ export function ActivityPromptLayout({
                     item={item}
                     result={visibleItemResults?.[item]}
                     readOnly={readOnly}
+                    size={size}
                     onDragStart={() => undefined}
                   />
                 ))}
                 {!unassignedItems.length && (
-                  <div className="grid min-h-10 flex-1 place-items-center text-sm text-white/30">
+                  <div className={`grid min-h-10 flex-1 place-items-center text-white/30 ${learner ? "text-xl" : "text-sm"}`}>
                     All cards placed
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-3 text-sm text-white/45">
-              <MoveRight className="h-4 w-4 text-monitor" />
+            <div className={`mt-5 flex items-center gap-3 text-white/45 ${learner ? "text-xl" : "text-sm"}`}>
+              <MoveRight className={`${learner ? "h-6 w-6" : "h-4 w-4"} text-monitor`} />
               Sort the cards into the correct column.
             </div>
 
@@ -351,6 +375,7 @@ export function ActivityPromptLayout({
                 itemResults={visibleItemResults}
                 readOnly={readOnly}
                 audioEnabled={audioEnabled}
+                size={size}
                 onMove={onMoveCard}
               />
             </div>
@@ -358,21 +383,21 @@ export function ActivityPromptLayout({
         )}
 
         {!readOnly ? (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3">
+          <div className={`mt-5 flex flex-wrap items-center justify-between rounded-md border border-white/10 bg-white/[0.035] ${learner ? "gap-5 p-5" : "gap-3 p-3"}`}>
             <div>
-              <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-white/45">Checks</div>
-              <div className="mt-1 flex gap-1.5">
+              <div className={`font-display font-black uppercase tracking-[0.18em] text-white/45 ${learner ? "text-sm" : "text-xs"}`}>Checks</div>
+              <div className={`${learner ? "mt-2 gap-2" : "mt-1 gap-1.5"} flex`}>
                 {[0, 1].map((index) => (
                   <span
                     key={index}
-                    className={`h-2.5 w-8 rounded-full ${index < checkCount ? "bg-monitor" : "bg-white/12"}`}
+                    className={`${learner ? "h-3.5 w-14" : "h-2.5 w-8"} rounded-full ${index < checkCount ? "bg-monitor" : "bg-white/12"}`}
                   />
                 ))}
               </div>
             </div>
             {itemResults ? (
               <div
-                className={`rounded-md border px-5 py-3 text-center font-display text-2xl font-black uppercase tracking-[0.16em] ${
+                className={`rounded-md border text-center font-display font-black uppercase tracking-[0.16em] ${learner ? "px-7 py-4 text-4xl" : "px-5 py-3 text-2xl"} ${
                   allCorrect
                     ? "border-scrub/45 bg-scrub/10 text-scrub shadow-[0_0_28px_rgba(34,245,199,0.12)]"
                     : "border-trauma/45 bg-trauma/10 text-trauma shadow-[0_0_28px_rgba(255,48,77,0.12)]"
@@ -381,7 +406,7 @@ export function ActivityPromptLayout({
                 {allCorrect ? "Correct" : "Incorrect"}
               </div>
             ) : (
-              <div className="text-sm text-white/45">{remainingChecks} checks available</div>
+              <div className={`text-white/45 ${learner ? "text-xl" : "text-sm"}`}>{remainingChecks} checks available</div>
             )}
             <button
               type="button"
@@ -390,14 +415,14 @@ export function ActivityPromptLayout({
                 onCheck?.();
               }}
               disabled={!onCheck || remainingChecks <= 0}
-              className="inline-flex min-h-10 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15 disabled:cursor-not-allowed disabled:opacity-35"
+              className={`inline-flex items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 font-display font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15 disabled:cursor-not-allowed disabled:opacity-35 ${learner ? "min-h-16 px-6 py-3 text-base" : "min-h-10 px-4 py-2 text-xs"}`}
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className={learner ? "h-5 w-5" : "h-4 w-4"} />
               Check
             </button>
           </div>
         ) : itemResults ? (
-          <div className="mt-5 rounded-md border border-white/10 bg-white/[0.035] p-3 font-display text-sm font-black uppercase tracking-[0.12em] text-white/70">
+          <div className={`mt-5 rounded-md border border-white/10 bg-white/[0.035] font-display font-black uppercase tracking-[0.12em] text-white/70 ${learner ? "p-5 text-xl" : "p-3 text-sm"}`}>
             Learner check {checkCount}/2: {correctCount}/{activity.itemBank.length} correct
           </div>
         ) : null}

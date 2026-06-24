@@ -302,9 +302,9 @@ function ActivePromptView({
 
       {prompt.type === "activity" ? (
         <>
-          <div className="rounded-md border border-monitor/25 bg-monitor/10 p-5">
-            <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-monitor">Stroke activity mode</div>
-            <p className="mt-2 max-w-3xl text-lg leading-7 text-white/68">
+          <div className="rounded-md border border-monitor/25 bg-monitor/10 p-6 md:p-8">
+            <div className="font-display text-sm font-black uppercase tracking-[0.24em] text-monitor md:text-base">Stroke activity mode</div>
+            <p className="mt-4 max-w-6xl text-2xl font-semibold leading-9 text-white/72 md:text-3xl md:leading-[2.85rem]">
               {prompt.activity?.mode === "select"
                 ? "Work together on this screen. Choose the relevant cards from the option bank, then use up to two checks."
                 : "Work together on this screen. Drag each card into the correct column, then use up to two checks."}
@@ -314,6 +314,7 @@ function ActivePromptView({
             prompt={prompt}
             activityState={activityState}
             audioEnabled={audioEnabled}
+            size="learner"
             onMoveCard={onMoveActivityCard}
             onCheck={onCheckActivity}
           />

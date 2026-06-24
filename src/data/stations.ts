@@ -407,6 +407,84 @@ const strokePrompts: CompetencyPrompt[] = [
     criticalActions: ["Does not miss active bleeding, high INR, or age exclusion cues."]
   }),
   prompt({
+    id: "stroke-activity-risk-factors",
+    stationId: "stroke",
+    type: "activity",
+    title: "",
+    scenario: "Review Emma Gonnadye's case file and select the stroke risk factors that specifically apply to her.",
+    instructions: [
+      "Review the full risk-factor checklist on the learner screen.",
+      "Select only the items supported by Emma's case file.",
+      "Leave anything not documented in the case unselected."
+    ],
+    activity: {
+      mode: "select",
+      question: "Which stroke risk factors apply to Emma Gonnadye?",
+      itemBankLabel: "Patient-specific stroke risk checklist",
+      itemBank: [
+        "You have high blood pressure.",
+        "You're overweight.",
+        "You have unhealthy cholesterol levels.",
+        "You have atrial fibrillation.",
+        "You have atrial flutter.",
+        "You've had a heart attack.",
+        "You have narrowed arteries.",
+        "You have diabetes.",
+        "You are a man.",
+        "You are an African American.",
+        "You are an Alaska Native.",
+        "You are an American Indian.",
+        "You rarely exercise.",
+        "You often eat salty, fried, or greasy foods.",
+        "You smoke.",
+        "You have more than 2 alcoholic drinks per day.",
+        "You're over age 60.",
+        "A parent, brother, or sister has had a stroke."
+      ],
+      columns: [
+        { title: "Applies to Emma", items: [] }
+      ]
+    },
+    answerKey: [
+      {
+        title: "Applies to Emma",
+        items: [
+          "You have high blood pressure.",
+          "You're overweight.",
+          "You have atrial fibrillation.",
+          "You have narrowed arteries.",
+          "You have diabetes.",
+          "You're over age 60."
+        ]
+      },
+      {
+        title: "Not supported by case file",
+        items: [
+          "You have unhealthy cholesterol levels.",
+          "You have atrial flutter.",
+          "You've had a heart attack.",
+          "You are a man.",
+          "You are an African American.",
+          "You are an Alaska Native.",
+          "You are an American Indian.",
+          "You rarely exercise.",
+          "You often eat salty, fried, or greasy foods.",
+          "You smoke.",
+          "You have more than 2 alcoholic drinks per day.",
+          "A parent, brother, or sister has had a stroke."
+        ]
+      }
+    ],
+    expectedResponse:
+      "Emma's documented stroke risk factors are hypertension, overweight/obesity, chronic atrial fibrillation, narrowed arteries/CAD with stent, diabetes, and age over 60.",
+    explanation:
+      "Emma is 67, weighs 90 kg, and has hypertension, diabetes, CAD with stent, and chronic atrial fibrillation documented in the case file. Other listed risk factors are not documented in the provided case.",
+    criticalActions: [
+      "Selects only risk factors supported by Emma's case file.",
+      "Recognizes atrial fibrillation, diabetes, hypertension, age over 60, overweight/obesity, and CAD/narrowed arteries as patient-specific stroke risks."
+    ]
+  }),
+  prompt({
     id: "stroke-pre-tenecteplase-bp-limit",
     stationId: "stroke",
     type: "verbal-response",
@@ -534,84 +612,6 @@ const strokePrompts: CompetencyPrompt[] = [
     explanation:
       "Antithrombotic medications are held until 24 hours after Tenecteplase administration.",
     criticalActions: ["Does not administer antithrombotics before 24 hours."]
-  }),
-  prompt({
-    id: "stroke-activity-risk-factors",
-    stationId: "stroke",
-    type: "activity",
-    title: "",
-    scenario: "Review Emma Gonnadye's case file and select the stroke risk factors that specifically apply to her.",
-    instructions: [
-      "Review the full risk-factor checklist on the learner screen.",
-      "Select only the items supported by Emma's case file.",
-      "Leave anything not documented in the case unselected."
-    ],
-    activity: {
-      mode: "select",
-      question: "Which stroke risk factors apply to Emma Gonnadye?",
-      itemBankLabel: "Patient-specific stroke risk checklist",
-      itemBank: [
-        "You have high blood pressure.",
-        "You're overweight.",
-        "You have unhealthy cholesterol levels.",
-        "You have atrial fibrillation.",
-        "You have atrial flutter.",
-        "You've had a heart attack.",
-        "You have narrowed arteries.",
-        "You have diabetes.",
-        "You are a man.",
-        "You are an African American.",
-        "You are an Alaska Native.",
-        "You are an American Indian.",
-        "You rarely exercise.",
-        "You often eat salty, fried, or greasy foods.",
-        "You smoke.",
-        "You have more than 2 alcoholic drinks per day.",
-        "You're over age 60.",
-        "A parent, brother, or sister has had a stroke."
-      ],
-      columns: [
-        { title: "Applies to Emma", items: [] }
-      ]
-    },
-    answerKey: [
-      {
-        title: "Applies to Emma",
-        items: [
-          "You have high blood pressure.",
-          "You're overweight.",
-          "You have atrial fibrillation.",
-          "You have narrowed arteries.",
-          "You have diabetes.",
-          "You're over age 60."
-        ]
-      },
-      {
-        title: "Not supported by case file",
-        items: [
-          "You have unhealthy cholesterol levels.",
-          "You have atrial flutter.",
-          "You've had a heart attack.",
-          "You are a man.",
-          "You are an African American.",
-          "You are an Alaska Native.",
-          "You are an American Indian.",
-          "You rarely exercise.",
-          "You often eat salty, fried, or greasy foods.",
-          "You smoke.",
-          "You have more than 2 alcoholic drinks per day.",
-          "A parent, brother, or sister has had a stroke."
-        ]
-      }
-    ],
-    expectedResponse:
-      "Emma's documented stroke risk factors are hypertension, overweight/obesity, chronic atrial fibrillation, narrowed arteries/CAD with stent, diabetes, and age over 60.",
-    explanation:
-      "Emma is 67, weighs 90 kg, and has hypertension, diabetes, CAD with stent, and chronic atrial fibrillation documented in the case file. Other listed risk factors are not documented in the provided case.",
-    criticalActions: [
-      "Selects only risk factors supported by Emma's case file.",
-      "Recognizes atrial fibrillation, diabetes, hypertension, age over 60, overweight/obesity, and CAD/narrowed arteries as patient-specific stroke risks."
-    ]
   })
 ];
 
