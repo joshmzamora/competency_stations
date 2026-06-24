@@ -1,4 +1,4 @@
-import { Circle as CircleIcon, Diamond, Hexagon, LogOut, Minus, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella, UsersRound } from "lucide-react";
+import { Circle as CircleIcon, Diamond, Hexagon, LogOut, Minus, Play, Plus, Radio, ShieldAlert, Square as SquareIcon, Star, Triangle, Umbrella, UsersRound } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -365,6 +365,8 @@ export function PlayerPage() {
   const [introVisible, setIntroVisible] = useState(false);
   const [stationTransitionVisible, setStationTransitionVisible] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [localIntroVisible, setLocalIntroVisible] = useState(false);
+  const [localIntroStartedAt, setLocalIntroStartedAt] = useState<number | null>(null);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [timesUpVisible, setTimesUpVisible] = useState(false);
@@ -647,14 +649,25 @@ export function PlayerPage() {
     send({ type: "leave-room" });
   }
 
+  function playLocalIntro() {
+    setLocalIntroStartedAt(Date.now());
+    setLocalIntroVisible(true);
+  }
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
       {!room ? (
         <>
-          <div className="mb-6">
-            <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-scrub">Learner monitor</div>
-            <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Join Simulation</h1>
-            <p className="mt-3 max-w-2xl text-white/62">Use one learner screen for the room. Add the names of the 2-7 participants who will take turns answering verbally.</p>
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="font-display text-xs font-bold uppercase tracking-[0.22em] text-scrub">Learner monitor</div>
+              <h1 className="mt-2 font-display text-4xl font-black uppercase text-white">Join Simulation</h1>
+              <p className="mt-3 max-w-2xl text-white/62">Use one learner screen for the room. Add the names of the 2-7 participants who will take turns answering verbally.</p>
+            </div>
+            <AnimatedButton type="button" variant="secondary" className="min-h-14" onClick={playLocalIntro}>
+              <Play className="h-4 w-4" />
+              Play intro
+            </AnimatedButton>
           </div>
           <form onSubmit={join} className="grid gap-6 rounded-md border border-white/10 bg-black/35 p-6">
             <label className="grid gap-2">
@@ -716,7 +729,11 @@ export function PlayerPage() {
               <div className="font-display text-3xl font-black uppercase text-white">{station?.title ?? "Waiting for station"}</div>
               {station && !isLive && <p className="mt-1 text-sm text-amber">Station ready. Waiting to begin.</p>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <AnimatedButton variant="secondary" className="min-h-12 px-3" onClick={playLocalIntro}>
+                <Play className="h-4 w-4" />
+                Play intro
+              </AnimatedButton>
               <div className="rounded-md border border-scrub/35 bg-scrub/10 px-4 py-3 text-right">
                 <div className="font-display text-[10px] uppercase tracking-[0.18em] text-white/45">Room</div>
                 <div className="font-display text-3xl font-black text-scrub">{room.code}</div>
@@ -767,6 +784,20 @@ export function PlayerPage() {
         <p className="text-white/75">{error}</p>
       </Modal>
       <TimesUpEffect visible={timesUpVisible} onClose={() => setTimesUpVisible(false)} />
+      <ScenarioIntro
+        open={localIntroVisible}
+        role="player"
+        audioEffectsEnabled={effectsAudioEnabled}
+        audioTracksEnabled
+        localPlayback
+        sceneCount={3}
+        finishMode="close"
+        startedAt={localIntroStartedAt}
+        onClose={() => {
+          setLocalIntroVisible(false);
+          setLocalIntroStartedAt(null);
+        }}
+      />
       <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">

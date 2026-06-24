@@ -1117,18 +1117,29 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
         sendError(client, "Narration is still warming up. Wait for voice readiness on the host and learner screens before starting.");
         return;
       }
+      assignShapesToRoom(room);
       room.status = "in-progress";
       room.sessionStartedAt = room.sessionStartedAt ?? Date.now();
-      room.introStartedAt = room.introCompletedAt ? null : Date.now();
-      room.introSceneIndex = room.introCompletedAt ? 6 : 0;
-      room.introSceneStartedAt = room.introCompletedAt ? null : room.introStartedAt;
-      room.protocolIntroStartedAt = null;
+      room.introStartedAt = null;
+      room.introSceneIndex = 6;
+      room.introSceneStartedAt = null;
+      room.introCompletedAt = room.introCompletedAt ?? Date.now();
+      room.protocolIntroStartedAt = Date.now();
       room.patientReviewActiveFileId = null;
       room.patientReviewReviewedFileIds = [];
       room.selection = null;
       room.debriefStartedAt = null;
       room.closingStartedAt = null;
+      room.currentParticipantId = null;
+      const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
+      // Clear after the client animation completes so re-broadcasts do not replay the shape assignment.
+      setTimeout(() => {
+        if (room.protocolIntroStartedAt === assignmentStartedAt) {
+          room.protocolIntroStartedAt = null;
+          broadcastState(room.code);
+        }
+      }, 24000);
       break;
     }
     case "start-session-now": {

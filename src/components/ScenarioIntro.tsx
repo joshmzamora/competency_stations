@@ -14,7 +14,7 @@ import {
   Triangle,
   Umbrella
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { PatientCaseReview } from "./PatientCaseReview";
 import { PhaseBrief } from "./PhaseBrief";
@@ -173,7 +173,10 @@ export function ScenarioIntro({
   introSceneIndex: syncedIntroSceneIndex = 0,
   introSceneStartedAt,
   onAdvanceScene,
-  serverTime
+  serverTime,
+  localPlayback = false,
+  sceneCount = scenes.length,
+  finishMode = "patient"
 }: {
   open: boolean;
   onClose: () => void;
@@ -191,6 +194,9 @@ export function ScenarioIntro({
   introSceneStartedAt?: number | null;
   onAdvanceScene?: (sceneIndex: number) => void;
   serverTime?: number;
+  localPlayback?: boolean;
+  sceneCount?: number;
+  finishMode?: "patient" | "close";
 }) {
   const [elapsed, setElapsed] = useState(0);
   const [introSceneIndex, setIntroSceneIndex] = useState(0);
@@ -208,8 +214,11 @@ export function ScenarioIntro({
   const timelineKeyRef = useRef<string>("");
   const narratedSceneKeyRef = useRef<string>("");
   const onAdvanceSceneRef = useRef(onAdvanceScene);
-  const sceneIndex = Math.min(scenes.length - 1, introSceneIndex);
-  const scene = scenes[sceneIndex];
+  const localSceneStartedAtRef = useRef(0);
+  const activeSceneCount = Math.max(1, Math.min(scenes.length, Math.floor(sceneCount)));
+  const activeScenes = useMemo(() => scenes.slice(0, activeSceneCount), [activeSceneCount]);
+  const sceneIndex = Math.min(activeScenes.length - 1, introSceneIndex);
+  const scene = activeScenes[sceneIndex];
   const SceneIcon = scene.Icon;
   const sceneProgress = sceneProgressValue;
 
@@ -224,6 +233,10 @@ export function ScenarioIntro({
   function getSyncedSceneElapsed() {
     const sceneStartedAt = introSceneStartedAt ?? startedAt;
     return sceneStartedAt ? Math.max(0, Date.now() - offsetRef.current - sceneStartedAt) : 0;
+  }
+
+  function getLocalSceneElapsed() {
+    return localSceneStartedAtRef.current ? Math.max(0, Date.now() - localSceneStartedAtRef.current) : 0;
   }
 
   function syncIntroAudio(audio: HTMLAudioElement) {
@@ -262,43 +275,60 @@ export function ScenarioIntro({
       offsetRef.current = serverTime ? Date.now() - serverTime : 0;
       timelineKeyRef.current = timelineKey;
       patientBriefShownRef.current = false;
-      setIntroSceneIndex(Math.max(0, Math.min(scenes.length, syncedIntroSceneIndex)));
+      localSceneStartedAtRef.current = Date.now();
+      setIntroSceneIndex(localPlayback ? 0 : Math.max(0, Math.min(activeScenes.length, syncedIntroSceneIndex)));
       setSceneProgressValue(0);
       setElapsed(0);
+      setPhase("scenes");
       setPatientReviewNarrationEnabled(false);
     }
-  }, [open, serverTime, startedAt, syncedIntroSceneIndex]);
+  }, [activeScenes.length, localPlayback, open, serverTime, startedAt, syncedIntroSceneIndex]);
 
   useEffect(() => {
     if (!open) {
       timelineKeyRef.current = "";
       narratedSceneKeyRef.current = "";
+      localSceneStartedAtRef.current = 0;
       setPatientReviewNarrationEnabled(false);
       cancelVoiceover();
     }
   }, [open]);
 
   useEffect(() => {
-    if (!open || role !== "host" || !audioTracksEnabled) return;
-    preloadVoiceoverLines(scenes.map((item) => item.voiceover)).catch(() => undefined);
-  }, [audioTracksEnabled, open, role]);
+    if (!open || (!localPlayback && role !== "host") || !audioTracksEnabled) return;
+    preloadVoiceoverLines(activeScenes.map((item) => item.voiceover)).catch(() => undefined);
+  }, [activeScenes, audioTracksEnabled, localPlayback, open, role]);
 
   useEffect(() => {
     if (!open || !startedAt) return;
 
     const updateFromRoomState = () => {
-      const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
-      setElapsed(syncedElapsed);
-
-      const nextSceneIndex = Math.max(0, Math.min(scenes.length, syncedIntroSceneIndex));
-      if (nextSceneIndex >= scenes.length) {
-        setIntroSceneIndex(scenes.length - 1);
-        setSceneProgressValue(100);
-        setPhase("patient");
+      if (localPlayback) {
+        const currentScene = activeScenes[Math.min(activeScenes.length - 1, introSceneIndex)];
+        const sceneProgressDuration = Math.max(3200, estimateVoiceoverMs(currentScene.voiceover, 0.78) + 900);
+        const nextSceneProgress = (getLocalSceneElapsed() / sceneProgressDuration) * 100;
+        setElapsed(Math.max(0, Date.now() - startedAt));
+        setPhase("scenes");
+        setSceneProgressValue(Math.min(96, Math.max(0, nextSceneProgress)));
         return;
       }
 
-      const sceneProgressDuration = Math.max(3200, estimateVoiceoverMs(scenes[nextSceneIndex].voiceover, 0.78) + 900);
+      const syncedElapsed = Math.min(durationMs, getSyncedElapsed());
+      setElapsed(syncedElapsed);
+
+      const nextSceneIndex = Math.max(0, Math.min(activeScenes.length, syncedIntroSceneIndex));
+      if (nextSceneIndex >= activeScenes.length) {
+        setIntroSceneIndex(activeScenes.length - 1);
+        setSceneProgressValue(100);
+        if (finishMode === "close") {
+          onClose();
+        } else {
+          setPhase("patient");
+        }
+        return;
+      }
+
+      const sceneProgressDuration = Math.max(3200, estimateVoiceoverMs(activeScenes[nextSceneIndex].voiceover, 0.78) + 900);
       const nextSceneProgress = (getSyncedSceneElapsed() / sceneProgressDuration) * 100;
       setPhase("scenes");
       setIntroSceneIndex(nextSceneIndex);
@@ -308,7 +338,7 @@ export function ScenarioIntro({
     updateFromRoomState();
     const interval = window.setInterval(updateFromRoomState, 90);
     return () => window.clearInterval(interval);
-  }, [introSceneStartedAt, open, serverTime, startedAt, syncedIntroSceneIndex]);
+  }, [activeScenes, finishMode, introSceneIndex, introSceneStartedAt, localPlayback, onClose, open, serverTime, startedAt, syncedIntroSceneIndex]);
 
   useEffect(() => {
     if (!open || phase !== "scenes") {
@@ -321,7 +351,7 @@ export function ScenarioIntro({
     narratedSceneKeyRef.current = narrationKey;
     cancelVoiceover();
 
-    if (role !== "host") return;
+    if (!localPlayback && role !== "host") return;
 
     let voiceoverFinished = !audioTracksEnabled;
     let advanced = false;
@@ -330,6 +360,19 @@ export function ScenarioIntro({
       if (advanced || (!force && !voiceoverFinished)) return;
       advanced = true;
       setSceneProgressValue(100);
+      if (localPlayback) {
+        if (sceneIndex + 1 >= activeScenes.length) {
+          if (finishMode === "close") {
+            onClose();
+          } else {
+            setPhase("patient");
+          }
+          return;
+        }
+        localSceneStartedAtRef.current = Date.now();
+        setIntroSceneIndex(sceneIndex + 1);
+        return;
+      }
       onAdvanceSceneRef.current?.(sceneIndex);
     };
 
@@ -371,7 +414,7 @@ export function ScenarioIntro({
       window.clearTimeout(forceTimer);
       cancelVoiceover();
     };
-  }, [audioTracksEnabled, open, phase, role, scene.voiceover, sceneIndex, startedAt]);
+  }, [activeScenes.length, audioTracksEnabled, finishMode, localPlayback, onClose, open, phase, role, scene.voiceover, sceneIndex, startedAt]);
 
   useEffect(() => {
     if (!open || phase !== "patient" || patientBriefShownRef.current) return;
@@ -493,7 +536,7 @@ export function ScenarioIntro({
                   </motion.div>
                   <div>
                     <div className="font-display text-xs font-black uppercase tracking-[0.24em] text-scrub">Simulation briefing</div>
-                    <div className="mt-1 font-display text-2xl font-black uppercase text-white md:text-4xl">Scene {sceneIndex + 1} / 6</div>
+                    <div className="mt-1 font-display text-2xl font-black uppercase text-white md:text-4xl">Scene {sceneIndex + 1} / {activeScenes.length}</div>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -558,13 +601,13 @@ export function ScenarioIntro({
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub"
-                    animate={{ width: `${Math.min(100, ((sceneIndex + sceneProgressValue / 100) / scenes.length) * 100)}%` }}
+                    animate={{ width: `${Math.min(100, ((sceneIndex + sceneProgressValue / 100) / activeScenes.length) * 100)}%` }}
                     transition={{ duration: 0.18, ease: "linear" }}
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-display text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                    Briefing scene {sceneIndex + 1} of {scenes.length}
+                    Briefing scene {sceneIndex + 1} of {activeScenes.length}
                   </div>
                   {canSkip ? (
                     <AnimatedButton variant="ghost" onClick={skipIntro}>

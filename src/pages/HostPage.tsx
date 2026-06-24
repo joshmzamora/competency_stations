@@ -344,7 +344,7 @@ export function HostPage() {
           : hostVoiceLabel,
       ready: voiceoverReady
     },
-    { label: "Intro", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
+    { label: "Launch", value: room?.status === "in-progress" ? "Already launched" : "Ready when checks pass", ready: canStartSession }
   ];
   const sessionDuration = room?.sessionStartedAt ? formatDuration(now - room.sessionStartedAt) : "0:00";
   const atFirstPrompt = (room?.activePromptIndex ?? 0) <= 0;
@@ -659,7 +659,7 @@ export function HostPage() {
           <div>
             <h2 className="font-display text-3xl font-bold uppercase tracking-[0.08em] text-white">Start an online simulation room</h2>
             <p className="mt-3 max-w-2xl text-white/65">
-              Create the room, have the learner screen join with 2-7 participant names, select a station, then start the simulation intro.
+              Create the room, have the learner screen join with 2-7 participant names, select a station, then start shape selection.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -731,11 +731,11 @@ export function HostPage() {
                   </AnimatedButton>
                   <AnimatedButton variant="secondary" onClick={startSimulation} disabled={!canStartSession}>
                     <Play className="h-4 w-4" />
-                    Start intro
+                    Start shapes
                   </AnimatedButton>
                   <AnimatedButton variant="ghost" className="col-span-2" onClick={startStationsNow} disabled={!canStartSession}>
                     <SkipForward className="h-4 w-4" />
-                    Start stations
+                    Skip shapes
                   </AnimatedButton>
                 </div>
                 {!station && <p className="mt-3 text-sm text-amber">Choose a station before starting.</p>}
@@ -744,7 +744,7 @@ export function HostPage() {
                 )}
                 {station && connectedParticipants >= 2 && (
                   <p className="mt-3 text-sm text-scrub">
-                    {isStrokeStation ? "Ready. The intro plays once, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. The intro plays once, then participant selection begins."}
+                    {isStrokeStation ? "Ready. Shape selection plays first, then Stroke activities begin. Later Stroke questions will use random selection." : "Ready. Shape selection plays first, then participant selection begins."}
                   </p>
                 )}
               </div>
