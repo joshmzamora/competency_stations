@@ -9,31 +9,6 @@ function prompt(prompt: CompetencyPrompt): CompetencyPrompt {
 
 const codeBluePrompts: CompetencyPrompt[] = [
   prompt({
-    id: "code-blue-reversible-causes",
-    stationId: "code-blue",
-    type: "verbal-response",
-    title: "",
-    scenario: "What are some reversible causes of pulseless VTACH? Give examples of the H's and T's.",
-    instructions: [
-      "Give examples of H's.",
-      "Give examples of T's.",
-      "Connect them to reversible causes during pulseless VTACH."
-    ],
-    expectedResponse:
-      "H's include hypovolemia, hypoxia, hydrogen ions or acidosis, and hypo/hyperkalemia. T's include tension pneumothorax, cardiac tamponade, toxins, pulmonary thrombosis, and coronary thrombosis.",
-    explanation:
-      "The H's and T's are reversible causes to consider during pulseless VTACH and cardiac arrest.",
-  }),
-  prompt({
-    id: "code-blue-atropine-max-dose",
-    stationId: "code-blue",
-    type: "verbal-response",
-    title: "",
-    scenario: "What is the maximum dose of Atropine?",
-    instructions: ["Answer verbally.", "State the maximum total dose."],
-    expectedResponse: "The maximum dose of Atropine is 3 mg.",
-  }),
-  prompt({
     id: "code-blue-advanced-airway-breathing",
     stationId: "code-blue",
     type: "verbal-response",
@@ -62,24 +37,6 @@ const hemodynamicsPrompts: CompetencyPrompt[] = [
     scenario: "What is the normal CVP for a healthy individual without valve dysfunction?",
     instructions: ["Answer verbally."],
     expectedResponse: "Normal CVP is 2-6 mmHg, with 0-8 mmHg accepted as a common variation.",
-  }),
-  prompt({
-    id: "hemodynamics-a-wave-pr-interval",
-    stationId: "hemodynamics",
-    type: "verbal-response",
-    title: "",
-    scenario: "How much air is used to fully inflate the balloon on a standard adult PA/Swan-Ganz catheter, and how long should the PA catheter balloon be inflated?",
-    instructions: ["Answer verbally."],
-    expectedResponse: "A standard adult PA catheter balloon usually requires a maximum of 1.5 mL/cc of air to fully inflate. The balloon should be inflated for no more than 10 seconds or 2 respiratory cycles.",
-  }),
-  prompt({
-    id: "hemodynamics-rv-vtach-pressure",
-    stationId: "hemodynamics",
-    type: "troubleshooting",
-    title: "",
-    scenario: "When calibrating the hemodynamic monitor and the catheter is already inserted in the patient, which calibration method is used?",
-    instructions: ["Answer verbally."],
-    expectedResponse: "Use in vivo calibration because the catheter is already inside the patient.",
   }),
   prompt({
     id: "hemodynamics-pa-dicrotic-wedge",
@@ -129,16 +86,6 @@ const chestTubePrompts: CompetencyPrompt[] = [
     scenario: "What lethal complication is indicated by sudden tracheal deviation, severe dyspnea, and absent breath sounds on the affected side after a chest tube is clamped?",
     instructions: ["Answer verbally."],
     expectedResponse: "Tension pneumothorax.",
-  }),
-  prompt({
-    id: "chest-tube-suction-indicator",
-    stationId: "chest-tube",
-    type: "verbal-response",
-    title: "",
-    scenario: "How do you assess that the chest tube is providing adequate suction to the prescribed rate?",
-    instructions: ["Answer verbally.", "Name the visual indicator."],
-    expectedResponse: "The orange float in the suction indicator window confirms that the desired suction has been achieved.",
-    explanation: "The suction indicator confirms that prescribed suction is present at the drainage system.",
   }),
   prompt({
     id: "chest-tube-output-notification",
@@ -283,19 +230,6 @@ const codeBertPrompts: CompetencyPrompt[] = [
       "State where the form is located."
     ],
     expectedResponse: "The debriefing occurs when the BERT has ended. The form is on the Hub.",
-  }),
-  prompt({
-    id: "code-bert-call-number",
-    stationId: "code-bert",
-    type: "verbal-response",
-    title: "",
-    scenario: "How do you call a Code BERT?",
-    instructions: [
-      "Answer verbally.",
-      "State the number to call."
-    ],
-    expectedResponse: "Call 3333.",
-    criticalActions: ["States 3333."]
   }),
   prompt({
     id: "code-bert-activation-triggers",
@@ -485,56 +419,6 @@ const strokePrompts: CompetencyPrompt[] = [
     ]
   }),
   prompt({
-    id: "stroke-pre-tenecteplase-bp-limit",
-    stationId: "stroke",
-    type: "verbal-response",
-    title: "",
-    scenario: "What is the upper limit of blood pressure allowed prior to Tenecteplase administration?",
-    instructions: [
-      "Answer verbally.",
-      "State both the systolic and diastolic limit."
-    ],
-    expectedResponse:
-      "Blood pressure must be less than 185/110 mmHg before Tenecteplase can be administered.",
-    explanation:
-      "Tenecteplase should not be administered until blood pressure is below the pre-treatment threshold.",
-    criticalActions: ["Does not administer Tenecteplase above the pre-treatment BP limit."]
-  }),
-  prompt({
-    id: "stroke-post-tenecteplase-bp-limit",
-    stationId: "stroke",
-    type: "verbal-response",
-    title: "",
-    scenario: "What is the upper limit of blood pressure allowed after Tenecteplase administration?",
-    instructions: [
-      "Answer verbally.",
-      "State both the systolic and diastolic limit."
-    ],
-    expectedResponse:
-      "Blood pressure must remain less than 180/105 mmHg after Tenecteplase administration.",
-    explanation:
-      "Post-Tenecteplase blood pressure must remain below the stricter post-treatment threshold.",
-    criticalActions: ["Escalates post-treatment BP above threshold."]
-  }),
-  prompt({
-    id: "stroke-vital-signs-neuro-assessment-frequency",
-    stationId: "stroke",
-    type: "verbal-response",
-    title: "",
-    scenario: "How often should vital signs and neurological assessments be completed following Tenecteplase administration?",
-    instructions: [
-      "Answer verbally.",
-      "Include the pre-administration check.",
-      "State all post-administration intervals.",
-      "State the 24-hour NIHSS requirement."
-    ],
-    expectedResponse:
-      "Complete vital signs and neurological assessment once within 15 minutes prior to administration, every 15 minutes for the first 2 hours, every 30 minutes for the next 6 hours, and every 1 hour for the next 16 hours for 24 hours total. A full NIHSS must be completed 24 hours after Tenecteplase initiation and documented in the EMR.",
-    explanation:
-      "The post-Tenecteplase monitoring schedule covers 24 hours and includes a full NIHSS at the 24-hour mark.",
-    criticalActions: ["Does not miss the 24-hour NIHSS requirement."]
-  }),
-  prompt({
     id: "stroke-tenecteplase-adverse-reactions",
     stationId: "stroke",
     type: "verbal-response",
@@ -654,37 +538,6 @@ const cautiClabsiPrompts: CompetencyPrompt[] = [
   })
 ];
 
-const pressureInjuryPrompts: CompetencyPrompt[] = [
-  prompt({
-    id: "pressure-injury-two-rn-skin-assessment",
-    stationId: "pressure-injury-station",
-    type: "verbal-response",
-    title: "",
-    scenario: "When do you perform 2 RN skin assessments?",
-    instructions: [
-      "Answer verbally.",
-      "Name each situation that requires a 2 RN skin assessment."
-    ],
-    expectedResponse:
-      "Perform 2 RN skin assessments on admission, transfer, and post-procedure when the procedure is longer than 2 hours."
-  }),
-  prompt({
-    id: "pressure-injury-wound-photography",
-    stationId: "pressure-injury-station",
-    type: "verbal-response",
-    title: "",
-    scenario: "When do you perform wound photography?",
-    instructions: [
-      "Answer verbally.",
-      "State event-based wound photography timing.",
-      "State frequency for acute wounds.",
-      "State frequency for chronic wounds."
-    ],
-    expectedResponse:
-      "Photograph wounds on admission/presentation, with a change in wound condition such as deterioration or improvement, pre and post debridement, and at discharge or transfer. Photograph acute wounds at least weekly. Photograph chronic wounds at least monthly."
-  })
-];
-
 const glycemicControlPrompts: CompetencyPrompt[] = [
   prompt({
     id: "glycemic-control-tpn-tube-feed-interruption",
@@ -699,15 +552,6 @@ const glycemicControlPrompts: CompetencyPrompt[] = [
     ],
     expectedResponse:
       "Start D10 IV at the previous tube-feed rate or TPN rate, with a maximum rate of 40 mL/hr."
-  }),
-  prompt({
-    id: "glycemic-control-insulin-drip-checks",
-    stationId: "glycemic-control",
-    type: "verbal-response",
-    title: "",
-    scenario: "When the patient is on an insulin drip, how often should the blood sugar be checked?",
-    instructions: ["Answer verbally.", "State the monitoring frequency."],
-    expectedResponse: "Blood sugar should be checked every hour while the patient is on an insulin drip."
   }),
   prompt({
     id: "glycemic-control-provider-notification",
@@ -757,7 +601,7 @@ export const stations: CompetencyStation[] = [
     id: "code-blue",
     title: "Code Blue",
     shortTitle: "Code Blue",
-    description: "Unstable atrial fibrillation, pulseless VT, CPR, defibrillation, ACLS medications, ROSC, bradycardia, and reversible causes.",
+    description: "Advanced airway ventilation, pulseless VT medication therapy, CPR, defibrillation, ACLS medications, ROSC, and bradycardia.",
     estimatedMinutes: 10,
     competencyType: "Timed emergency response",
     accent: "trauma",
@@ -777,7 +621,7 @@ export const stations: CompetencyStation[] = [
     id: "chest-tube",
     title: "Chest tube",
     shortTitle: "Chest tube",
-    description: "Clamping rules, site assessment, suction checks, transport with suction, output escalation, air leak troubleshooting, and emergency dislodgement response.",
+    description: "Clamping rules, site assessment, transport with suction, output escalation, air leak troubleshooting, and emergency dislodgement response.",
     estimatedMinutes: 10,
     competencyType: "Chest tube safety checkoff",
     accent: "scrub",
@@ -787,7 +631,7 @@ export const stations: CompetencyStation[] = [
     id: "code-bert",
     title: "Code BERT",
     shortTitle: "Code BERT",
-    description: "Behavioral emergency activation, violent restraint escalation, documentation, debriefing, call process, and safety triggers.",
+    description: "Behavioral emergency activation, violent restraint escalation, documentation, debriefing, and safety triggers.",
     estimatedMinutes: 8,
     competencyType: "Behavioral emergency response",
     accent: "trauma",
@@ -797,7 +641,7 @@ export const stations: CompetencyStation[] = [
     id: "stroke",
     title: "Stroke",
     shortTitle: "Stroke",
-    description: "BEFAST, Code CVA, Tenecteplase preparation, BP thresholds, neuro checks, post-TNK restrictions, dysphagia screening, and education.",
+    description: "BEFAST, Code CVA, Tenecteplase preparation, post-TNK restrictions, dysphagia screening, education, and stroke risk factors.",
     estimatedMinutes: 10,
     competencyType: "Stroke response and thrombolytic safety",
     accent: "monitor",
@@ -814,20 +658,10 @@ export const stations: CompetencyStation[] = [
     prompts: cautiClabsiPrompts
   },
   {
-    id: "pressure-injury-station",
-    title: "Pressure Injury Station",
-    shortTitle: "Pressure Injury",
-    description: "Return-from-procedure skin assessment, 4-eyes assessment, DTI identification, dressing review, and wound staging.",
-    estimatedMinutes: 10,
-    competencyType: "Pressure injury assessment",
-    accent: "amber",
-    prompts: pressureInjuryPrompts
-  },
-  {
     id: "glycemic-control",
     title: "Glycemic Control",
     shortTitle: "Glycemic Control",
-    description: "TPN and tube-feed interruptions, insulin drip monitoring, glucose escalation thresholds, NPO basal insulin safety, and capillary testing accuracy.",
+    description: "TPN and tube-feed interruptions, glucose escalation thresholds, NPO basal insulin safety, and capillary testing accuracy.",
     estimatedMinutes: 8,
     competencyType: "Glycemic management protocol",
     accent: "scrub",
