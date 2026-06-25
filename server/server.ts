@@ -113,6 +113,29 @@ let roomsSaveTimer: NodeJS.Timeout | null = null;
 const websocketHeartbeatMs = 15000;
 const minParticipants = 2;
 const maxParticipants = 7;
+const protocolBaseVisualDurationMs = 22000;
+const protocolOpeningMs = 5200;
+const protocolClosingMs = 7000;
+const protocolOpeningNarration =
+  "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.";
+
+function estimateServerVoiceoverMs(text: string, rate = 0.82) {
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const wordsPerMinute = 118 * rate;
+  return Math.min(11000, Math.max(1800, (wordCount / wordsPerMinute) * 60_000 + 700));
+}
+
+function protocolSegmentMs(playerCount: number) {
+  return Math.max(3400, (protocolBaseVisualDurationMs - protocolOpeningMs - protocolClosingMs) / Math.max(1, playerCount));
+}
+
+function protocolAssignmentDurationMs(playerCount: number) {
+  const visualDuration = Math.max(
+    protocolBaseVisualDurationMs,
+    protocolOpeningMs + protocolSegmentMs(playerCount) * Math.max(1, playerCount) + protocolClosingMs
+  );
+  return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 500 + visualDuration;
+}
 
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -565,6 +588,21 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
   }, durationMs + holdMs);
 
   return true;
+}
+
+function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStartedAt: number) {
+  const delayMs = protocolAssignmentDurationMs(room.players.length) + 4500;
+  setTimeout(() => {
+    if (room.protocolIntroStartedAt !== assignmentStartedAt) return;
+    room.protocolIntroStartedAt = null;
+    if (usesParticipantSelection(room)) {
+      startSelection(room);
+    } else {
+      room.selection = null;
+      room.currentParticipantId = null;
+    }
+    broadcastState(room.code);
+  }, delayMs);
 }
 
 function assignShapesToRoom(room: RoomState) {
@@ -1133,13 +1171,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.currentParticipantId = null;
       const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
-      // Clear after the client animation completes so re-broadcasts do not replay the shape assignment.
-      setTimeout(() => {
-        if (room.protocolIntroStartedAt === assignmentStartedAt) {
-          room.protocolIntroStartedAt = null;
-          broadcastState(room.code);
-        }
-      }, 24000);
+      scheduleProtocolAssignmentCompletion(room, assignmentStartedAt);
       break;
     }
     case "start-session-now": {
@@ -1238,13 +1270,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.selection = null;
       const assignmentStartedAt = room.protocolIntroStartedAt;
       broadcastState(room.code);
-      // Clear after the client animation completes so re-broadcasts don't re-trigger the intro.
-      setTimeout(() => {
-        if (room.protocolIntroStartedAt === assignmentStartedAt) {
-          room.protocolIntroStartedAt = null;
-          broadcastState(room.code);
-        }
-      }, 24000);
+      scheduleProtocolAssignmentCompletion(room, assignmentStartedAt);
       break;
     }
     case "skip-protocol-assignment": {

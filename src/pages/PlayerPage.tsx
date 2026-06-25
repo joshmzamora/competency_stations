@@ -433,9 +433,22 @@ export function PlayerPage() {
     if (!finishedAt) return;
     joinedRoomCodeRef.current = "";
     joinedNamesRef.current = [];
+    reconnectAttemptedForClientRef.current = "";
     clearPlayerRoomBackup();
     navigate("/complete?role=player", { replace: true });
   }, [finishedAt, navigate]);
+
+  useEffect(() => {
+    if (room?.status !== "ended") return;
+    joinedRoomCodeRef.current = "";
+    joinedNamesRef.current = [];
+    reconnectAttemptedForClientRef.current = "";
+    clearPlayerRoomBackup();
+    setIntroVisible(false);
+    setStationTransitionVisible(false);
+    setProtocolIntroSeenAt(null);
+    navigate("/complete?role=player", { replace: true });
+  }, [navigate, room?.status]);
 
   useEffect(() => {
     if (room?.code) {
