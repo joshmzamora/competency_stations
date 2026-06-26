@@ -1531,7 +1531,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           console.error("Could not save room result", error);
         });
       }
-      broadcastState(room.code);
+      finishRoomSession(room);
       break;
     }
     case "finish-session": {
@@ -1564,7 +1564,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
           console.error("Could not save room result", error);
         });
       }
-      broadcastState(room.code);
+      finishRoomSession(room);
       break;
     }
     default:

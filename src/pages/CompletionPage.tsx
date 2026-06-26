@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Circle, Home, Sparkles, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { Circle, Home, RotateCcw, Sparkles, Square, Star, Triangle, Umbrella } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { useAppChrome } from "../context/ChromeContext";
@@ -74,6 +74,16 @@ export function CompletionPage() {
     return () => setNavHidden(false);
   }, [setNavHidden]);
 
+  function returnToPlayerScreen() {
+    try {
+      sessionStorage.removeItem("competency-player-room-emergency-backup");
+      sessionStorage.removeItem("competency-player-group-id");
+    } catch {
+      // Session storage can be unavailable in locked-down browser modes.
+    }
+    navigate("/player", { replace: true });
+  }
+
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#070708] px-4 text-center text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(255,48,77,0.16),transparent_34%),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:auto,70px_70px,70px_70px]" />
@@ -123,6 +133,16 @@ export function CompletionPage() {
         </motion.div>
         <ScatterBand band="bottom" />
       </div>
+      {role === "player" && (
+        <button
+          type="button"
+          onClick={returnToPlayerScreen}
+          className="fixed bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/35 px-3 py-2 font-display text-[10px] font-black uppercase tracking-[0.16em] text-white/42 backdrop-blur transition hover:border-scrub/35 hover:bg-scrub/10 hover:text-scrub focus:outline-none focus:ring-2 focus:ring-scrub/35"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          New player screen
+        </button>
+      )}
     </section>
   );
 }
