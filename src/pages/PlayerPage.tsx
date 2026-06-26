@@ -17,7 +17,7 @@ import { useAppChrome } from "../context/ChromeContext";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { ActivityState, PlayerPrompt, PlayerShape, PlayerState, PlayerStation, PromptEvaluation } from "../types";
 import { createClientId } from "../utils/id";
-import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { isAudioEnabledForRole, playTimesUpCue } from "../utils/sound";
 import { prepareVoiceoverEngine } from "../utils/voiceover";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
@@ -614,18 +614,13 @@ export function PlayerPage() {
     setStationTransitionVisible(false);
     const showId = window.setTimeout(() => {
       setStationTransitionVisible(true);
-      try {
-        if (effectsAudioEnabled) playStationTransitionCue();
-      } catch {
-        // Browsers can block audio until interaction.
-      }
     }, 20);
     const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
     return () => {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
-  }, [effectsAudioEnabled, introVisible, protocolIntroVisible, room?.status, stationId]);
+  }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
   function updateName(index: number, value: string) {
     const next = [...names];
@@ -869,7 +864,7 @@ export function PlayerPage() {
         audioEnabled={trackAudioEnabled}
         onComplete={completeProtocolIntro}
       />
-        <StationTransition station={station ?? null} visible={stationTransitionVisible} />
+        <StationTransition station={station ?? null} visible={stationTransitionVisible} audioEnabled={effectsAudioEnabled} />
         <StationCompleteOverlay
           visible={Boolean(
             room?.status === "in-progress" &&

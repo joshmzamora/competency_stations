@@ -1,7 +1,41 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import type { CompetencyStation, PlayerStation } from "../types";
+import { playStationTransitionCue } from "../utils/sound";
 
-export function StationTransition({ station, visible }: { station?: CompetencyStation | PlayerStation | null; visible: boolean }) {
+export function StationTransition({
+  station,
+  visible,
+  audioEnabled = true
+}: {
+  station?: CompetencyStation | PlayerStation | null;
+  visible: boolean;
+  audioEnabled?: boolean;
+}) {
+  const wasVisibleRef = useRef(false);
+  const lastCueStationIdRef = useRef<string | null>(null);
+  const stationId = station?.id ?? null;
+
+  useEffect(() => {
+    const transitionVisible = visible && Boolean(stationId);
+    if (!transitionVisible) {
+      wasVisibleRef.current = false;
+      lastCueStationIdRef.current = null;
+      return;
+    }
+
+    const shouldPlayCue = !wasVisibleRef.current || lastCueStationIdRef.current !== stationId;
+    wasVisibleRef.current = true;
+    lastCueStationIdRef.current = stationId;
+
+    if (!shouldPlayCue || !audioEnabled) return;
+    try {
+      playStationTransitionCue();
+    } catch {
+      // Browsers can block audio until interaction.
+    }
+  }, [audioEnabled, stationId, visible]);
+
   return (
     <AnimatePresence>
       {visible && station ? (

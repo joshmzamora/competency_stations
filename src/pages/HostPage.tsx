@@ -38,7 +38,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation, RoomState } from "../types";
 import { downloadFile } from "../utils/results";
-import { isAudioEnabledForRole, playStationTransitionCue, playTimesUpCue } from "../utils/sound";
+import { isAudioEnabledForRole, playTimesUpCue } from "../utils/sound";
 import { prepareVoiceoverEngine } from "../utils/voiceover";
 import { TimesUpEffect } from "../components/TimesUpEffect";
 
@@ -593,18 +593,13 @@ export function HostPage() {
     setStationTransitionVisible(false);
     const showId = window.setTimeout(() => {
       setStationTransitionVisible(true);
-      try {
-        if (effectsAudioEnabled) playStationTransitionCue();
-      } catch {
-        // Browsers can block audio until interaction.
-      }
     }, 20);
     const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
     return () => {
       window.clearTimeout(showId);
       window.clearTimeout(timeout);
     };
-  }, [effectsAudioEnabled, introVisible, protocolIntroVisible, room?.status, stationId]);
+  }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt || (promptUsesSelection && !room?.currentParticipantId)) return;
@@ -975,7 +970,7 @@ export function HostPage() {
           completeProtocolIntro();
         }}
       />
-      <StationTransition station={station ?? null} visible={stationTransitionVisible} />
+      <StationTransition station={station ?? null} visible={stationTransitionVisible} audioEnabled={effectsAudioEnabled} />
       <StationCompleteOverlay
         visible={Boolean(
           room?.status === "in-progress" &&
