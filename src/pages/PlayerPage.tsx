@@ -367,6 +367,8 @@ export function PlayerPage() {
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [localIntroVisible, setLocalIntroVisible] = useState(false);
   const [localIntroStartedAt, setLocalIntroStartedAt] = useState<number | null>(null);
+  const [localIntroReviewedFileIds, setLocalIntroReviewedFileIds] = useState<string[]>([]);
+  const [localIntroActiveFileId, setLocalIntroActiveFileId] = useState<string | null>(null);
   const [introKeySeen, setIntroKeySeen] = useState("");
   const [protocolIntroSeenAt, setProtocolIntroSeenAt] = useState<number | null>(null);
   const [timesUpVisible, setTimesUpVisible] = useState(false);
@@ -663,8 +665,15 @@ export function PlayerPage() {
   }
 
   function playLocalIntro() {
+    setLocalIntroReviewedFileIds([]);
+    setLocalIntroActiveFileId(null);
     setLocalIntroStartedAt(Date.now());
     setLocalIntroVisible(true);
+  }
+
+  function reviewLocalIntroPatientFile(fileId: string) {
+    setLocalIntroActiveFileId(fileId);
+    setLocalIntroReviewedFileIds((current) => current.includes(fileId) ? current : [...current, fileId]);
   }
 
   return (
@@ -803,12 +812,18 @@ export function PlayerPage() {
         audioEffectsEnabled={effectsAudioEnabled}
         audioTracksEnabled
         localPlayback
-        sceneCount={3}
-        finishMode="close"
+        sceneCount={6}
+        omitShapeSelectionScene
+        finishMode="patient"
         startedAt={localIntroStartedAt}
+        patientReviewReviewedFileIds={localIntroReviewedFileIds}
+        patientReviewActiveFileId={localIntroActiveFileId}
+        onReviewPatientFile={reviewLocalIntroPatientFile}
         onClose={() => {
           setLocalIntroVisible(false);
           setLocalIntroStartedAt(null);
+          setLocalIntroReviewedFileIds([]);
+          setLocalIntroActiveFileId(null);
         }}
       />
       <Modal open={leaveConfirmOpen} title="Leave room?" onClose={() => setLeaveConfirmOpen(false)}>

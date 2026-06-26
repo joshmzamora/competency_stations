@@ -113,11 +113,10 @@ let roomsSaveTimer: NodeJS.Timeout | null = null;
 const websocketHeartbeatMs = 15000;
 const minParticipants = 2;
 const maxParticipants = 7;
-const protocolBaseVisualDurationMs = 22000;
-const protocolOpeningMs = 5200;
-const protocolClosingMs = 7000;
-const protocolOpeningNarration =
-  "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.";
+const protocolParticipantSegmentMs = 4000;
+const protocolOpeningMs = 2600;
+const protocolClosingMs = 3400;
+const protocolOpeningNarration = "Shape selection begins. Each participant will receive a shape.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -125,16 +124,13 @@ function estimateServerVoiceoverMs(text: string, rate = 0.82) {
   return Math.min(11000, Math.max(1800, (wordCount / wordsPerMinute) * 60_000 + 700));
 }
 
-function protocolSegmentMs(playerCount: number) {
-  return Math.max(3400, (protocolBaseVisualDurationMs - protocolOpeningMs - protocolClosingMs) / Math.max(1, playerCount));
+function protocolSegmentMs(_playerCount: number) {
+  return protocolParticipantSegmentMs;
 }
 
 function protocolAssignmentDurationMs(playerCount: number) {
-  const visualDuration = Math.max(
-    protocolBaseVisualDurationMs,
-    protocolOpeningMs + protocolSegmentMs(playerCount) * Math.max(1, playerCount) + protocolClosingMs
-  );
-  return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 500 + visualDuration;
+  const visualDuration = protocolOpeningMs + protocolSegmentMs(playerCount) * Math.max(1, playerCount) + protocolClosingMs;
+  return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 350 + visualDuration;
 }
 
 function createRoomCode() {

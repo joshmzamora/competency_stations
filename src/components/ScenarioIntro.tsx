@@ -176,6 +176,7 @@ export function ScenarioIntro({
   serverTime,
   localPlayback = false,
   sceneCount = scenes.length,
+  omitShapeSelectionScene = false,
   finishMode = "patient"
 }: {
   open: boolean;
@@ -196,6 +197,7 @@ export function ScenarioIntro({
   serverTime?: number;
   localPlayback?: boolean;
   sceneCount?: number;
+  omitShapeSelectionScene?: boolean;
   finishMode?: "patient" | "close";
 }) {
   const [elapsed, setElapsed] = useState(0);
@@ -216,7 +218,10 @@ export function ScenarioIntro({
   const onAdvanceSceneRef = useRef(onAdvanceScene);
   const localSceneStartedAtRef = useRef(0);
   const activeSceneCount = Math.max(1, Math.min(scenes.length, Math.floor(sceneCount)));
-  const activeScenes = useMemo(() => scenes.slice(0, activeSceneCount), [activeSceneCount]);
+  const activeScenes = useMemo(
+    () => scenes.slice(0, activeSceneCount).filter((item) => !omitShapeSelectionScene || item.visual !== "shapes"),
+    [activeSceneCount, omitShapeSelectionScene]
+  );
   const sceneIndex = Math.min(activeScenes.length - 1, introSceneIndex);
   const scene = activeScenes[sceneIndex];
   const SceneIcon = scene.Icon;
@@ -507,6 +512,7 @@ export function ScenarioIntro({
                 onContinue={onClose}
                 isClosing={isClosing}
                 voiceoverEnabled={patientReviewNarrationEnabled}
+                allowPlayerContinue={localPlayback}
               />
               <PhaseBrief
                 visible={patientBriefVisible}

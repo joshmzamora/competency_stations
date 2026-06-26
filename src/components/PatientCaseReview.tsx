@@ -369,7 +369,8 @@ export function PatientCaseReview({
   isClosing,
   audioEffectsEnabled = true,
   audioTracksEnabled = true,
-  voiceoverEnabled = true
+  voiceoverEnabled = true,
+  allowPlayerContinue = false
 }: {
   role: "host" | "player";
   reviewedFileIds: string[];
@@ -380,6 +381,7 @@ export function PatientCaseReview({
   audioEffectsEnabled?: boolean;
   audioTracksEnabled?: boolean;
   voiceoverEnabled?: boolean;
+  allowPlayerContinue?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
@@ -573,9 +575,9 @@ export function PatientCaseReview({
           Files Reviewed: {reviewedIds.size} / {caseFiles.length}
         </div>
         <div className="flex items-center gap-2">
-          {role === "host" ? (
+          {role === "host" || allowPlayerContinue ? (
             <AnimatedButton variant="secondary" onClick={handleContinue} disabled={!ready}>
-              {ready ? "Enter Simulation" : "Review All 7 Files"}
+              {ready ? (role === "host" ? "Enter Simulation" : "Finish Intro") : "Review All 7 Files"}
             </AnimatedButton>
           ) : (
             <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-white/42">

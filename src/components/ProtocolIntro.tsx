@@ -6,23 +6,22 @@ import { estimateVoiceoverMs, playVoiceoverLine, type VoiceoverHandle } from "..
 import { PhaseBrief } from "./PhaseBrief";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
-const baseVisualDurationMs = 22000;
+const participantSegmentMs = 4000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
-const openingMs = 5200;
-const closingMs = 7000;
+const openingMs = 2600;
+const closingMs = 3400;
 const visualTickMs = 90;
 const audioSyncMs = 220;
-const openingNarrationText =
-  "Shape selection begins. Watch the screen. Each participant will receive a shape before the first station starts.";
-const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 500;
+const openingNarrationText = "Shape selection begins. Each participant will receive a shape.";
+const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 350;
 
-function segmentMs(playerCount: number) {
-  return Math.max(3400, (baseVisualDurationMs - openingMs - closingMs) / Math.max(1, playerCount));
+function segmentMs(_playerCount: number) {
+  return participantSegmentMs;
 }
 
 function assignmentVisualDuration(playerCount: number) {
-  return Math.max(baseVisualDurationMs, openingMs + segmentMs(playerCount) * Math.max(1, playerCount) + closingMs);
+  return openingMs + segmentMs(playerCount) * Math.max(1, playerCount) + closingMs;
 }
 
 function protocolDuration(playerCount: number) {
