@@ -573,11 +573,6 @@ export function PlayerPage() {
   }, [localVoiceReady, room?.code, room?.voiceoverReady.player, send]);
 
   useEffect(() => {
-    setNavHidden(Boolean(room));
-    return () => setNavHidden(false);
-  }, [room, setNavHidden]);
-
-  useEffect(() => {
     if (room?.introStartedAt) return;
     setIntroVisible(false);
   }, [room?.introStartedAt]);
@@ -588,6 +583,11 @@ export function PlayerPage() {
     !introVisible &&
     !room.introStartedAt
   );
+
+  useEffect(() => {
+    setNavHidden(Boolean(room) || localIntroVisible || introVisible || protocolIntroVisible);
+    return () => setNavHidden(false);
+  }, [introVisible, localIntroVisible, protocolIntroVisible, room, setNavHidden]);
 
   const completeProtocolIntro = useCallback(() => {
     setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
