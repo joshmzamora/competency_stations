@@ -414,8 +414,9 @@ export function PatientCaseReview({
 
   useEffect(() => {
     if (!audioTracksEnabled) return;
+    if (allowPlayerContinue) return;
     preloadVoiceoverLines(caseFiles.map((file) => file.voiceover)).catch(() => undefined);
-  }, [audioTracksEnabled]);
+  }, [allowPlayerContinue, audioTracksEnabled]);
 
   function setCaseMusicDucked(ducked: boolean) {
     narrationActiveRef.current = ducked;
@@ -449,6 +450,7 @@ export function PatientCaseReview({
       volume: 0.78,
       rate: 0.82,
       pitch: 1.28,
+      browserFallback: false,
       onStart: () => setCaseMusicDucked(true),
       onEnd: () => {
         setNarrationLockFileId(null);

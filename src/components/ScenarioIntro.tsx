@@ -217,6 +217,7 @@ export function ScenarioIntro({
   const narratedSceneKeyRef = useRef<string>("");
   const onAdvanceSceneRef = useRef(onAdvanceScene);
   const localSceneStartedAtRef = useRef(0);
+  const localPlaybackCompleteRef = useRef(false);
   const activeSceneCount = Math.max(1, Math.min(scenes.length, Math.floor(sceneCount)));
   const activeScenes = useMemo(
     () => scenes.slice(0, activeSceneCount).filter((item) => !omitShapeSelectionScene || item.visual !== "shapes"),
@@ -226,6 +227,7 @@ export function ScenarioIntro({
   const scene = activeScenes[sceneIndex];
   const SceneIcon = scene.Icon;
   const sceneProgress = sceneProgressValue;
+  const isLastIntroScene = sceneIndex >= activeScenes.length - 1;
 
   useEffect(() => {
     onAdvanceSceneRef.current = onAdvanceScene;
@@ -280,6 +282,7 @@ export function ScenarioIntro({
       offsetRef.current = serverTime ? Date.now() - serverTime : 0;
       timelineKeyRef.current = timelineKey;
       patientBriefShownRef.current = false;
+      localPlaybackCompleteRef.current = false;
       localSceneStartedAtRef.current = Date.now();
       setIntroSceneIndex(localPlayback ? 0 : Math.max(0, Math.min(activeScenes.length, syncedIntroSceneIndex)));
       setSceneProgressValue(0);
@@ -294,6 +297,7 @@ export function ScenarioIntro({
       timelineKeyRef.current = "";
       narratedSceneKeyRef.current = "";
       localSceneStartedAtRef.current = 0;
+      localPlaybackCompleteRef.current = false;
       setPatientReviewNarrationEnabled(false);
       cancelVoiceover();
     }
@@ -301,6 +305,7 @@ export function ScenarioIntro({
 
   useEffect(() => {
     if (!open || (!localPlayback && role !== "host") || !audioTracksEnabled) return;
+    if (localPlayback) return;
     preloadVoiceoverLines(activeScenes.map((item) => item.voiceover)).catch(() => undefined);
   }, [activeScenes, audioTracksEnabled, localPlayback, open, role]);
 
@@ -308,6 +313,7 @@ export function ScenarioIntro({
     if (!open || !startedAt) return;
 
     const updateFromRoomState = () => {
+      if (localPlaybackCompleteRef.current) return;
       if (localPlayback) {
         const currentScene = activeScenes[Math.min(activeScenes.length - 1, introSceneIndex)];
         const sceneProgressDuration = Math.max(3200, estimateVoiceoverMs(currentScene.voiceover, 0.78) + 900);
@@ -353,7 +359,6 @@ export function ScenarioIntro({
 
     const narrationKey = `${startedAt ?? "no-start"}-${sceneIndex}`;
     if (narratedSceneKeyRef.current === narrationKey) return;
-    narratedSceneKeyRef.current = narrationKey;
     cancelVoiceover();
 
     if (!localPlayback && role !== "host") return;
@@ -367,6 +372,7 @@ export function ScenarioIntro({
       setSceneProgressValue(100);
       if (localPlayback) {
         if (sceneIndex + 1 >= activeScenes.length) {
+          localPlaybackCompleteRef.current = true;
           if (finishMode === "close") {
             onClose();
           } else {
@@ -393,12 +399,14 @@ export function ScenarioIntro({
     }
 
     const voiceTimer = window.setTimeout(() => {
+      if (narratedSceneKeyRef.current === narrationKey) return;
+      narratedSceneKeyRef.current = narrationKey;
       voiceoverRef.current = playVoiceoverLine({
         text: scene.voiceover,
         volume: voiceoverVolume,
         rate: 0.78,
         pitch: 1.36,
-        browserFallback: true,
+        browserFallback: false,
         onStart: () => {
           narrationActiveRef.current = true;
           const audio = audioRef.current;
@@ -481,6 +489,18 @@ export function ScenarioIntro({
       cancelVoiceover();
       onSkip?.();
     }
+  }
+
+  function goToPatientCaseFile() {
+    if (!isLastIntroScene) return;
+    cancelVoiceover();
+    localPlaybackCompleteRef.current = true;
+    setSceneProgressValue(100);
+    if (finishMode === "close") {
+      onClose();
+      return;
+    }
+    setPhase("patient");
   }
 
   return (
@@ -620,9 +640,9 @@ export function ScenarioIntro({
                       Skip to patient details
                     </AnimatedButton>
                   ) : (
-                    <div className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-display text-xs font-black uppercase tracking-[0.14em] text-white/42">
-                      Briefing in progress
-                    </div>
+                    <AnimatedButton variant="secondary" onClick={goToPatientCaseFile} disabled={!isLastIntroScene}>
+                      Go to patient case file
+                    </AnimatedButton>
                   )}
                 </div>
               </footer>
