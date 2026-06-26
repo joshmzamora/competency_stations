@@ -12,8 +12,8 @@ const openingMs = 1200;
 const participantSpinMs = 1700;
 const participantPostNarrationHoldMs = 850;
 const summaryPostNarrationHoldMs = 900;
-const visualTickMs = 90;
-const audioSyncMs = 220;
+const visualTickMs = 160;
+const audioSyncMs = 500;
 const openingNarrationText = "Shape selection begins.";
 const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 150;
 

@@ -30,9 +30,9 @@ export function StationTransition({ station, visible }: { station?: CompetencySt
           />
 
           <motion.div
-            initial={{ opacity: 0, y: 34, scale: 0.96, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -24, scale: 1.02, filter: "blur(6px)" }}
+            initial={{ opacity: 0, y: 34, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -24, scale: 1.02 }}
             transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
             className="relative grid w-[min(94vw,1220px)] justify-items-center gap-7 text-center"
           >

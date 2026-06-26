@@ -23,7 +23,7 @@ export function CountdownTimer({
       setLocalNow(Date.now());
       return;
     }
-    const interval = window.setInterval(() => setLocalNow(Date.now()), 250);
+    const interval = window.setInterval(() => setLocalNow(Date.now()), 500);
     return () => window.clearInterval(interval);
   }, [endsAt]);
 

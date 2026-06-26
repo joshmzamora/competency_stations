@@ -15,7 +15,7 @@ function ShellFrame() {
     <div className="min-h-screen overflow-x-hidden bg-charcoal text-white">
       <div className="fixed inset-0 pointer-events-none opacity-70">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(110,247,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(110,247,255,0.045)_1px,transparent_1px)] bg-[size:42px_42px]" />
-        <div className="absolute inset-x-0 top-0 h-2/3 animate-scan bg-gradient-to-b from-transparent via-scrub/8 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-transparent via-scrub/8 to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(255,48,77,0.18),transparent_28%),radial-gradient(circle_at_88%_7%,rgba(36,245,199,0.16),transparent_26%)]" />
       </div>
 

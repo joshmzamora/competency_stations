@@ -26,6 +26,8 @@ const fadeOutMs = 6000;
 const maxIntroVolume = 0.15;
 const introAudioSrc = "/audio/squid_game_intro.mp3";
 const voiceoverVolume = 0.82;
+const introTickMs = 160;
+const audioSyncMs = 500;
 
 type IntroScene = {
   eyebrow: string;
@@ -228,6 +230,7 @@ export function ScenarioIntro({
   const SceneIcon = scene.Icon;
   const sceneProgress = sceneProgressValue;
   const isLastIntroScene = sceneIndex >= activeScenes.length - 1;
+  const briefingProgressPercent = ((sceneIndex + 1) / activeScenes.length) * 100;
 
   useEffect(() => {
     onAdvanceSceneRef.current = onAdvanceScene;
@@ -347,7 +350,7 @@ export function ScenarioIntro({
     };
 
     updateFromRoomState();
-    const interval = window.setInterval(updateFromRoomState, 90);
+    const interval = window.setInterval(updateFromRoomState, introTickMs);
     return () => window.clearInterval(interval);
   }, [activeScenes, finishMode, introSceneIndex, introSceneStartedAt, localPlayback, onClose, open, serverTime, startedAt, syncedIntroSceneIndex]);
 
@@ -459,7 +462,7 @@ export function ScenarioIntro({
     syncAudio();
     playSyncedIntroAudio();
 
-    const interval = window.setInterval(syncAudio, 250);
+    const interval = window.setInterval(syncAudio, audioSyncMs);
     return () => {
       window.clearInterval(interval);
       audio.pause();
@@ -579,9 +582,9 @@ export function ScenarioIntro({
                 <AnimatePresence mode="wait">
                   <motion.section
                     key={scene.title}
-                    initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -18, filter: "blur(8px)" }}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -18 }}
                     transition={{ duration: 0.48, ease: "easeOut" }}
                     className="grid min-h-full content-center rounded-md border border-white/10 bg-black/35 p-8 shadow-[0_26px_80px_rgba(0,0,0,0.42)] md:p-12"
                   >
@@ -627,8 +630,8 @@ export function ScenarioIntro({
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub"
-                    animate={{ width: `${Math.min(100, ((sceneIndex + sceneProgressValue / 100) / activeScenes.length) * 100)}%` }}
-                    transition={{ duration: 0.18, ease: "linear" }}
+                    animate={{ width: `${briefingProgressPercent}%` }}
+                    transition={{ duration: 0.28, ease: "easeOut" }}
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
