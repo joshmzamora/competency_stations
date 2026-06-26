@@ -24,12 +24,7 @@ export function PhaseBrief({
         >
           <div className="absolute inset-0 bg-[linear-gradient(rgba(110,247,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:46px_46px]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(110,247,255,0.18),transparent_34%),radial-gradient(circle_at_50%_72%,rgba(255,48,77,0.13),transparent_38%)]" />
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-1/2 h-px w-full origin-left bg-monitor shadow-[0_0_34px_rgba(110,247,255,0.45)]"
-          />
+          <div className="absolute left-1/2 top-1/2 h-56 w-[min(86vw,980px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-monitor/10 blur-3xl" />
           <motion.div
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

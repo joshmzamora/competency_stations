@@ -813,7 +813,6 @@ export function PlayerPage() {
         audioTracksEnabled
         localPlayback
         sceneCount={6}
-        omitShapeSelectionScene
         finishMode="patient"
         startedAt={localIntroStartedAt}
         patientReviewReviewedFileIds={localIntroReviewedFileIds}
