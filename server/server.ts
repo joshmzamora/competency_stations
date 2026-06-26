@@ -113,10 +113,12 @@ let roomsSaveTimer: NodeJS.Timeout | null = null;
 const websocketHeartbeatMs = 15000;
 const minParticipants = 2;
 const maxParticipants = 7;
-const protocolOpeningMs = 1200;
-const protocolParticipantSpinMs = 1700;
-const protocolParticipantPostNarrationHoldMs = 850;
-const protocolSummaryPostNarrationHoldMs = 900;
+const protocolOpeningMs = 0;
+const protocolParticipantSpinMs = 1400;
+const protocolParticipantNarrationDelayMs = 700;
+const protocolParticipantPostNarrationHoldMs = 600;
+const protocolSummaryNarrationPauseMs = 500;
+const protocolSummaryPostNarrationHoldMs = 1000;
 const protocolOpeningNarration = "Shape selection begins.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
@@ -136,16 +138,24 @@ function protocolParticipantNarration(player: PlayerState) {
 
 function protocolSegmentMs(players: PlayerState[]) {
   const longestNarration = players.reduce((longest, player) => Math.max(longest, estimateServerVoiceoverMs(protocolParticipantNarration(player), 0.8)), 0);
-  return Math.max(5000, protocolParticipantSpinMs + longestNarration + protocolParticipantPostNarrationHoldMs);
+  return Math.max(4500, protocolParticipantSpinMs + protocolParticipantNarrationDelayMs + longestNarration + protocolParticipantPostNarrationHoldMs);
 }
 
-function protocolSummaryNarration(players: PlayerState[]) {
+function protocolSummaryOpeningNarration() {
+  return "All shapes are assigned.";
+}
+
+function protocolSummaryRosterNarration(players: PlayerState[]) {
   const roster = players.map((player) => `${protocolPublicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-  return `All shapes are assigned. ${roster}. Stand by for the first station.`;
+  return `${roster}. Stand by for the first station. Good luck players.`;
 }
 
 function protocolAssignmentDurationMs(players: PlayerState[]) {
-  const summaryMs = estimateServerVoiceoverMs(protocolSummaryNarration(players), 0.8) + protocolSummaryPostNarrationHoldMs;
+  const summaryMs =
+    estimateServerVoiceoverMs(protocolSummaryOpeningNarration(), 0.8) +
+    protocolSummaryNarrationPauseMs +
+    estimateServerVoiceoverMs(protocolSummaryRosterNarration(players), 0.8) +
+    protocolSummaryPostNarrationHoldMs;
   const visualDuration = protocolOpeningMs + protocolSegmentMs(players) * Math.max(1, players.length) + summaryMs;
   return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 150 + visualDuration;
 }
@@ -604,7 +614,7 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
 }
 
 function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStartedAt: number) {
-  const delayMs = protocolAssignmentDurationMs(room.players) + 4500;
+  const delayMs = protocolAssignmentDurationMs(room.players);
   setTimeout(() => {
     if (room.protocolIntroStartedAt !== assignmentStartedAt) return;
     room.protocolIntroStartedAt = null;

@@ -8,10 +8,12 @@ import { PhaseBrief } from "./PhaseBrief";
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
-const openingMs = 1200;
-const participantSpinMs = 1700;
-const participantPostNarrationHoldMs = 850;
-const summaryPostNarrationHoldMs = 900;
+const openingMs = 0;
+const participantSpinMs = 1400;
+const participantNarrationDelayMs = 700;
+const participantPostNarrationHoldMs = 600;
+const summaryNarrationPauseMs = 500;
+const summaryPostNarrationHoldMs = 1000;
 const visualTickMs = 160;
 const audioSyncMs = 500;
 const openingNarrationText = "Shape selection begins.";
@@ -81,16 +83,25 @@ function participantNarrationMs(player: PlayerState) {
 
 function segmentMs(players: PlayerState[]) {
   const longestNarration = players.reduce((longest, player) => Math.max(longest, participantNarrationMs(player)), 0);
-  return Math.max(5000, participantSpinMs + longestNarration + participantPostNarrationHoldMs);
+  return Math.max(4500, participantSpinMs + participantNarrationDelayMs + longestNarration + participantPostNarrationHoldMs);
 }
 
-function summaryNarrationText(players: PlayerState[]) {
+function summaryOpeningNarrationText() {
+  return "All shapes are assigned.";
+}
+
+function summaryRosterNarrationText(players: PlayerState[]) {
   const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-  return `All shapes are assigned. ${roster}. Stand by for the first station.`;
+  return `${roster}. Stand by for the first station. Good luck players.`;
 }
 
 function summaryMs(players: PlayerState[]) {
-  return estimateVoiceoverMs(summaryNarrationText(players), 0.8) + summaryPostNarrationHoldMs;
+  return (
+    estimateVoiceoverMs(summaryOpeningNarrationText(), 0.8) +
+    summaryNarrationPauseMs +
+    estimateVoiceoverMs(summaryRosterNarrationText(players), 0.8) +
+    summaryPostNarrationHoldMs
+  );
 }
 
 function assignmentVisualDuration(players: PlayerState[]) {
@@ -107,6 +118,10 @@ function summaryStartsAt(players: PlayerState[]) {
 
 function revealAt(index: number, players: PlayerState[]) {
   return openingMs + index * segmentMs(players) + participantSpinMs;
+}
+
+function narrationAt(index: number, players: PlayerState[]) {
+  return revealAt(index, players) + participantNarrationDelayMs;
 }
 
 function segmentStartAt(index: number, players: PlayerState[]) {
@@ -245,6 +260,7 @@ export function ProtocolIntro({
   const audioStartKeyRef = useRef("");
   const audioRetryNeededRef = useRef(false);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
+  const summaryPauseTimeoutRef = useRef<number | null>(null);
   const narrationActiveRef = useRef(false);
   const spokenParticipantIdsRef = useRef(new Set<string>());
   const spokenOpeningRef = useRef(false);
@@ -283,8 +299,16 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     if (audio) syncAssignmentAudio(audio);
   }
 
-  function playAssignmentVoiceover(text: string) {
+  function clearSummaryPause() {
+    if (summaryPauseTimeoutRef.current) {
+      window.clearTimeout(summaryPauseTimeoutRef.current);
+      summaryPauseTimeoutRef.current = null;
+    }
+  }
+
+  function playAssignmentVoiceover(text: string, onEnd?: () => void) {
     if (!audioEnabled) return;
+    clearSummaryPause();
     voiceoverRef.current?.cancel();
     setAssignmentMusicDucked(false);
     voiceoverRef.current = playVoiceoverLine({
@@ -293,7 +317,20 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
       rate: 0.8,
       pitch: 1.34,
       onStart: () => setAssignmentMusicDucked(true),
-      onEnd: () => setAssignmentMusicDucked(false)
+      onEnd: () => {
+        setAssignmentMusicDucked(false);
+        onEnd?.();
+      }
+    });
+  }
+
+  function playAssignmentSummaryVoiceover() {
+    if (!audioEnabled) return;
+    playAssignmentVoiceover(summaryOpeningNarrationText(), () => {
+      summaryPauseTimeoutRef.current = window.setTimeout(() => {
+        summaryPauseTimeoutRef.current = null;
+        playAssignmentVoiceover(summaryRosterNarrationText(players));
+      }, summaryNarrationPauseMs);
     });
   }
 
@@ -304,6 +341,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
       spokenParticipantIdsRef.current.clear();
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
+      clearSummaryPause();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
       return;
@@ -336,6 +374,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
       spokenParticipantIdsRef.current.clear();
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
+      clearSummaryPause();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
     }
@@ -385,18 +424,19 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
   }, [audioEnabled, open, startedAt]);
 
   const fullDuration = protocolDuration(players);
+  const showOpening = elapsed < openingNarrationHoldMs;
   const visualElapsed = Math.max(0, elapsed - openingNarrationHoldMs);
   const progress = Math.min(100, (elapsed / fullDuration) * 100);
-  const activeIndex = activeIndexForElapsed(visualElapsed, players);
+  const activeIndex = showOpening ? -1 : activeIndexForElapsed(visualElapsed, players);
   const activePlayer = activeIndex >= 0 ? players[activeIndex] : undefined;
-  const openingShape = ALL_SHAPES[Math.floor(visualElapsed / 105) % ALL_SHAPES.length];
+  const openingShape = ALL_SHAPES[Math.floor(elapsed / 105) % ALL_SHAPES.length];
   const assignedCount = useMemo(
     () => players.filter((_, index) => visualElapsed >= revealAt(index, players)).length,
     [players, visualElapsed]
   );
-  const showSummary = players.length > 0 && visualElapsed >= summaryStartsAt(players);
+  const showSummary = !showOpening && players.length > 0 && visualElapsed >= summaryStartsAt(players);
   const activeSegmentStarted =
-    Boolean(activePlayer) && activeIndex >= 0 && visualElapsed >= revealAt(activeIndex, players);
+    Boolean(activePlayer) && activeIndex >= 0 && visualElapsed >= narrationAt(activeIndex, players);
 
   useEffect(() => {
     if (!open || !audioEnabled || spokenOpeningRef.current) return;
@@ -413,6 +453,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
 
   useEffect(() => {
     return () => {
+      clearSummaryPause();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
     };
@@ -421,11 +462,12 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
   useEffect(() => {
     if (!open || !audioEnabled || !showSummary || spokenSummaryRef.current) return;
     spokenSummaryRef.current = true;
-    playAssignmentVoiceover(summaryNarrationText(players));
+    playAssignmentSummaryVoiceover();
   }, [audioEnabled, open, players, showSummary]);
 
   function stopAudio() {
     const audio = audioRef.current;
+    clearSummaryPause();
     voiceoverRef.current?.cancel();
     setAssignmentMusicDucked(false);
     if (!audio) return;
@@ -457,7 +499,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
                   stopAudio();
                   onSkip?.();
                 }}
-                className="absolute right-5 top-5 z-20 rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:border-trauma/50 hover:bg-trauma/15 hover:text-trauma md:right-7 md:top-7"
+                className="absolute right-5 top-5 z-[60] rounded-md border border-white/15 bg-white/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:border-trauma/50 hover:bg-trauma/15 hover:text-trauma md:right-7 md:top-7"
               >
                 Skip shape selection
               </button>
@@ -471,7 +513,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
               <AnimatePresence mode="wait">
                 {showSummary ? (
                   <AssignmentSummary players={players} />
-                ) : !activePlayer ? (
+                ) : showOpening || !activePlayer ? (
                   <motion.div
                     key="opening"
                     initial={{ opacity: 0, scale: 0.94 }}
@@ -514,7 +556,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
 
           <audio ref={audioRef} src={introAudioSrc} preload="auto" />
           <PhaseBrief
-            visible={elapsed < 2400}
+            visible={elapsed < openingNarrationHoldMs}
             label="Get ready"
             title="Shape Selection"
             subtitle="Each participant receives a shape before the first station begins."
