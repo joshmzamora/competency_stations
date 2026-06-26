@@ -6,31 +6,16 @@ import { estimateVoiceoverMs, playVoiceoverLine, type VoiceoverHandle } from "..
 import { PhaseBrief } from "./PhaseBrief";
 
 const ALL_SHAPES: PlayerShape[] = ["triangle", "star", "umbrella", "circle", "square", "diamond", "hexagon"];
-const participantSegmentMs = 4000;
 const introAudioSrc = "/audio/squid_game_choosing_shapes.mp3";
 const maxVolume = 0.15;
-const openingMs = 2600;
-const closingMs = 3400;
+const openingMs = 1200;
+const participantSpinMs = 1700;
+const participantPostNarrationHoldMs = 850;
+const summaryPostNarrationHoldMs = 900;
 const visualTickMs = 90;
 const audioSyncMs = 220;
-const openingNarrationText = "Shape selection begins. Each participant will receive a shape.";
-const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 350;
-
-function segmentMs(_playerCount: number) {
-  return participantSegmentMs;
-}
-
-function assignmentVisualDuration(playerCount: number) {
-  return openingMs + segmentMs(playerCount) * Math.max(1, playerCount) + closingMs;
-}
-
-function protocolDuration(playerCount: number) {
-  return openingNarrationHoldMs + assignmentVisualDuration(playerCount);
-}
-
-function revealAt(index: number, playerCount: number) {
-  return openingMs + index * segmentMs(playerCount);
-}
+const openingNarrationText = "Shape selection begins.";
+const openingNarrationHoldMs = estimateVoiceoverMs(openingNarrationText, 0.8) + 150;
 
 function ShapeIcon({ shape, className }: { shape: PlayerShape; className?: string }) {
   switch (shape) {
@@ -90,20 +75,54 @@ function participantNarrationText(player: PlayerState) {
   return `${publicName(player.name)}. Your shape is ${player.shape ?? "being assigned"}.`;
 }
 
-function participantRevealDelay(player: PlayerState) {
-  return estimateVoiceoverMs(participantNarrationText(player), 0.8) + 250;
+function participantNarrationMs(player: PlayerState) {
+  return estimateVoiceoverMs(participantNarrationText(player), 0.8);
 }
 
-function activeIndexForElapsed(elapsed: number, playerCount: number) {
-  if (elapsed < openingMs || playerCount === 0) return -1;
-  return Math.min(playerCount - 1, Math.floor((elapsed - openingMs) / segmentMs(playerCount)));
+function segmentMs(players: PlayerState[]) {
+  const longestNarration = players.reduce((longest, player) => Math.max(longest, participantNarrationMs(player)), 0);
+  return Math.max(5000, participantSpinMs + longestNarration + participantPostNarrationHoldMs);
+}
+
+function summaryNarrationText(players: PlayerState[]) {
+  const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
+  return `All shapes are assigned. ${roster}. Stand by for the first station.`;
+}
+
+function summaryMs(players: PlayerState[]) {
+  return estimateVoiceoverMs(summaryNarrationText(players), 0.8) + summaryPostNarrationHoldMs;
+}
+
+function assignmentVisualDuration(players: PlayerState[]) {
+  return openingMs + segmentMs(players) * Math.max(1, players.length) + summaryMs(players);
+}
+
+function protocolDuration(players: PlayerState[]) {
+  return openingNarrationHoldMs + assignmentVisualDuration(players);
+}
+
+function summaryStartsAt(players: PlayerState[]) {
+  return openingMs + segmentMs(players) * Math.max(1, players.length);
+}
+
+function revealAt(index: number, players: PlayerState[]) {
+  return openingMs + index * segmentMs(players) + participantSpinMs;
+}
+
+function segmentStartAt(index: number, players: PlayerState[]) {
+  return openingMs + index * segmentMs(players);
+}
+
+function activeIndexForElapsed(elapsed: number, players: PlayerState[]) {
+  if (elapsed < openingMs || players.length === 0 || elapsed >= summaryStartsAt(players)) return -1;
+  return Math.min(players.length - 1, Math.floor((elapsed - openingMs) / segmentMs(players)));
 }
 
 const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: { players: PlayerState[]; activeIndex: number; elapsed: number }) {
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       {players.map((player, index) => {
-        const revealed = elapsed >= revealAt(index, players.length) + participantRevealDelay(player);
+        const revealed = elapsed >= revealAt(index, players);
         const active = index === activeIndex;
         const shape = player.shape;
         return (
@@ -128,10 +147,10 @@ const MiniRoster = memo(function MiniRoster({ players, activeIndex, elapsed }: {
   );
 });
 
-function FeaturedReveal({ player, index, elapsed, playerCount }: { player: PlayerState; index: number; elapsed: number; playerCount: number }) {
+function FeaturedReveal({ player, index, elapsed, players }: { player: PlayerState; index: number; elapsed: number; players: PlayerState[] }) {
   const shape = player.shape;
-  const localElapsed = Math.max(0, elapsed - revealAt(index, playerCount));
-  const revealShape = localElapsed >= participantRevealDelay(player);
+  const localElapsed = Math.max(0, elapsed - segmentStartAt(index, players));
+  const revealShape = elapsed >= revealAt(index, players);
   const cyclingShape = ALL_SHAPES[Math.floor(elapsed / 110) % ALL_SHAPES.length];
   const displayedShape = revealShape && shape ? shape : cyclingShape;
 
@@ -238,8 +257,8 @@ export function ProtocolIntro({
     return startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0;
   }
 
-  function syncAssignmentAudio(audio: HTMLAudioElement) {
-    audio.volume = narrationActiveRef.current ? maxVolume * 0.9 : maxVolume;
+function syncAssignmentAudio(audio: HTMLAudioElement) {
+    audio.volume = narrationActiveRef.current ? maxVolume * 0.35 : maxVolume;
   }
 
   function playSyncedAssignmentAudio() {
@@ -270,7 +289,7 @@ export function ProtocolIntro({
     setAssignmentMusicDucked(false);
     voiceoverRef.current = playVoiceoverLine({
       text,
-      volume: 0.76,
+      volume: 0.92,
       rate: 0.8,
       pitch: 1.34,
       onStart: () => setAssignmentMusicDucked(true),
@@ -298,7 +317,7 @@ export function ProtocolIntro({
 
     const tick = () => {
       const nextElapsed = getSyncedElapsed();
-      const totalMs = protocolDuration(players.length);
+      const totalMs = protocolDuration(players);
       setElapsed(nextElapsed);
       if (nextElapsed >= totalMs && !completedRef.current) {
         completedRef.current = true;
@@ -365,20 +384,19 @@ export function ProtocolIntro({
     };
   }, [audioEnabled, open, startedAt]);
 
-  const visualDuration = assignmentVisualDuration(players.length);
-  const fullDuration = protocolDuration(players.length);
+  const fullDuration = protocolDuration(players);
   const visualElapsed = Math.max(0, elapsed - openingNarrationHoldMs);
   const progress = Math.min(100, (elapsed / fullDuration) * 100);
-  const activeIndex = activeIndexForElapsed(visualElapsed, players.length);
+  const activeIndex = activeIndexForElapsed(visualElapsed, players);
   const activePlayer = activeIndex >= 0 ? players[activeIndex] : undefined;
   const openingShape = ALL_SHAPES[Math.floor(visualElapsed / 105) % ALL_SHAPES.length];
   const assignedCount = useMemo(
-    () => players.filter((player, index) => visualElapsed >= revealAt(index, players.length) + participantRevealDelay(player)).length,
+    () => players.filter((_, index) => visualElapsed >= revealAt(index, players)).length,
     [players, visualElapsed]
   );
-  const showSummary = players.length > 0 && visualElapsed >= visualDuration - closingMs;
+  const showSummary = players.length > 0 && visualElapsed >= summaryStartsAt(players);
   const activeSegmentStarted =
-    Boolean(activePlayer) && activeIndex >= 0 && visualElapsed >= revealAt(activeIndex, players.length);
+    Boolean(activePlayer) && activeIndex >= 0 && visualElapsed >= revealAt(activeIndex, players);
 
   useEffect(() => {
     if (!open || !audioEnabled || spokenOpeningRef.current) return;
@@ -403,8 +421,7 @@ export function ProtocolIntro({
   useEffect(() => {
     if (!open || !audioEnabled || !showSummary || spokenSummaryRef.current) return;
     spokenSummaryRef.current = true;
-    const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-    playAssignmentVoiceover(`All shapes are assigned. ${roster}. Stand by for the first station.`);
+    playAssignmentVoiceover(summaryNarrationText(players));
   }, [audioEnabled, open, players, showSummary]);
 
   function stopAudio() {
@@ -476,7 +493,7 @@ export function ProtocolIntro({
                     </p>
                   </motion.div>
                 ) : (
-                  <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={visualElapsed} playerCount={players.length} />
+                  <FeaturedReveal player={activePlayer} index={activeIndex} elapsed={visualElapsed} players={players} />
                 )}
               </AnimatePresence>
             </main>

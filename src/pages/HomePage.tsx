@@ -1,13 +1,12 @@
 import { motion } from "framer-motion";
-import { ClipboardCheck, MonitorPlay, Radio, Trophy } from "lucide-react";
+import { ClipboardCheck, MonitorPlay, Radio } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 
 const actions = [
   { to: "/host", label: "Start Host Mode", icon: MonitorPlay, accent: "text-trauma" },
-  { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" },
-  { to: "/results", label: "View Results", icon: Trophy, accent: "text-amber" }
+  { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" }
 ];
 
 export function HomePage() {

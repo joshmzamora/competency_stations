@@ -1,12 +1,11 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Activity, Home, MonitorPlay, Radio, Trophy } from "lucide-react";
+import { Activity, Home, MonitorPlay, Radio } from "lucide-react";
 import { ChromeProvider, useAppChrome } from "../context/ChromeContext";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home },
   { to: "/host", label: "Host", icon: MonitorPlay },
-  { to: "/player", label: "Player", icon: Radio },
-  { to: "/results", label: "Results", icon: Trophy }
+  { to: "/player", label: "Player", icon: Radio }
 ];
 
 function ShellFrame() {

@@ -113,10 +113,11 @@ let roomsSaveTimer: NodeJS.Timeout | null = null;
 const websocketHeartbeatMs = 15000;
 const minParticipants = 2;
 const maxParticipants = 7;
-const protocolParticipantSegmentMs = 4000;
-const protocolOpeningMs = 2600;
-const protocolClosingMs = 3400;
-const protocolOpeningNarration = "Shape selection begins. Each participant will receive a shape.";
+const protocolOpeningMs = 1200;
+const protocolParticipantSpinMs = 1700;
+const protocolParticipantPostNarrationHoldMs = 850;
+const protocolSummaryPostNarrationHoldMs = 900;
+const protocolOpeningNarration = "Shape selection begins.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -124,13 +125,29 @@ function estimateServerVoiceoverMs(text: string, rate = 0.82) {
   return Math.min(11000, Math.max(1800, (wordCount / wordsPerMinute) * 60_000 + 700));
 }
 
-function protocolSegmentMs(_playerCount: number) {
-  return protocolParticipantSegmentMs;
+function protocolPublicName(name: string) {
+  const match = name.match(/\((.*)\)/);
+  return match?.[1] || name;
 }
 
-function protocolAssignmentDurationMs(playerCount: number) {
-  const visualDuration = protocolOpeningMs + protocolSegmentMs(playerCount) * Math.max(1, playerCount) + protocolClosingMs;
-  return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 350 + visualDuration;
+function protocolParticipantNarration(player: PlayerState) {
+  return `${protocolPublicName(player.name)}. Your shape is ${player.shape ?? "being assigned"}.`;
+}
+
+function protocolSegmentMs(players: PlayerState[]) {
+  const longestNarration = players.reduce((longest, player) => Math.max(longest, estimateServerVoiceoverMs(protocolParticipantNarration(player), 0.8)), 0);
+  return Math.max(5000, protocolParticipantSpinMs + longestNarration + protocolParticipantPostNarrationHoldMs);
+}
+
+function protocolSummaryNarration(players: PlayerState[]) {
+  const roster = players.map((player) => `${protocolPublicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
+  return `All shapes are assigned. ${roster}. Stand by for the first station.`;
+}
+
+function protocolAssignmentDurationMs(players: PlayerState[]) {
+  const summaryMs = estimateServerVoiceoverMs(protocolSummaryNarration(players), 0.8) + protocolSummaryPostNarrationHoldMs;
+  const visualDuration = protocolOpeningMs + protocolSegmentMs(players) * Math.max(1, players.length) + summaryMs;
+  return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 150 + visualDuration;
 }
 
 function createRoomCode() {
@@ -587,7 +604,7 @@ function startSelection(room: RoomState, durationMs = 1700, holdMs = 1800) {
 }
 
 function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStartedAt: number) {
-  const delayMs = protocolAssignmentDurationMs(room.players.length) + 4500;
+  const delayMs = protocolAssignmentDurationMs(room.players) + 4500;
   setTimeout(() => {
     if (room.protocolIntroStartedAt !== assignmentStartedAt) return;
     room.protocolIntroStartedAt = null;
