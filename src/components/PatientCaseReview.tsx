@@ -12,7 +12,7 @@ import {
   Stethoscope,
   UserRound
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatedButton } from "./AnimatedButton";
 import { playFileClickCue } from "../utils/sound";
 import { playVoiceoverLine, preloadVoiceoverLines, type VoiceoverHandle } from "../utils/voiceover";
@@ -137,6 +137,15 @@ function isCriticalRow(file: CaseFile, label: string, value: string) {
   return (file.critical ?? []).some((clue) => haystack.includes(normalize(clue)) || normalize(clue).includes(haystack));
 }
 
+function detailValueTextClass(value: string) {
+  const length = value.length;
+  if (length <= 8) return "text-6xl leading-[4.8rem] xl:text-7xl xl:leading-[5.6rem]";
+  if (length <= 24) return "text-5xl leading-[4rem] xl:text-6xl xl:leading-[4.8rem]";
+  if (length <= 70) return "text-4xl leading-[3.4rem] xl:text-5xl xl:leading-[4.2rem]";
+  if (length <= 150) return "text-3xl leading-10 xl:text-4xl xl:leading-[3.4rem]";
+  return "text-2xl leading-9 xl:text-3xl xl:leading-10";
+}
+
 function MonitorStrip() {
   return (
     <svg viewBox="0 0 720 120" className="h-full w-full" aria-hidden="true">
@@ -230,6 +239,9 @@ function CaseFileCard({
 
 function CaseFileViewer({ file }: { file: CaseFile }) {
   const Icon = file.Icon;
+  const detailRowCount = Math.max(1, Math.ceil(file.rows.length / 2));
+  const singleDetail = file.rows.length === 1;
+  const detailGridStyle = { "--detail-rows": `repeat(${detailRowCount}, minmax(0, 1fr))` } as CSSProperties;
 
   return (
     <AnimatePresence mode="wait">
@@ -243,10 +255,10 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
       >
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(110,247,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(110,247,255,0.035)_1px,transparent_1px)] bg-[size:34px_34px]" />
         <motion.div
-          className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-monitor/20 to-transparent"
-          initial={{ y: -90 }}
-          animate={{ y: 650 }}
-          transition={{ duration: 1.45, ease: "easeInOut" }}
+          className="pointer-events-none absolute inset-x-0 h-40 bg-gradient-to-b from-monitor/24 to-transparent"
+          initial={{ top: "-10rem", opacity: 0 }}
+          animate={{ top: "calc(100% - 10rem)", opacity: [0, 0.55, 0] }}
+          transition={{ duration: 1.65, ease: "easeInOut" }}
         />
 
         <div className="relative z-[1] flex flex-wrap items-start justify-between gap-4">
@@ -282,7 +294,10 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
           </div>
         </div>
 
-        <div className="relative z-[1] mt-6 grid min-h-0 content-start gap-4 overflow-y-auto pr-1 md:grid-cols-2">
+        <div
+          className={`relative z-[1] mt-6 grid h-full min-h-0 items-stretch gap-4 overflow-y-auto pr-1 ${singleDetail ? "grid-cols-1" : "md:grid-cols-2 md:[grid-template-rows:var(--detail-rows)]"}`}
+          style={detailGridStyle}
+        >
           {file.rows.map(([label, value], index) => {
             const critical = isCriticalRow(file, label, value);
             return (
@@ -291,13 +306,13 @@ function CaseFileViewer({ file }: { file: CaseFile }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.24 }}
-                className={`rounded-md border p-6 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${critical ? "border-trauma/30 bg-trauma/10" : "border-white/10 bg-white/[0.055]"
+                className={`flex h-full min-h-[150px] flex-col justify-center rounded-md border p-6 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${critical ? "border-trauma/30 bg-trauma/10" : "border-white/10 bg-white/[0.055]"
                   }`}
               >
                 <div>
-                  <div className="font-display text-sm font-black uppercase tracking-[0.16em] text-white/44">{label}</div>
+                  <div className="font-display text-base font-black uppercase tracking-[0.16em] text-white/44 xl:text-lg">{label}</div>
                 </div>
-                <div className="mt-3 text-3xl font-semibold leading-10 text-white/88">{value}</div>
+                <div className={`mt-4 flex-1 content-center text-balance font-semibold text-white/90 ${detailValueTextClass(value)}`}>{value}</div>
               </motion.div>
             );
           })}
@@ -319,8 +334,8 @@ function CaseIntroViewer() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(110,247,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(110,247,255,0.035)_1px,transparent_1px)] bg-[size:34px_34px]" />
       <motion.div
-        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-monitor/20 to-transparent"
-        animate={{ y: [-110, 680] }}
+        className="pointer-events-none absolute inset-x-0 h-40 bg-gradient-to-b from-monitor/24 to-transparent"
+        animate={{ top: ["-10rem", "calc(100% - 10rem)"], opacity: [0, 0.5, 0] }}
         transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="relative z-[1] mx-auto max-w-4xl text-center">
