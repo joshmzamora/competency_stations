@@ -590,12 +590,6 @@ export function PlayerPage() {
     return () => setNavHidden(false);
   }, [introVisible, localIntroVisible, protocolIntroVisible, room, setNavHidden]);
 
-  const completeProtocolIntro = useCallback(() => {
-    setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
-    setStationTransitionVisible(true);
-    window.setTimeout(() => setStationTransitionVisible(false), 3600);
-  }, [room?.protocolIntroStartedAt]);
-
   useEffect(() => {
     const currentStartedAt = room?.protocolIntroStartedAt ?? null;
     const previousStartedAt = protocolIntroStartedAtRef.current;
@@ -875,7 +869,7 @@ export function PlayerPage() {
         serverTime={room?.serverTime}
         players={room?.players ?? []}
         audioEnabled={trackAudioEnabled}
-        onComplete={completeProtocolIntro}
+        onComplete={() => undefined}
       />
         <StationTransition station={station ?? null} visible={stationTransitionVisible} audioEnabled={effectsAudioEnabled} />
         <StationCompleteOverlay

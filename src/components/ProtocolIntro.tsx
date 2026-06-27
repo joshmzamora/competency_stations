@@ -92,7 +92,8 @@ function summaryOpeningNarrationText() {
 
 function summaryRosterNarrationText(players: PlayerState[]) {
   const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-  return `${roster}. Stand by for the first station. Good luck players.`;
+  //return `${roster}. Stand by for the first station. Good luck players.`; //says player is ____
+  return `Stand by for the first station. Good luck players.`;
 }
 
 function summaryMs(players: PlayerState[]) {

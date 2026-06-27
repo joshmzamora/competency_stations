@@ -574,11 +574,11 @@ export function HostPage() {
   const completeProtocolIntro = useCallback(() => {
     setProtocolIntroSeenAt(room?.protocolIntroStartedAt ?? null);
     setStationTransitionVisible(true);
+    send({ type: "skip-protocol-assignment" });
     window.setTimeout(() => {
       setStationTransitionVisible(false);
-      if (promptUsesSelection) send({ type: "start-selection" });
     }, 3600);
-  }, [promptUsesSelection, room?.protocolIntroStartedAt, send]);
+  }, [room?.protocolIntroStartedAt, send]);
 
   useEffect(() => {
     const currentStartedAt = room?.protocolIntroStartedAt ?? null;
@@ -976,7 +976,6 @@ export function HostPage() {
         audioEnabled={trackAudioEnabled}
         canSkip
         onSkip={() => {
-          send({ type: "skip-protocol-assignment" });
           completeProtocolIntro();
         }}
         onComplete={() => {

@@ -119,7 +119,6 @@ const protocolParticipantNarrationDelayMs = 700;
 const protocolParticipantPostNarrationHoldMs = 600;
 const protocolSummaryNarrationPauseMs = 500;
 const protocolSummaryPostNarrationHoldMs = 1000;
-const protocolStationTransitionMs = 3600;
 const protocolOpeningNarration = "Shape selection begins.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
@@ -622,13 +621,6 @@ function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStarted
     room.selection = null;
     room.currentParticipantId = null;
     broadcastState(room.code);
-    if (!usesParticipantSelection(room)) return;
-    setTimeout(() => {
-      if (room.protocolIntroStartedAt || room.selection || room.status !== "in-progress") return;
-      if (startSelection(room)) {
-        broadcastState(room.code);
-      }
-    }, protocolStationTransitionMs);
   }, delayMs);
 }
 
