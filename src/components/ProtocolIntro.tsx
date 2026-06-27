@@ -234,6 +234,25 @@ const AssignmentSummary = memo(function AssignmentSummary({ players }: { players
   );
 });
 
+const GoodLuckSummary = memo(function GoodLuckSummary() {
+  return (
+    <motion.div
+      key="good-luck-summary"
+      initial={{ opacity: 0, y: 28, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -22, scale: 1.02 }}
+      transition={{ duration: 0.42, ease: "easeOut" }}
+      className="grid justify-items-center gap-6 text-center"
+    >
+      <div className="font-display text-xs font-bold uppercase tracking-[0.42em] text-scrub">Shapes locked</div>
+      <h3 className="font-display text-[clamp(4.5rem,13vw,12rem)] font-black uppercase leading-none text-white">
+        Good Luck Players
+      </h3>
+      <div className="h-1 w-[min(70vw,720px)] rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub" />
+    </motion.div>
+  );
+});
+
 export function ProtocolIntro({
   open,
   onComplete,
@@ -254,6 +273,7 @@ export function ProtocolIntro({
   audioEnabled?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [goodLuckVisible, setGoodLuckVisible] = useState(false);
   const completedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const offsetRef = useRef(0);
@@ -261,6 +281,7 @@ export function ProtocolIntro({
   const audioRetryNeededRef = useRef(false);
   const voiceoverRef = useRef<VoiceoverHandle | null>(null);
   const summaryPauseTimeoutRef = useRef<number | null>(null);
+  const goodLuckTimeoutRef = useRef<number | null>(null);
   const narrationActiveRef = useRef(false);
   const spokenParticipantIdsRef = useRef(new Set<string>());
   const spokenOpeningRef = useRef(false);
@@ -268,6 +289,12 @@ export function ProtocolIntro({
   const timelineKeyRef = useRef("");
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+
+  function finishProtocolIntro() {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onCompleteRef.current();
+  }
 
   function getSyncedElapsed() {
     return startedAt ? Math.max(0, Date.now() - offsetRef.current - startedAt) : 0;
@@ -306,6 +333,23 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     }
   }
 
+  function clearGoodLuckTimeout() {
+    if (goodLuckTimeoutRef.current) {
+      window.clearTimeout(goodLuckTimeoutRef.current);
+      goodLuckTimeoutRef.current = null;
+    }
+  }
+
+  function showGoodLuckAndFinish() {
+    if (completedRef.current) return;
+    if (goodLuckTimeoutRef.current) return;
+    setGoodLuckVisible(true);
+    goodLuckTimeoutRef.current = window.setTimeout(() => {
+      goodLuckTimeoutRef.current = null;
+      finishProtocolIntro();
+    }, summaryPostNarrationHoldMs);
+  }
+
   function playAssignmentVoiceover(text: string, onEnd?: () => void) {
     if (!audioEnabled) return;
     clearSummaryPause();
@@ -329,7 +373,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     playAssignmentVoiceover(summaryOpeningNarrationText(), () => {
       summaryPauseTimeoutRef.current = window.setTimeout(() => {
         summaryPauseTimeoutRef.current = null;
-        playAssignmentVoiceover(summaryRosterNarrationText(players));
+        playAssignmentVoiceover(summaryRosterNarrationText(players), showGoodLuckAndFinish);
       }, summaryNarrationPauseMs);
     });
   }
@@ -337,11 +381,13 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
   useEffect(() => {
     if (!open || !startedAt) {
       completedRef.current = false;
+      setGoodLuckVisible(false);
       setElapsed(0);
       spokenParticipantIdsRef.current.clear();
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
       clearSummaryPause();
+      clearGoodLuckTimeout();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
       return;
@@ -358,8 +404,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
       const totalMs = protocolDuration(players);
       setElapsed(nextElapsed);
       if (nextElapsed >= totalMs && !completedRef.current) {
-        completedRef.current = true;
-        onCompleteRef.current();
+        showGoodLuckAndFinish();
       }
     };
 
@@ -374,7 +419,9 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
       spokenParticipantIdsRef.current.clear();
       spokenOpeningRef.current = false;
       spokenSummaryRef.current = false;
+      setGoodLuckVisible(false);
       clearSummaryPause();
+      clearGoodLuckTimeout();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
     }
@@ -454,6 +501,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
   useEffect(() => {
     return () => {
       clearSummaryPause();
+      clearGoodLuckTimeout();
       voiceoverRef.current?.cancel();
       setAssignmentMusicDucked(false);
     };
@@ -468,6 +516,7 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
   function stopAudio() {
     const audio = audioRef.current;
     clearSummaryPause();
+    clearGoodLuckTimeout();
     voiceoverRef.current?.cancel();
     setAssignmentMusicDucked(false);
     if (!audio) return;
@@ -511,7 +560,9 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
 
             <main className="grid min-h-0 place-items-center py-3">
               <AnimatePresence mode="wait">
-                {showSummary ? (
+                {goodLuckVisible ? (
+                  <GoodLuckSummary />
+                ) : showSummary ? (
                   <AssignmentSummary players={players} />
                 ) : showOpening || !activePlayer ? (
                   <motion.div
