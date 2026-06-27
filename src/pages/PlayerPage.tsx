@@ -332,10 +332,16 @@ function ActivePromptView({
                 {activeParticipant?.shape && <ShapeIcon shape={activeParticipant.shape} className={`h-24 w-24 xl:h-32 xl:w-32 ${tone.text}`} />}
               </motion.div>
               <div className="min-w-0">
-                <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>You have been selected</div>
-                <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl xl:text-5xl 2xl:text-6xl">{publicName(activeParticipant?.name)}</h2>
+                <div className={`font-display text-xs font-black uppercase tracking-[0.28em] ${tone.text}`}>
+                  {activeParticipant ? "You have been selected" : "Question ready"}
+                </div>
+                <h2 className="mt-2 font-display text-4xl font-black uppercase leading-none text-white md:text-6xl xl:text-5xl 2xl:text-6xl">
+                  {activeParticipant ? publicName(activeParticipant.name) : "Stand By"}
+                </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-7 text-white/68 xl:text-xl xl:leading-8">
-                  Respond out loud or perform the skill when ready. Your facilitator will record the result.
+                  {activeParticipant
+                    ? "Respond out loud or perform the skill when ready. Your facilitator will record the result."
+                    : "Review the prompt with the group. The facilitator will start random selection when it is needed."}
                 </p>
               </div>
             </div>
@@ -771,7 +777,7 @@ export function PlayerPage() {
 
           <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
 
-          {activePrompt && station && (activeParticipant || !activePromptUsesSelection) ? (
+          {activePrompt && station ? (
             <ActivePromptView
               prompt={activePrompt}
               station={station}

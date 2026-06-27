@@ -119,6 +119,7 @@ const protocolParticipantNarrationDelayMs = 700;
 const protocolParticipantPostNarrationHoldMs = 600;
 const protocolSummaryNarrationPauseMs = 500;
 const protocolSummaryPostNarrationHoldMs = 1000;
+const protocolStationTransitionMs = 3600;
 const protocolOpeningNarration = "Shape selection begins.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
@@ -617,11 +618,23 @@ function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStarted
   const delayMs = protocolAssignmentDurationMs(room.players);
   setTimeout(() => {
     if (room.protocolIntroStartedAt !== assignmentStartedAt) return;
-    room.protocolIntroStartedAt = null;
-    room.selection = null;
-    room.currentParticipantId = null;
-    broadcastState(room.code);
+    finishProtocolAssignment(room);
   }, delayMs);
+}
+
+function finishProtocolAssignment(room: RoomState) {
+  room.protocolIntroStartedAt = null;
+  room.selection = null;
+  room.currentParticipantId = null;
+  broadcastState(room.code);
+
+  if (!usesParticipantSelection(room)) return;
+  setTimeout(() => {
+    if (room.protocolIntroStartedAt || room.selection || room.status !== "in-progress") return;
+    if (startSelection(room)) {
+      broadcastState(room.code);
+    }
+  }, protocolStationTransitionMs);
 }
 
 function assignShapesToRoom(room: RoomState) {
@@ -1297,8 +1310,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       if (!room.players.some((player) => player.shape)) {
         assignShapesToRoom(room);
       }
-      room.protocolIntroStartedAt = null;
-      broadcastState(room.code);
+      finishProtocolAssignment(room);
       break;
     }
     case "start-selection": {

@@ -615,7 +615,7 @@ export function HostPage() {
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
   function evaluate(statusValue: EvaluationStatus) {
-    if (!prompt || (promptUsesSelection && !room?.currentParticipantId)) return;
+    if (!prompt) return;
     const playerId = promptUsesSelection ? room?.currentParticipantId ?? undefined : undefined;
     send({ type: "evaluate-prompt", promptId: prompt.id, playerId, status: statusValue, flagged: false });
   }
@@ -892,16 +892,20 @@ export function HostPage() {
                 <div className="mb-4 rounded-md border border-monitor/25 bg-monitor/10 p-4 text-sm leading-6 text-monitor">
                   This prompt is scored as a group response. No random participant selection is required.
                 </div>
-              ) : null}
+              ) : (
+                <div className="mb-4 rounded-md border border-monitor/25 bg-monitor/10 p-4 text-sm leading-6 text-monitor">
+                  No participant is selected yet. Score this prompt normally, or select a participant when random selection is needed.
+                </div>
+              )}
               <div className="mt-4 grid gap-3">
-                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
+                <AnimatedButton variant="secondary" onClick={() => evaluate("correct")} disabled={!prompt}>
                   <Check className="h-4 w-4" />
                   Correct
                 </AnimatedButton>
-                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
+                <AnimatedButton variant="ghost" onClick={() => evaluate("partial")} disabled={!prompt}>
                   Partial
                 </AnimatedButton>
-                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt || (promptUsesSelection && !activeParticipant)}>
+                <AnimatedButton variant="danger" onClick={() => evaluate("incorrect")} disabled={!prompt}>
                   <X className="h-4 w-4" />
                   Incorrect
                 </AnimatedButton>
