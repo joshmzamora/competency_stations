@@ -291,6 +291,7 @@ export function HostPage() {
   const [localVoiceReady, setLocalVoiceReady] = useState(false);
   const [localVoiceMode, setLocalVoiceMode] = useState<"warming" | "piper" | "fallback">("warming");
   const stationIdRef = useRef<string>("");
+  const protocolIntroStartedAtRef = useRef<number | null>(null);
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const activeRoomCodeRef = useRef(initialHostRoomBackup?.code ?? "");
@@ -578,6 +579,18 @@ export function HostPage() {
       if (promptUsesSelection) send({ type: "start-selection" });
     }, 3600);
   }, [promptUsesSelection, room?.protocolIntroStartedAt, send]);
+
+  useEffect(() => {
+    const currentStartedAt = room?.protocolIntroStartedAt ?? null;
+    const previousStartedAt = protocolIntroStartedAtRef.current;
+    protocolIntroStartedAtRef.current = currentStartedAt;
+    if (!previousStartedAt || currentStartedAt || room?.status !== "in-progress" || introVisible || !station) return;
+
+    setProtocolIntroSeenAt(previousStartedAt);
+    setStationTransitionVisible(true);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
+    return () => window.clearTimeout(timeout);
+  }, [introVisible, room?.protocolIntroStartedAt, room?.status, station]);
 
   useEffect(() => {
     if (!stationId) {

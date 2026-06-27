@@ -375,6 +375,7 @@ export function PlayerPage() {
   const [localVoiceReady, setLocalVoiceReady] = useState(false);
   const [localVoiceMode, setLocalVoiceMode] = useState<"warming" | "piper" | "fallback">("warming");
   const stationIdRef = useRef<string>("");
+  const protocolIntroStartedAtRef = useRef<number | null>(null);
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
   const groupIdRef = useRef(usableInitialPlayerBackup?.groupId ?? getLearnerGroupId());
@@ -594,6 +595,18 @@ export function PlayerPage() {
     setStationTransitionVisible(true);
     window.setTimeout(() => setStationTransitionVisible(false), 3600);
   }, [room?.protocolIntroStartedAt]);
+
+  useEffect(() => {
+    const currentStartedAt = room?.protocolIntroStartedAt ?? null;
+    const previousStartedAt = protocolIntroStartedAtRef.current;
+    protocolIntroStartedAtRef.current = currentStartedAt;
+    if (!previousStartedAt || currentStartedAt || room?.status !== "in-progress" || introVisible || !station) return;
+
+    setProtocolIntroSeenAt(previousStartedAt);
+    setStationTransitionVisible(true);
+    const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
+    return () => window.clearTimeout(timeout);
+  }, [introVisible, room?.protocolIntroStartedAt, room?.status, station]);
 
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);

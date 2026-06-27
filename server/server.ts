@@ -119,6 +119,7 @@ const protocolParticipantNarrationDelayMs = 700;
 const protocolParticipantPostNarrationHoldMs = 600;
 const protocolSummaryNarrationPauseMs = 500;
 const protocolSummaryPostNarrationHoldMs = 1000;
+const protocolStationTransitionMs = 3600;
 const protocolOpeningNarration = "Shape selection begins.";
 
 function estimateServerVoiceoverMs(text: string, rate = 0.82) {
@@ -618,13 +619,16 @@ function scheduleProtocolAssignmentCompletion(room: RoomState, assignmentStarted
   setTimeout(() => {
     if (room.protocolIntroStartedAt !== assignmentStartedAt) return;
     room.protocolIntroStartedAt = null;
-    if (usesParticipantSelection(room)) {
-      startSelection(room);
-    } else {
-      room.selection = null;
-      room.currentParticipantId = null;
-    }
+    room.selection = null;
+    room.currentParticipantId = null;
     broadcastState(room.code);
+    if (!usesParticipantSelection(room)) return;
+    setTimeout(() => {
+      if (room.protocolIntroStartedAt || room.selection || room.status !== "in-progress") return;
+      if (startSelection(room)) {
+        broadcastState(room.code);
+      }
+    }, protocolStationTransitionMs);
   }, delayMs);
 }
 
@@ -1308,6 +1312,10 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
     case "start-selection": {
       if (client.role !== "host") return;
       room.protocolIntroStartedAt = null;
+      if (room.selection) {
+        broadcastState(room.code);
+        break;
+      }
       if (!usesParticipantSelection(room)) {
         room.selection = null;
         room.currentParticipantId = null;
