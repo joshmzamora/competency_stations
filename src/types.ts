@@ -208,6 +208,7 @@ export type ClientMessage =
   | { type: "next-prompt" }
   | { type: "previous-prompt" }
   | { type: "start-timer"; seconds: number }
+  | { type: "add-timer-time"; seconds: number }
   | { type: "reset-timer" }
   | { type: "submit-answer"; answer: string; responseTimeMs?: number }
   | { type: "update-activity-card"; promptId: string; item: string; column: string | null }

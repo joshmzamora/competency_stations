@@ -53,6 +53,15 @@ type ParticipantPerformance = PlayerState & {
 };
 
 const hostRoomBackupKey = "competency-host-room-emergency-backup";
+const hostAutoTimerKey = "competency-host-auto-timer";
+
+function readHostAutoTimerEnabled() {
+  try {
+    return localStorage.getItem(hostAutoTimerKey) !== "off";
+  } catch {
+    return true;
+  }
+}
 
 function readHostRoomBackup() {
   try {
@@ -290,10 +299,12 @@ export function HostPage() {
   const [timesUpVisible, setTimesUpVisible] = useState(false);
   const [localVoiceReady, setLocalVoiceReady] = useState(false);
   const [localVoiceMode, setLocalVoiceMode] = useState<"warming" | "piper" | "fallback">("warming");
+  const [autoTimerEnabled, setAutoTimerEnabled] = useState(readHostAutoTimerEnabled);
   const stationIdRef = useRef<string>("");
   const protocolIntroStartedAtRef = useRef<number | null>(null);
   const timesUpTimerRef = useRef<number | null>(null);
   const timesUpCloseTimeoutRef = useRef<number | null>(null);
+  const autoTimerPromptRef = useRef("");
   const activeRoomCodeRef = useRef(initialHostRoomBackup?.code ?? "");
   const resumeAttemptedForClientRef = useRef("");
   const latestRoomRef = useRef<RoomState | null>(initialHostRoomBackup);
@@ -305,6 +316,8 @@ export function HostPage() {
   const stationId = station?.id ?? "";
   const isStrokeStation = station?.id === "stroke";
   const promptUsesSelection = Boolean(prompt && prompt.type !== "activity" && prompt.type !== "group-response");
+  const promptSkipsAutoTimer = Boolean(isStrokeStation && prompt?.type === "activity");
+  const promptTimerKey = room && station && prompt ? `${room.code}:${station.id}:${room.activePromptIndex}:${prompt.id}` : "";
   const totalPrompts = station?.prompts.length ?? 0;
   const evaluations = room?.evaluations ?? {};
   const evaluationList = useMemo(() => Object.values(evaluations), [evaluations]);
@@ -614,6 +627,48 @@ export function HostPage() {
     };
   }, [introVisible, protocolIntroVisible, room?.status, stationId]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(hostAutoTimerKey, autoTimerEnabled ? "on" : "off");
+    } catch {
+      // Local storage can be unavailable in some browser modes; the toggle still works for this page load.
+    }
+  }, [autoTimerEnabled]);
+
+  useEffect(() => {
+    if (!autoTimerEnabled || !prompt || !promptTimerKey || promptSkipsAutoTimer) return;
+    if (autoTimerPromptRef.current === promptTimerKey) return;
+    if (!room || room.status !== "in-progress") return;
+    if (introVisible || protocolIntroVisible || stationTransitionVisible) return;
+    if (room.introStartedAt || room.protocolIntroStartedAt || room.selection || room.debriefStartedAt || room.closingStartedAt) return;
+    if (promptUsesSelection && !room.currentParticipantId) return;
+
+    autoTimerPromptRef.current = promptTimerKey;
+    send({ type: "start-timer", seconds: 15 });
+  }, [
+    autoTimerEnabled,
+    introVisible,
+    prompt,
+    promptSkipsAutoTimer,
+    promptTimerKey,
+    promptUsesSelection,
+    protocolIntroVisible,
+    room,
+    send,
+    stationTransitionVisible
+  ]);
+
+  function toggleAutoTimer() {
+    setAutoTimerEnabled((enabled) => {
+      if (!enabled) autoTimerPromptRef.current = "";
+      return !enabled;
+    });
+  }
+
+  function addTimerTime(seconds: number) {
+    send({ type: "add-timer-time", seconds });
+  }
+
   function evaluate(statusValue: EvaluationStatus) {
     if (!prompt) return;
     const playerId = promptUsesSelection ? room?.currentParticipantId ?? undefined : undefined;
@@ -857,20 +912,20 @@ export function HostPage() {
           <aside className="grid min-w-0 content-start gap-5">
             <CountdownTimer endsAt={room.timerEndsAt} startedAt={room.timerStartedAt} serverTime={room.serverTime} audioEnabled={effectsAudioEnabled} />
             <div className="grid grid-cols-3 gap-3">
-              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 15 })} disabled={!prompt}>
-                15s
+              <AnimatedButton variant="secondary" onClick={() => addTimerTime(15)} disabled={!prompt}>
+                +15s
               </AnimatedButton>
-              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 30 })} disabled={!prompt}>
-                30s
+              <AnimatedButton variant="secondary" onClick={() => addTimerTime(30)} disabled={!prompt}>
+                +30s
               </AnimatedButton>
-              <AnimatedButton variant="secondary" onClick={() => send({ type: "start-timer", seconds: 60 })} disabled={!prompt}>
-                60s
+              <AnimatedButton variant="secondary" onClick={() => addTimerTime(60)} disabled={!prompt}>
+                +60s
               </AnimatedButton>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <AnimatedButton variant="ghost" onClick={() => send({ type: "start-timer", seconds: prompt?.timerSeconds ?? 60 })} disabled={!prompt}>
+              <AnimatedButton variant={autoTimerEnabled ? "secondary" : "ghost"} onClick={toggleAutoTimer} disabled={!prompt}>
                 <Timer className="h-4 w-4" />
-                Custom
+                {autoTimerEnabled ? "Auto On" : "Auto Off"}
               </AnimatedButton>
               <AnimatedButton variant="ghost" onClick={() => send({ type: "reset-timer" })}>
                 <PauseCircle className="h-4 w-4" />

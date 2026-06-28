@@ -734,6 +734,7 @@ function finishRoomSession(room: RoomState) {
   room.selection = null;
   room.currentParticipantId = null;
   room.timerEndsAt = null;
+  room.timerStartedAt = null;
   recalculateStats(room);
 
   for (const client of clients) {
@@ -975,6 +976,7 @@ function movePrompt(room: RoomState, nextIndex: number) {
   room.activePromptIndex = Math.max(0, Math.min(prompts.length - 1, nextIndex));
   room.liveAnswer = null;
   room.timerEndsAt = null;
+  room.timerStartedAt = null;
   return previousIndex !== room.activePromptIndex;
 }
 
@@ -1381,6 +1383,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       }
       room.activePromptIndex = 0;
       room.timerEndsAt = null;
+      room.timerStartedAt = null;
       room.liveAnswer = null;
       room.selection = null;
       room.debriefStartedAt = null;
@@ -1464,6 +1467,21 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       broadcastState(room.code);
       break;
     }
+    case "add-timer-time": {
+      if (client.role !== "host") return;
+      const seconds = Math.max(1, Math.min(600, Number(message.seconds ?? 15)));
+      const now = Date.now();
+      const currentEnd = typeof room.timerEndsAt === "number" && room.timerEndsAt > now ? room.timerEndsAt : null;
+      if (!currentEnd) {
+        room.timerStartedAt = now;
+        room.timerEndsAt = now + seconds * 1000;
+      } else {
+        room.timerStartedAt = room.timerStartedAt ?? now;
+        room.timerEndsAt = currentEnd + seconds * 1000;
+      }
+      broadcastState(room.code);
+      break;
+    }
     case "reset-timer": {
       if (client.role !== "host") return;
       room.timerEndsAt = null;
@@ -1535,6 +1553,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.selection = null;
       room.currentParticipantId = null;
       room.timerEndsAt = null;
+      room.timerStartedAt = null;
       recalculateStats(room);
       broadcastState(room.code);
       break;
@@ -1560,6 +1579,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.selection = null;
       room.currentParticipantId = null;
       room.timerEndsAt = null;
+      room.timerStartedAt = null;
       recalculateStats(room);
       if (!alreadyEnded) {
         saveRoomResult(room).catch((error) => {
@@ -1589,6 +1609,7 @@ function handleSocketMessage(client: WsClient, message: WireMessage) {
       room.status = "ended";
       room.endedAt = room.endedAt ?? new Date().toISOString();
       room.timerEndsAt = null;
+      room.timerStartedAt = null;
       room.selection = null;
       room.currentParticipantId = null;
       room.debriefStartedAt = room.debriefStartedAt ?? Date.now();
