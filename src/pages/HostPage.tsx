@@ -1006,7 +1006,7 @@ export function HostPage() {
         onChooseNext={() => setDismissedStationCompleteId(station?.id ?? null)}
         onStartDebrief={() => send({ type: "show-debrief" })}
       />
-      {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
+      {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} audioEnabled={effectsAudioEnabled} />}
       <Modal open={endConfirmOpen} title="End session?" onClose={() => setEndConfirmOpen(false)}>
         <div className="grid gap-4">
           <p className="text-white/75">

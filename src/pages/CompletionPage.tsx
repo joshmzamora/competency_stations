@@ -127,6 +127,7 @@ export function CompletionPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const role = params.get("role") === "host" ? "host" : "player";
+  const audioEnabled = role === "host";
   const { setNavHidden } = useAppChrome();
   const [showFinal, setShowFinal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -144,7 +145,7 @@ export function CompletionPage() {
 
   useEffect(() => {
     const audio = congratulationsAudioRef.current;
-    if (!audio || showFinal) return;
+    if (!audio || showFinal || !audioEnabled) return;
 
     audio.loop = false;
     audio.volume = congratulationsAudioVolume;
@@ -161,11 +162,11 @@ export function CompletionPage() {
       audio.pause();
       audio.currentTime = 0;
     };
-  }, [showFinal]);
+  }, [audioEnabled, showFinal]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !showFinal) return;
+    if (!audio || !showFinal || !audioEnabled) return;
 
     audio.loop = true;
     audio.volume = completionAudioVolume;
@@ -182,7 +183,7 @@ export function CompletionPage() {
       audio.pause();
       audio.currentTime = 0;
     };
-  }, [showFinal]);
+  }, [audioEnabled, showFinal]);
 
   function returnToPlayerScreen() {
     try {

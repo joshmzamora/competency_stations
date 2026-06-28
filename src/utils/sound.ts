@@ -10,7 +10,7 @@ const audioEnabledByRole: Record<AudioRole, Record<AudioChannel, boolean>> = {
     tracks: true
   },
   player: {
-    effects: true,
+    effects: false,
     tracks: false
   }
 };

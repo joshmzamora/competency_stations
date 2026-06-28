@@ -818,7 +818,7 @@ export function PlayerPage() {
         open={localIntroVisible}
         role="player"
         audioEffectsEnabled={effectsAudioEnabled}
-        audioTracksEnabled
+        audioTracksEnabled={trackAudioEnabled}
         localPlayback
         sceneCount={6}
         finishMode="patient"
@@ -893,7 +893,7 @@ export function PlayerPage() {
           stationTitle={station?.title ?? "Station"}
           summary={stationCompleteSummary}
         />
-        {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} />}
+        {activePromptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} audioEnabled={effectsAudioEnabled} />}
         <SessionDebrief room={room ?? null} role="player" audioEnabled={trackAudioEnabled} />
     </section>
   );

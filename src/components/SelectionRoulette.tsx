@@ -117,17 +117,21 @@ function playChosen(context: AudioContext) {
   });
 }
 
-function useRouletteAudio(selection: SelectionState | null, progress: number, reelPosition: number, resultVisible: boolean) {
+function useRouletteAudio(selection: SelectionState | null, progress: number, reelPosition: number, resultVisible: boolean, audioEnabled = true) {
   const contextRef = useRef<AudioContext | null>(null);
   const lastTickRef = useRef(-1);
   const chosenPlayedRef = useRef(false);
   const selectionKeyRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!selection) {
+    if (!selection || !audioEnabled) {
       lastTickRef.current = -1;
       chosenPlayedRef.current = false;
       selectionKeyRef.current = null;
+      if (!audioEnabled && contextRef.current) {
+        void contextRef.current.close().catch(() => undefined);
+        contextRef.current = null;
+      }
       return;
     }
 
@@ -138,10 +142,10 @@ function useRouletteAudio(selection: SelectionState | null, progress: number, re
       if (!contextRef.current) contextRef.current = getAudioContext();
       contextRef.current?.resume().catch(() => undefined);
     }
-  }, [selection]);
+  }, [audioEnabled, selection]);
 
   useEffect(() => {
-    if (!selection || !contextRef.current) return;
+    if (!audioEnabled || !selection || !contextRef.current) return;
     const context = contextRef.current;
     const tickIndex = Math.floor(reelPosition * 1.05);
     if (!resultVisible && tickIndex !== lastTickRef.current) {
@@ -152,7 +156,7 @@ function useRouletteAudio(selection: SelectionState | null, progress: number, re
       chosenPlayedRef.current = true;
       playChosen(context);
     }
-  }, [progress, reelPosition, resultVisible, selection]);
+  }, [audioEnabled, progress, reelPosition, resultVisible, selection]);
 }
 
 const RouletteBar = memo(function RouletteBar({ players, reelPosition }: { players: PlayerState[]; reelPosition: number }) {
@@ -260,12 +264,14 @@ export function SelectionRoulette({
   selection,
   serverTime,
   players,
-  clientId
+  clientId,
+  audioEnabled = true
 }: {
   selection: SelectionState | null;
   serverTime?: number;
   players: PlayerState[];
   clientId: string;
+  audioEnabled?: boolean;
 }) {
   const [elapsed, setElapsed] = useState(0);
   const offsetRef = useRef(0);
@@ -335,7 +341,7 @@ export function SelectionRoulette({
     return resultVisible ? totalDistance : easeOutCubic(progress) * totalDistance;
   })();
 
-  useRouletteAudio(selection, progress, reelPosition, resultVisible);
+  useRouletteAudio(selection, progress, reelPosition, resultVisible, audioEnabled);
 
   if (!selection) return null;
 
