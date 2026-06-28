@@ -15,8 +15,16 @@ export function CountdownTimer({
   audioEnabled?: boolean;
 }) {
   const [localNow, setLocalNow] = useState(Date.now());
-  const localServerOffsetRef = useRef(0);
+  const localServerClockRef = useRef<{ serverTime?: number; offset: number }>({ offset: 0 });
   const lastTickRef = useRef<number | null>(null);
+
+  const renderNow = Date.now();
+  if (localServerClockRef.current.serverTime !== serverTime) {
+    localServerClockRef.current = {
+      serverTime,
+      offset: serverTime ? renderNow - serverTime : 0
+    };
+  }
 
   useEffect(() => {
     if (!endsAt) {
@@ -27,27 +35,28 @@ export function CountdownTimer({
     return () => window.clearInterval(interval);
   }, [endsAt]);
 
-  useEffect(() => {
-    localServerOffsetRef.current = serverTime ? Date.now() - serverTime : 0;
-  }, [serverTime]);
+  const duration = startedAt && endsAt ? Math.max(1, endsAt - startedAt) : 30000;
+  const durationSeconds = Math.max(1, Math.ceil(duration / 1000));
+  const syncedNow = Math.max(localNow, renderNow) - localServerClockRef.current.offset;
+  const visibleRemaining = (now: number) => {
+    if (!endsAt) return 0;
+    return Math.min(durationSeconds, Math.max(0, Math.ceil((endsAt - now) / 1000)));
+  };
+  const remaining = visibleRemaining(syncedNow);
+  const percent = useMemo(() => (endsAt ? Math.max(0, Math.min(100, ((endsAt - syncedNow) / duration) * 100)) : 0), [duration, endsAt, syncedNow]);
 
   useEffect(() => {
     if (!endsAt) {
       lastTickRef.current = null;
       return;
     }
-    const currentServerNow = Date.now() - localServerOffsetRef.current;
-    lastTickRef.current = Math.max(0, Math.ceil((endsAt - currentServerNow) / 1000));
-  }, [endsAt]);
-
-  const syncedNow = localNow - localServerOffsetRef.current;
-  const remaining = Math.max(0, Math.ceil(((endsAt ?? syncedNow) - syncedNow) / 1000));
-  const duration = startedAt && endsAt ? endsAt - startedAt : 30000;
-  const percent = useMemo(() => (endsAt ? Math.max(0, Math.min(100, ((endsAt - syncedNow) / duration) * 100)) : 0), [duration, endsAt, syncedNow]);
+    const currentServerNow = Date.now() - localServerClockRef.current.offset;
+    lastTickRef.current = visibleRemaining(currentServerNow);
+  }, [durationSeconds, endsAt]);
 
   useEffect(() => {
     if (!endsAt) return;
-    const currentRemaining = Math.max(0, Math.ceil((endsAt - syncedNow) / 1000));
+    const currentRemaining = visibleRemaining(syncedNow);
     if (lastTickRef.current !== currentRemaining) {
       lastTickRef.current = currentRemaining;
       if (!audioEnabled) return;
