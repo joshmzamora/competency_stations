@@ -3,10 +3,9 @@ import { Circle, Home, RotateCcw, Sparkles, Square, Star, Triangle, Umbrella } f
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { useAppChrome } from "../context/ChromeContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { playEndScreenTrack, stopEndScreenTrack } from "../utils/endScreenAudio";
 
-const completionAudioSrc = "/audio/squid_game_theme.mp3";
-const congratulationsAudioSrc = "/audio/confetti_and_cheers.mp3";
 const completionAudioVolume = 0.14;
 const congratulationsAudioVolume = 0.42;
 const congratulationsMs = 2400;
@@ -130,8 +129,6 @@ export function CompletionPage() {
   const audioEnabled = role === "host";
   const { setNavHidden } = useAppChrome();
   const [showFinal, setShowFinal] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const congratulationsAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setNavHidden(true);
@@ -144,14 +141,10 @@ export function CompletionPage() {
   }, []);
 
   useEffect(() => {
-    const audio = congratulationsAudioRef.current;
-    if (!audio || showFinal || !audioEnabled) return;
+    if (showFinal || !audioEnabled) return;
 
-    audio.loop = false;
-    audio.volume = congratulationsAudioVolume;
     const playAudio = () => {
-      const playPromise = audio.play();
-      if (playPromise) playPromise.catch(() => undefined);
+      playEndScreenTrack("congratulations", { volume: congratulationsAudioVolume });
     };
     playAudio();
     window.addEventListener("pointerdown", playAudio);
@@ -159,20 +152,15 @@ export function CompletionPage() {
     return () => {
       window.removeEventListener("pointerdown", playAudio);
       window.removeEventListener("keydown", playAudio);
-      audio.pause();
-      audio.currentTime = 0;
+      stopEndScreenTrack("congratulations");
     };
   }, [audioEnabled, showFinal]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !showFinal || !audioEnabled) return;
+    if (!showFinal || !audioEnabled) return;
 
-    audio.loop = true;
-    audio.volume = completionAudioVolume;
     const playAudio = () => {
-      const playPromise = audio.play();
-      if (playPromise) playPromise.catch(() => undefined);
+      playEndScreenTrack("theme", { loop: true, volume: completionAudioVolume });
     };
     playAudio();
     window.addEventListener("pointerdown", playAudio);
@@ -180,8 +168,7 @@ export function CompletionPage() {
     return () => {
       window.removeEventListener("pointerdown", playAudio);
       window.removeEventListener("keydown", playAudio);
-      audio.pause();
-      audio.currentTime = 0;
+      stopEndScreenTrack("theme");
     };
   }, [audioEnabled, showFinal]);
 
@@ -197,8 +184,6 @@ export function CompletionPage() {
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#070708] px-4 text-center text-white">
-      <audio ref={congratulationsAudioRef} src={congratulationsAudioSrc} preload="auto" />
-      <audio ref={audioRef} src={completionAudioSrc} preload="auto" />
       {!showFinal && <CongratulationsTransition />}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(255,48,77,0.16),transparent_34%),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:auto,70px_70px,70px_70px]" />
       <div className="relative mx-auto grid min-h-screen max-w-6xl grid-rows-[auto_auto_auto] content-center gap-4 py-4">

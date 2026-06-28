@@ -1,12 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Circle, Download, Flag, Medal, PartyPopper, Sparkles, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { stations } from "../data/stations";
 import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from "../types";
+import { playEndScreenTrack, stopEndScreenTrack } from "../utils/endScreenAudio";
 import { AnimatedButton } from "./AnimatedButton";
 
-const debriefAudioSrc = "/audio/squid_game_theme.mp3";
-const closingCongratulationsAudioSrc = "/audio/confetti_and_cheers.mp3";
 const debriefAudioVolume = 0.12;
 const closingCongratulationsAudioVolume = 0.42;
 const closingCongratulationsMs = 2400;
@@ -243,41 +242,27 @@ export function SessionDebrief({
   const report = buildMissedQuestionReport(room);
   const focusedMiss = report.missed.find((item) => item.id === room?.debriefFocusedPromptId);
   const missedExpanded = Boolean(room?.debriefMissedExpanded);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const closingCongratulationsAudioRef = useRef<HTMLAudioElement | null>(null);
   const [closingFinalVisible, setClosingFinalVisible] = useState(false);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
     if (!audioEnabled || (!debriefOpen && !closingOpen)) {
-      audio.pause();
-      audio.currentTime = 0;
+      stopEndScreenTrack("theme");
       return;
     }
 
-    audio.loop = true;
-    audio.volume = debriefAudioVolume;
-    const playPromise = audio.play();
-    if (playPromise) playPromise.catch(() => undefined);
+    playEndScreenTrack("theme", { loop: true, volume: debriefAudioVolume });
 
     return () => {
       if (debriefOpen || closingOpen) return;
-      audio.pause();
-      audio.currentTime = 0;
+      stopEndScreenTrack("theme");
     };
   }, [audioEnabled, closingOpen, debriefOpen]);
 
   useEffect(() => {
-    const audio = closingCongratulationsAudioRef.current;
-    if (!audio || !closingOpen || closingFinalVisible || !audioEnabled) return;
+    if (!closingOpen || closingFinalVisible || !audioEnabled) return;
 
-    audio.loop = false;
-    audio.volume = closingCongratulationsAudioVolume;
     const playAudio = () => {
-      const playPromise = audio.play();
-      if (playPromise) playPromise.catch(() => undefined);
+      playEndScreenTrack("congratulations", { volume: closingCongratulationsAudioVolume });
     };
     playAudio();
     window.addEventListener("pointerdown", playAudio);
@@ -285,8 +270,7 @@ export function SessionDebrief({
     return () => {
       window.removeEventListener("pointerdown", playAudio);
       window.removeEventListener("keydown", playAudio);
-      audio.pause();
-      audio.currentTime = 0;
+      stopEndScreenTrack("congratulations");
     };
   }, [audioEnabled, closingFinalVisible, closingOpen]);
 
@@ -302,8 +286,6 @@ export function SessionDebrief({
 
   return (
     <>
-      <audio ref={closingCongratulationsAudioRef} src={closingCongratulationsAudioSrc} preload="auto" />
-      <audio ref={audioRef} src={debriefAudioSrc} preload="auto" />
       <AnimatePresence>
         {debriefOpen && room ? (
           <motion.div

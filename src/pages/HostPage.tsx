@@ -38,6 +38,7 @@ import { stations } from "../data/stations";
 import { useRoomSocket } from "../hooks/useRoomSocket";
 import type { CompetencyPrompt, CompetencyStation, EvaluationStatus, PlayerShape, PlayerState, PromptEvaluation, RoomState } from "../types";
 import { downloadFile } from "../utils/results";
+import { playEndScreenTrack } from "../utils/endScreenAudio";
 import { isAudioEnabledForRole, playTimesUpCue } from "../utils/sound";
 import { prepareVoiceoverEngine } from "../utils/voiceover";
 import { TimesUpEffect } from "../components/TimesUpEffect";
@@ -702,6 +703,17 @@ export function HostPage() {
     send({ type: "end-game", promptIds: stations.flatMap((item) => item.prompts.map((stationPrompt) => stationPrompt.id)) });
   }
 
+  function startDebriefAudio() {
+    if (!trackAudioEnabled) return;
+    playEndScreenTrack("theme", { loop: true, volume: 0.12 });
+  }
+
+  function startClosingAudio() {
+    if (!trackAudioEnabled) return;
+    playEndScreenTrack("theme", { loop: true, volume: 0.14 });
+    playEndScreenTrack("congratulations", { volume: 0.42, restart: true });
+  }
+
   return (
     <section className="w-full max-w-none px-3 py-6 sm:px-4 lg:px-5">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -1059,7 +1071,10 @@ export function HostPage() {
         summary={stationCompleteSummary}
         allStationsComplete={allStationsComplete}
         onChooseNext={() => setDismissedStationCompleteId(station?.id ?? null)}
-        onStartDebrief={() => send({ type: "show-debrief" })}
+        onStartDebrief={() => {
+          startDebriefAudio();
+          send({ type: "show-debrief" });
+        }}
       />
       {promptUsesSelection && <SelectionRoulette selection={room?.selection ?? null} serverTime={room?.serverTime} players={room?.players ?? []} clientId={clientId} audioEnabled={effectsAudioEnabled} />}
       <Modal open={endConfirmOpen} title="End session?" onClose={() => setEndConfirmOpen(false)}>
@@ -1075,6 +1090,7 @@ export function HostPage() {
               variant="danger"
               onClick={() => {
                 setEndConfirmOpen(false);
+                startClosingAudio();
                 endSession();
               }}
             >
@@ -1088,8 +1104,14 @@ export function HostPage() {
         role="host"
         audioEnabled={trackAudioEnabled}
         onDownload={downloadMissedReport}
-        onClosing={() => send({ type: "show-closing" })}
-        onEnd={() => send({ type: "finish-session" })}
+        onClosing={() => {
+          startClosingAudio();
+          send({ type: "show-closing" });
+        }}
+        onEnd={() => {
+          startClosingAudio();
+          send({ type: "finish-session" });
+        }}
         onDebriefViewChange={(view) => send({ type: "set-debrief-view", ...view })}
       />
     </section>
