@@ -3,7 +3,13 @@ import { Circle, Home, RotateCcw, Sparkles, Square, Star, Triangle, Umbrella } f
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatedButton } from "../components/AnimatedButton";
 import { useAppChrome } from "../context/ChromeContext";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const completionAudioSrc = "/audio/squid_game_theme.mp3";
+const congratulationsAudioSrc = "/audio/confetti_and_cheers.mp3";
+const completionAudioVolume = 0.14;
+const congratulationsAudioVolume = 0.42;
+const congratulationsMs = 2400;
 
 const shapes = [
   { kind: "shape", label: "triangle", Icon: Triangle, className: "text-trauma", band: "top", left: "8%", top: "18%", rotate: -8, delay: 0 },
@@ -63,16 +69,120 @@ function ScatterBand({ band }: { band: "top" | "bottom" }) {
   );
 }
 
+const confettiPieces = Array.from({ length: 42 }, (_, index) => ({
+  id: index,
+  left: `${(index * 23) % 100}%`,
+  delay: (index % 9) * 0.08,
+  duration: 1.55 + (index % 6) * 0.12,
+  rotate: (index % 2 === 0 ? 1 : -1) * (120 + index * 13),
+  color: ["bg-trauma", "bg-scrub", "bg-monitor", "bg-amber", "bg-white"][index % 5]
+}));
+
+function ConfettiBurst() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {confettiPieces.map((piece) => (
+        <motion.span
+          key={piece.id}
+          className={`absolute top-[-12%] h-4 w-2 rounded-sm ${piece.color}`}
+          style={{ left: piece.left }}
+          initial={{ y: "-10vh", opacity: 0, rotate: 0 }}
+          animate={{ y: "118vh", opacity: [0, 1, 1, 0], rotate: piece.rotate }}
+          transition={{ duration: piece.duration, delay: piece.delay, ease: "easeOut" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CongratulationsTransition() {
+  return (
+    <motion.section
+      key="congratulations-transition"
+      className="fixed inset-0 z-30 grid place-items-center overflow-hidden bg-[#050607] px-4 text-center text-white"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.28 }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,176,32,0.2),transparent_34%),radial-gradient(circle_at_50%_72%,rgba(36,245,199,0.11),transparent_40%)]" />
+      <ConfettiBurst />
+      <motion.div
+        initial={{ opacity: 0, y: 28, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 1.02 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative grid justify-items-center gap-5"
+      >
+        <div className="grid h-20 w-20 place-items-center rounded-full border border-amber/35 bg-amber/10 text-amber shadow-[0_0_44px_rgba(255,176,32,0.22)]">
+          <Sparkles className="h-10 w-10" />
+        </div>
+        <h1 className="font-display text-[clamp(4rem,12vw,11rem)] font-black uppercase leading-none text-white">Congratulations!</h1>
+      </motion.div>
+    </motion.section>
+  );
+}
+
 export function CompletionPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const role = params.get("role") === "host" ? "host" : "player";
   const { setNavHidden } = useAppChrome();
+  const [showFinal, setShowFinal] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const congratulationsAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setNavHidden(true);
     return () => setNavHidden(false);
   }, [setNavHidden]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowFinal(true), congratulationsMs);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const audio = congratulationsAudioRef.current;
+    if (!audio || showFinal) return;
+
+    audio.loop = false;
+    audio.volume = congratulationsAudioVolume;
+    const playAudio = () => {
+      const playPromise = audio.play();
+      if (playPromise) playPromise.catch(() => undefined);
+    };
+    playAudio();
+    window.addEventListener("pointerdown", playAudio);
+    window.addEventListener("keydown", playAudio);
+    return () => {
+      window.removeEventListener("pointerdown", playAudio);
+      window.removeEventListener("keydown", playAudio);
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [showFinal]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !showFinal) return;
+
+    audio.loop = true;
+    audio.volume = completionAudioVolume;
+    const playAudio = () => {
+      const playPromise = audio.play();
+      if (playPromise) playPromise.catch(() => undefined);
+    };
+    playAudio();
+    window.addEventListener("pointerdown", playAudio);
+    window.addEventListener("keydown", playAudio);
+    return () => {
+      window.removeEventListener("pointerdown", playAudio);
+      window.removeEventListener("keydown", playAudio);
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [showFinal]);
 
   function returnToPlayerScreen() {
     try {
@@ -86,6 +196,9 @@ export function CompletionPage() {
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#070708] px-4 text-center text-white">
+      <audio ref={congratulationsAudioRef} src={congratulationsAudioSrc} preload="auto" />
+      <audio ref={audioRef} src={completionAudioSrc} preload="auto" />
+      {!showFinal && <CongratulationsTransition />}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(255,48,77,0.16),transparent_34%),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:auto,70px_70px,70px_70px]" />
       <div className="relative mx-auto grid min-h-screen max-w-6xl grid-rows-[auto_auto_auto] content-center gap-4 py-4">
         <ScatterBand band="top" />
@@ -96,23 +209,16 @@ export function CompletionPage() {
           className="relative z-10 mx-auto grid w-full max-w-4xl place-items-center rounded-md border border-white/10 bg-black/72 px-6 py-10 shadow-[0_0_100px_rgba(255,48,77,0.16)] md:px-12 md:py-14"
         >
           <motion.img
-            src="/favicon.png"
+            src="/images/new_favicon.png"
             alt="Competency Stations"
-            className="h-24 w-24 rounded-2xl border border-white/15 bg-white p-2 shadow-[0_0_44px_rgba(255,255,255,0.18)]"
+            className="h-52 w-52 object-contain md:h-72 md:w-72"
             initial={{ rotate: -8, scale: 0.8 }}
             animate={{ rotate: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 180, damping: 14, delay: 0.15 }}
           />
-          <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-amber/30 bg-amber/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.22em] text-amber">
-            <Sparkles className="h-4 w-4" />
-            Session closed
-          </div>
           <h1 className="mt-5 font-display text-5xl font-black uppercase leading-none md:text-7xl">
-            Competency Stations Completed!
+            Enjoy your Squid Game cookies!
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-xl leading-8 text-white/68">
-            The room is closed, results are saved, and the final treat is officially unlocked.
-          </p>
           <motion.div
             className="mt-8"
             animate={{ y: [0, -8, 0], rotate: [0, 3, 0] }}
@@ -125,11 +231,7 @@ export function CompletionPage() {
               <Home className="h-4 w-4" />
               Return to home
             </AnimatedButton>
-          ) : (
-            <div className="mt-9 rounded-md border border-scrub/25 bg-scrub/10 px-5 py-3 font-display text-sm font-black uppercase tracking-[0.16em] text-scrub">
-              Enjoy your cookies.
-            </div>
-          )}
+          ) : null}
         </motion.div>
         <ScatterBand band="bottom" />
       </div>

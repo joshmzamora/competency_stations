@@ -1,12 +1,15 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Circle, Download, Flag, Medal, PartyPopper, ShieldCheck, Square, Star, Triangle, Umbrella } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Circle, Download, Flag, Medal, PartyPopper, Sparkles, Square, Star, Triangle, Umbrella } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { stations } from "../data/stations";
 import type { EvaluationStatus, PlayerShape, PromptEvaluation, RoomState } from "../types";
 import { AnimatedButton } from "./AnimatedButton";
 
 const debriefAudioSrc = "/audio/squid_game_theme.mp3";
+const closingCongratulationsAudioSrc = "/audio/confetti_and_cheers.mp3";
 const debriefAudioVolume = 0.12;
+const closingCongratulationsAudioVolume = 0.42;
+const closingCongratulationsMs = 2400;
 
 function publicName(name?: string) {
   if (!name) return "Participant";
@@ -78,6 +81,53 @@ function ClosingScatterBand({ band }: { band: "top" | "bottom" }) {
         </motion.div>
       ))}
     </div>
+  );
+}
+
+const closingConfetti = Array.from({ length: 36 }, (_, index) => ({
+  id: index,
+  left: `${(index * 29) % 100}%`,
+  delay: (index % 8) * 0.08,
+  duration: 1.5 + (index % 5) * 0.14,
+  rotate: (index % 2 === 0 ? 1 : -1) * (120 + index * 11),
+  color: ["bg-trauma", "bg-scrub", "bg-monitor", "bg-amber", "bg-white"][index % 5]
+}));
+
+function ClosingCongratulations() {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[245] grid place-items-center overflow-hidden bg-[#050607] px-4 text-center text-white"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.28 }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,176,32,0.2),transparent_34%),radial-gradient(circle_at_50%_72%,rgba(36,245,199,0.11),transparent_40%)]" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {closingConfetti.map((piece) => (
+          <motion.span
+            key={piece.id}
+            className={`absolute top-[-12%] h-4 w-2 rounded-sm ${piece.color}`}
+            style={{ left: piece.left }}
+            initial={{ y: "-10vh", opacity: 0, rotate: 0 }}
+            animate={{ y: "118vh", opacity: [0, 1, 1, 0], rotate: piece.rotate }}
+            transition={{ duration: piece.duration, delay: piece.delay, ease: "easeOut" }}
+          />
+        ))}
+      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 28, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 1.02 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative grid justify-items-center gap-5"
+      >
+        <div className="grid h-20 w-20 place-items-center rounded-full border border-amber/35 bg-amber/10 text-amber shadow-[0_0_44px_rgba(255,176,32,0.22)]">
+          <Sparkles className="h-10 w-10" />
+        </div>
+        <h2 className="font-display text-[clamp(4rem,12vw,11rem)] font-black uppercase leading-none text-white">Congratulations!</h2>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -194,6 +244,8 @@ export function SessionDebrief({
   const focusedMiss = report.missed.find((item) => item.id === room?.debriefFocusedPromptId);
   const missedExpanded = Boolean(room?.debriefMissedExpanded);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const closingCongratulationsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [closingFinalVisible, setClosingFinalVisible] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -217,8 +269,40 @@ export function SessionDebrief({
     };
   }, [audioEnabled, closingOpen, debriefOpen]);
 
+  useEffect(() => {
+    const audio = closingCongratulationsAudioRef.current;
+    if (!audio || !closingOpen || closingFinalVisible || !audioEnabled) return;
+
+    audio.loop = false;
+    audio.volume = closingCongratulationsAudioVolume;
+    const playAudio = () => {
+      const playPromise = audio.play();
+      if (playPromise) playPromise.catch(() => undefined);
+    };
+    playAudio();
+    window.addEventListener("pointerdown", playAudio);
+    window.addEventListener("keydown", playAudio);
+    return () => {
+      window.removeEventListener("pointerdown", playAudio);
+      window.removeEventListener("keydown", playAudio);
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [audioEnabled, closingFinalVisible, closingOpen]);
+
+  useEffect(() => {
+    if (!closingOpen) {
+      setClosingFinalVisible(false);
+      return;
+    }
+    setClosingFinalVisible(false);
+    const timeout = window.setTimeout(() => setClosingFinalVisible(true), closingCongratulationsMs);
+    return () => window.clearTimeout(timeout);
+  }, [closingOpen]);
+
   return (
     <>
+      <audio ref={closingCongratulationsAudioRef} src={closingCongratulationsAudioSrc} preload="auto" />
       <audio ref={audioRef} src={debriefAudioSrc} preload="auto" />
       <AnimatePresence>
         {debriefOpen && room ? (
@@ -372,6 +456,7 @@ export function SessionDebrief({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
+            {!closingFinalVisible && <ClosingCongratulations />}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,176,32,0.12),transparent_34%),radial-gradient(circle_at_50%_75%,rgba(110,247,255,0.08),transparent_42%)]" />
             <div className="relative mx-auto grid min-h-screen max-w-6xl grid-rows-[auto_auto_auto] content-center gap-4 py-4">
               <ClosingScatterBand band="top" />
@@ -381,22 +466,17 @@ export function SessionDebrief({
                 transition={{ duration: 0.55, delay: 0.25 }}
                 className="relative z-10 mx-auto max-w-4xl rounded-md border border-white/10 bg-black/70 p-8 shadow-[0_0_90px_rgba(255,48,77,0.18)] md:p-12"
               >
-                <ShieldCheck className="mx-auto h-12 w-12 text-scrub" />
-                <div className="mt-5 font-display text-xs font-black uppercase tracking-[0.32em] text-monitor">Simulation complete</div>
-                <h2 className="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Debrief Finished</h2>
+                <img
+                  src="/images/new_favicon.png"
+                  alt=""
+                  className="mx-auto h-52 w-52 object-contain md:h-72 md:w-72"
+                />
+                <h2 className="mt-5 font-display text-5xl font-black uppercase leading-none md:text-7xl">Enjoy your Squid Game cookies!</h2>
                 <div className="mx-auto mt-5 flex justify-center">
                   <motion.div animate={{ rotate: [0, -4, 4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
                     <CookieDisk />
                   </motion.div>
                 </div>
-                <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold leading-9 text-white/78">
-                  Enjoy your Squid Game cookies.
-                </p>
-                {role === "host" && (
-                  <p className="mx-auto mt-4 max-w-2xl text-white/50">
-                    Facilitator: distribute cookies, answer final questions, and thank the team for completing the competency stations.
-                  </p>
-                )}
                 {role === "host" && (
                   <div className="mx-auto mt-7 grid max-w-md gap-2 sm:grid-cols-2">
                     <AnimatedButton variant="ghost" onClick={onDownload}>
