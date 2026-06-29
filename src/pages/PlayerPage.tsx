@@ -601,13 +601,18 @@ export function PlayerPage() {
     const currentStartedAt = room?.protocolIntroStartedAt ?? null;
     const previousStartedAt = protocolIntroStartedAtRef.current;
     protocolIntroStartedAtRef.current = currentStartedAt;
-    if (!previousStartedAt || currentStartedAt || room?.status !== "in-progress" || introVisible || !station) return;
+    if (!previousStartedAt || currentStartedAt || room?.status !== "in-progress" || introVisible || !stationId) return;
 
     setProtocolIntroSeenAt(previousStartedAt);
     setStationTransitionVisible(true);
     const timeout = window.setTimeout(() => setStationTransitionVisible(false), 3600);
     return () => window.clearTimeout(timeout);
-  }, [introVisible, room?.protocolIntroStartedAt, room?.status, station]);
+  }, [introVisible, room?.protocolIntroStartedAt, room?.status, stationId]);
+
+  useEffect(() => {
+    if (!room?.selection) return;
+    setStationTransitionVisible(false);
+  }, [room?.selection?.startedAt]);
 
   const closeIntro = useCallback(() => {
     setIntroKeySeen(introKey);
