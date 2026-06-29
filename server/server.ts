@@ -118,7 +118,7 @@ const protocolParticipantSpinMs = 1400;
 const protocolParticipantNarrationDelayMs = 700;
 const protocolParticipantPostNarrationHoldMs = 600;
 const protocolSummaryNarrationPauseMs = 500;
-const protocolSummaryPostNarrationHoldMs = 1000;
+const protocolSummaryPostNarrationHoldMs = 3000;
 const protocolStationTransitionMs = 3600;
 const protocolOpeningNarration = "Shape selection begins.";
 
@@ -146,16 +146,21 @@ function protocolSummaryOpeningNarration() {
   return "All shapes are assigned.";
 }
 
-function protocolSummaryRosterNarration(players: PlayerState[]) {
-  const roster = players.map((player) => `${protocolPublicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-  return `${roster}. Stand by for the first station. Good luck players.`;
+function protocolSummaryStandbyNarration() {
+  return "Stand by for the first station.";
+}
+
+function protocolSummaryGoodLuckNarration() {
+  return "Good luck players.";
 }
 
 function protocolAssignmentDurationMs(players: PlayerState[]) {
   const summaryMs =
     estimateServerVoiceoverMs(protocolSummaryOpeningNarration(), 0.8) +
     protocolSummaryNarrationPauseMs +
-    estimateServerVoiceoverMs(protocolSummaryRosterNarration(players), 0.8) +
+    estimateServerVoiceoverMs(protocolSummaryStandbyNarration(), 0.8) +
+    protocolSummaryNarrationPauseMs +
+    estimateServerVoiceoverMs(protocolSummaryGoodLuckNarration(), 0.8) +
     protocolSummaryPostNarrationHoldMs;
   const visualDuration = protocolOpeningMs + protocolSegmentMs(players) * Math.max(1, players.length) + summaryMs;
   return estimateServerVoiceoverMs(protocolOpeningNarration, 0.8) + 150 + visualDuration;

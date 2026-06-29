@@ -13,7 +13,7 @@ const participantSpinMs = 1400;
 const participantNarrationDelayMs = 700;
 const participantPostNarrationHoldMs = 600;
 const summaryNarrationPauseMs = 500;
-const summaryPostNarrationHoldMs = 1000;
+const summaryPostNarrationHoldMs = 3000;
 const visualTickMs = 160;
 const audioSyncMs = 500;
 const openingNarrationText = "Shape selection begins.";
@@ -90,17 +90,21 @@ function summaryOpeningNarrationText() {
   return "All shapes are assigned.";
 }
 
-function summaryRosterNarrationText(players: PlayerState[]) {
-  const roster = players.map((player) => `${publicName(player.name)} is ${player.shape ?? "pending"}`).join(". ");
-  //return `${roster}. Stand by for the first station. Good luck players.`; //says player is ____
-  return `Stand by for the first station. Good luck players.`;
+function summaryStandbyNarrationText() {
+  return "Stand by for the first station.";
+}
+
+function summaryGoodLuckNarrationText() {
+  return "Good luck players.";
 }
 
 function summaryMs(players: PlayerState[]) {
   return (
     estimateVoiceoverMs(summaryOpeningNarrationText(), 0.8) +
     summaryNarrationPauseMs +
-    estimateVoiceoverMs(summaryRosterNarrationText(players), 0.8) +
+    estimateVoiceoverMs(summaryStandbyNarrationText(), 0.8) +
+    summaryNarrationPauseMs +
+    estimateVoiceoverMs(summaryGoodLuckNarrationText(), 0.8) +
     summaryPostNarrationHoldMs
   );
 }
@@ -115,6 +119,16 @@ function protocolDuration(players: PlayerState[]) {
 
 function summaryStartsAt(players: PlayerState[]) {
   return openingMs + segmentMs(players) * Math.max(1, players.length);
+}
+
+function goodLuckStartsAt(players: PlayerState[]) {
+  return (
+    summaryStartsAt(players) +
+    estimateVoiceoverMs(summaryOpeningNarrationText(), 0.8) +
+    summaryNarrationPauseMs +
+    estimateVoiceoverMs(summaryStandbyNarrationText(), 0.8) +
+    summaryNarrationPauseMs
+  );
 }
 
 function revealAt(index: number, players: PlayerState[]) {
@@ -341,10 +355,13 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     }
   }
 
-  function showGoodLuckAndFinish() {
+  function showGoodLuckScreen() {
+    setGoodLuckVisible(true);
+  }
+
+  function finishAfterGoodLuckHold() {
     if (completedRef.current) return;
     if (goodLuckTimeoutRef.current) return;
-    setGoodLuckVisible(true);
     goodLuckTimeoutRef.current = window.setTimeout(() => {
       goodLuckTimeoutRef.current = null;
       finishProtocolIntro();
@@ -374,7 +391,13 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     playAssignmentVoiceover(summaryOpeningNarrationText(), () => {
       summaryPauseTimeoutRef.current = window.setTimeout(() => {
         summaryPauseTimeoutRef.current = null;
-        playAssignmentVoiceover(summaryRosterNarrationText(players), showGoodLuckAndFinish);
+        playAssignmentVoiceover(summaryStandbyNarrationText(), () => {
+          summaryPauseTimeoutRef.current = window.setTimeout(() => {
+            summaryPauseTimeoutRef.current = null;
+            showGoodLuckScreen();
+            playAssignmentVoiceover(summaryGoodLuckNarrationText(), finishAfterGoodLuckHold);
+          }, summaryNarrationPauseMs);
+        });
       }, summaryNarrationPauseMs);
     });
   }
@@ -403,9 +426,13 @@ function syncAssignmentAudio(audio: HTMLAudioElement) {
     const tick = () => {
       const nextElapsed = getSyncedElapsed();
       const totalMs = protocolDuration(players);
+      const nextVisualElapsed = Math.max(0, nextElapsed - openingNarrationHoldMs);
       setElapsed(nextElapsed);
+      if (nextVisualElapsed >= goodLuckStartsAt(players)) {
+        showGoodLuckScreen();
+      }
       if (nextElapsed >= totalMs && !completedRef.current) {
-        showGoodLuckAndFinish();
+        finishProtocolIntro();
       }
     };
 
