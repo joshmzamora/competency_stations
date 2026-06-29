@@ -390,6 +390,7 @@ export function PlayerPage() {
   const reconnectAttemptedForClientRef = useRef("");
   const effectsAudioEnabled = isAudioEnabledForRole("player", "effects");
   const trackAudioEnabled = isAudioEnabledForRole("player", "tracks");
+  const introAudioEnabled = true;
 
   const station = room?.selectedStation as PlayerStation | null | undefined;
   const prompt = station?.prompts[room?.activePromptIndex ?? 0];
@@ -818,7 +819,7 @@ export function PlayerPage() {
         open={localIntroVisible}
         role="player"
         audioEffectsEnabled={effectsAudioEnabled}
-        audioTracksEnabled={trackAudioEnabled}
+        audioTracksEnabled={introAudioEnabled}
         localPlayback
         sceneCount={6}
         finishMode="patient"
@@ -859,7 +860,7 @@ export function PlayerPage() {
           open={introVisible}
           role="player"
           audioEffectsEnabled={effectsAudioEnabled}
-          audioTracksEnabled={trackAudioEnabled}
+          audioTracksEnabled={introAudioEnabled}
           startedAt={room?.introStartedAt}
           introSceneIndex={room?.introSceneIndex ?? 0}
           introSceneStartedAt={room?.introSceneStartedAt}
