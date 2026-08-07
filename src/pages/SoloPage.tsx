@@ -13,7 +13,7 @@ import {
   TimerReset,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
@@ -257,7 +257,7 @@ export function SoloPage() {
         <main className="rounded-md border border-white/10 bg-black/40 p-5 md:p-7">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md border border-monitor/30 bg-monitor/10 px-3 py-1.5 font-display text-[10px] font-black uppercase tracking-[0.16em] text-monitor">
-              {prompt.type.replaceAll("-", " ")}
+              {prompt.type.replace(/-/g, " ")}
             </span>
             {prompt.timerSeconds && (
               <span className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-display text-[10px] font-black uppercase tracking-[0.16em] ${timerExpired ? "border-trauma/45 bg-trauma/10 text-trauma" : "border-amber/30 bg-amber/10 text-amber"}`}>
@@ -465,7 +465,7 @@ function GradeButton({
   onClick
 }: {
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   active: boolean;
   disabled: boolean;
   className: string;
