@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
-import { ClipboardCheck, MonitorPlay, Radio } from "lucide-react";
+import { ClipboardCheck, MonitorPlay, Radio, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 
 const actions = [
   { to: "/host", label: "Start Host Mode", icon: MonitorPlay, accent: "text-trauma" },
-  { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" }
+  { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" },
+  { to: "/solo", label: "One Player Practice", icon: UserRound, accent: "text-monitor" }
 ];
 
 export function HomePage() {
@@ -23,8 +24,8 @@ export function HomePage() {
               Competency Stations
             </h1>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-white/70">
-              A local-network simulation system for nursing competency checkoffs, guided scenarios, practical troubleshooting,
-              and host-led evaluation. One computer runs the session; another becomes the learner prompt monitor.
+              A simulation system for nursing competency checkoffs, guided scenarios, practical troubleshooting, host-led evaluation,
+              and one-player self-practice. Run a synchronized local-network session or practice a station on a single computer.
             </p>
           </div>
           <div className="grid gap-2">
