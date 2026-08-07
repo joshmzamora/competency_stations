@@ -4,7 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { CompletionPage } from "./pages/CompletionPage";
 import { HostPage } from "./pages/HostPage";
 import { PlayerPage } from "./pages/PlayerPage";
-import { SoloPage } from "./pages/SoloPage";
+import { SoloRoute } from "./pages/SoloRoute";
 
 const router = createBrowserRouter([
   {
@@ -14,7 +14,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "host", element: <HostPage /> },
       { path: "player", element: <PlayerPage /> },
-      { path: "solo", element: <SoloPage /> },
+      { path: "solo", element: <SoloRoute /> },
       { path: "complete", element: <CompletionPage /> }
     ]
   }
