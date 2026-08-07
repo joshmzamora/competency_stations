@@ -97,8 +97,9 @@ export function SoloPage() {
   useEffect(() => {
     setRevealed(false);
     setSelectedChoice(null);
-    setTimerRunning(false);
-    setTimeLeft(prompt?.timerSeconds ?? null);
+    const duration = prompt?.timerSeconds ?? null;
+    setTimeLeft(duration);
+    setTimerRunning(Boolean(duration));
   }, [prompt?.id, prompt?.timerSeconds]);
 
   useEffect(() => {
@@ -155,8 +156,8 @@ export function SoloPage() {
 
   function resetTimer() {
     if (!prompt?.timerSeconds) return;
-    setTimerRunning(false);
     setTimeLeft(prompt.timerSeconds);
+    setTimerRunning(true);
   }
 
   function moveActivityCard(item: string, column: string | null) {
@@ -201,7 +202,7 @@ export function SoloPage() {
             </div>
             <h1 className="mt-5 font-display text-5xl font-black uppercase leading-none text-white md:text-6xl">One Player Mode</h1>
             <p className="mt-4 max-w-3xl text-lg leading-8 text-white/65">
-              Practice any competency station on one computer. Answer each prompt yourself, reveal the expected response, then grade your own attempt before moving on.
+              Practice any competency station on one computer. Timed questions begin immediately, answers stay hidden until you reveal them, and activities remain fully interactive.
             </p>
           </div>
           <button
@@ -231,11 +232,11 @@ export function SoloPage() {
 
   if (showSummary) {
     return (
-      <section className="mx-auto max-w-4xl px-4 py-12">
-        <div className="rounded-md border border-white/10 bg-black/40 p-6 md:p-8">
-          <div className="font-display text-xs font-bold uppercase tracking-[0.2em] text-scrub">Solo station complete</div>
-          <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-white md:text-5xl">{station.title}</h1>
-          <p className="mt-4 text-white/60">Self-graded practice summary</p>
+      <section className="mx-auto min-h-[calc(100vh-5rem)] max-w-6xl px-4 py-8 md:px-6">
+        <div className="rounded-md border border-white/10 bg-black/40 p-6 md:p-9">
+          <div className="font-display text-sm font-bold uppercase tracking-[0.2em] text-scrub">Solo station complete</div>
+          <h1 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-6xl">{station.title}</h1>
+          <p className="mt-4 text-lg text-white/60">Self-graded practice summary</p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
             <Stat label="Score" value={`${score}%`} tone="text-monitor" />
@@ -245,7 +246,7 @@ export function SoloPage() {
             <Stat label="Missed" value={incorrect} tone="text-trauma" />
           </div>
 
-          <div className="mt-8 grid gap-2">
+          <div className="mt-8 grid gap-3">
             {station.prompts.map((item, index) => {
               const status = grades[item.id];
               return (
@@ -256,10 +257,10 @@ export function SoloPage() {
                     setShowSummary(false);
                     goToPrompt(index);
                   }}
-                  className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] px-4 py-3 text-left transition hover:border-monitor/30"
+                  className="flex min-h-20 items-center justify-between gap-5 rounded-md border border-white/10 bg-white/[0.035] px-5 py-4 text-left transition hover:border-monitor/30"
                 >
-                  <span className="font-display text-sm font-bold uppercase text-white/75">Prompt {index + 1}</span>
-                  <span className={`font-display text-[10px] font-black uppercase tracking-[0.14em] ${status ? gradeStyles[status] : "text-white/35"}`}>
+                  <span className="line-clamp-2 text-lg font-semibold leading-7 text-white/80">{item.title || item.scenario}</span>
+                  <span className={`flex-none font-display text-xs font-black uppercase tracking-[0.14em] ${status ? gradeStyles[status] : "text-white/35"}`}>
                     {status ?? "Not graded"}
                   </span>
                 </button>
@@ -276,16 +277,16 @@ export function SoloPage() {
                 setActivityStates({});
                 setShowSummary(false);
               }}
-              className="inline-flex min-h-12 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-4 font-display text-xs font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
+              className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
             >
-              <RotateCcw className="h-4 w-4" /> Practice again
+              <RotateCcw className="h-5 w-5" /> Practice again
             </button>
             <button
               type="button"
               onClick={leaveStation}
-              className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 font-display text-xs font-black uppercase tracking-[0.14em] text-white/65 transition hover:border-white/25 hover:text-white"
+              className="inline-flex min-h-14 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-white/65 transition hover:border-white/25 hover:text-white"
             >
-              <ArrowLeft className="h-4 w-4" /> Choose another station
+              <ArrowLeft className="h-5 w-5" /> Choose another station
             </button>
           </div>
         </div>
@@ -304,238 +305,224 @@ export function SoloPage() {
     : undefined;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 md:py-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <section className="flex min-h-[calc(100vh-5rem)] w-full flex-col px-3 py-3 md:px-5 md:py-4 xl:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={leaveStation}
-          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 font-display text-[11px] font-bold uppercase tracking-[0.14em] text-white/55 transition hover:border-white/25 hover:text-white"
+          className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/55 transition hover:border-white/25 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" /> Stations
         </button>
-        <div className="flex items-center gap-3 text-right">
-          <div>
-            <div className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">Solo practice</div>
-            <div className="font-display text-sm font-black uppercase text-white">{station.shortTitle}</div>
+
+        <div className="flex flex-1 items-center justify-end gap-3 md:gap-5">
+          <div className="text-right">
+            <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/35">Solo practice</div>
+            <div className="font-display text-base font-black uppercase text-white md:text-lg">{station.shortTitle}</div>
           </div>
-          <div className="rounded-md border border-white/10 bg-black/35 px-3 py-2 font-display text-sm font-black text-monitor">
-            {promptIndex + 1}/{station.prompts.length}
+          <div className="rounded-md border border-white/10 bg-black/35 px-4 py-2 font-display text-lg font-black text-monitor md:text-xl">
+            {promptIndex + 1} / {station.prompts.length}
           </div>
+          {prompt.timerSeconds && (
+            <div className={`inline-flex min-h-14 items-center gap-3 rounded-md border px-5 font-display text-2xl font-black ${timerExpired ? "border-trauma/50 bg-trauma/10 text-trauma" : "border-amber/35 bg-amber/10 text-amber"}`}>
+              <Clock3 className="h-6 w-6" /> {timeLeft === null ? formatTime(prompt.timerSeconds) : formatTime(timeLeft)}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mb-5 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="my-3 h-2.5 overflow-hidden rounded-full bg-white/10">
         <div
           className="h-full rounded-full bg-gradient-to-r from-monitor to-scrub transition-all duration-300"
           style={{ width: `${((promptIndex + 1) / station.prompts.length) * 100}%` }}
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
-        <main className="rounded-md border border-white/10 bg-black/40 p-5 md:p-7">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-monitor/30 bg-monitor/10 px-3 py-1.5 font-display text-[10px] font-black uppercase tracking-[0.16em] text-monitor">
-              {prompt.type.replace(/-/g, " ")}
-            </span>
-            {prompt.timerSeconds && (
-              <span className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-display text-[10px] font-black uppercase tracking-[0.16em] ${timerExpired ? "border-trauma/45 bg-trauma/10 text-trauma" : "border-amber/30 bg-amber/10 text-amber"}`}>
-                <Clock3 className="h-3.5 w-3.5" /> {timeLeft === null ? formatTime(prompt.timerSeconds) : formatTime(timeLeft)}
-              </span>
-            )}
-          </div>
-
-          <h1 className="mt-6 font-display text-3xl font-black uppercase leading-tight text-white md:text-4xl">
-            {prompt.title || `Prompt ${promptIndex + 1}`}
-          </h1>
-          <p className="mt-5 text-xl leading-8 text-white/90">{prompt.scenario}</p>
-
-          {prompt.instructions.length > 0 && (
-            <div className="mt-6 rounded-md border border-white/10 bg-white/[0.035] p-4">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">What to do</div>
-              <ul className="mt-3 grid gap-2 text-sm leading-6 text-white/65">
-                {prompt.instructions.map((instruction) => (
-                  <li key={instruction} className="flex gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-monitor" />
-                    <span>{instruction}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {prompt.choices && prompt.choices.length > 0 && (
-            <div className="mt-6 grid gap-2 sm:grid-cols-2">
-              {prompt.choices.map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  disabled={revealed}
-                  onClick={() => setSelectedChoice(choice)}
-                  className={`rounded-md border p-4 text-left text-sm leading-6 transition ${selectedChoice === choice ? "border-monitor/50 bg-monitor/10 text-white" : "border-white/10 bg-white/[0.03] text-white/65 hover:border-white/25"}`}
-                >
-                  {choice}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {prompt.activity && activityState && (
-            <div className="mt-6">
-              <ActivityPromptLayout
-                prompt={prompt}
-                activityState={activityState}
-                showAnswer={revealed}
-                readOnly={revealed}
-                audioEnabled={false}
-                onMoveCard={moveActivityCard}
-                onCheck={checkActivity}
-              />
-              <p className="mt-3 text-sm leading-6 text-white/45">
-                {prompt.activity.mode === "select"
-                  ? "Select the answers that belong, then use Check. You get two checks before revealing the full answer."
-                  : "Drag each card into a column, then use Check. You get two checks before revealing the full answer."}
-              </p>
-            </div>
-          )}
+      <main className="flex flex-1 flex-col rounded-md border border-white/10 bg-black/40 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] md:p-8 xl:p-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="rounded-md border border-monitor/30 bg-monitor/10 px-4 py-2 font-display text-xs font-black uppercase tracking-[0.18em] text-monitor md:text-sm">
+            {prompt.type.replace(/-/g, " ")}
+          </span>
 
           {prompt.timerSeconds && (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setTimerRunning((running) => !running)}
                 disabled={timeLeft === 0}
-                className="inline-flex min-h-11 items-center gap-2 rounded-md border border-amber/35 bg-amber/10 px-4 font-display text-[11px] font-black uppercase tracking-[0.14em] text-amber disabled:opacity-40"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md border border-amber/30 bg-amber/[0.07] px-4 font-display text-xs font-black uppercase tracking-[0.14em] text-amber disabled:opacity-40"
               >
-                <Clock3 className="h-4 w-4" /> {timerRunning ? "Pause timer" : timeLeft === prompt.timerSeconds ? "Start timer" : "Resume timer"}
+                <Clock3 className="h-4 w-4" /> {timerRunning ? "Pause" : "Resume"}
               </button>
               <button
                 type="button"
                 onClick={resetTimer}
-                className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-4 font-display text-[11px] font-black uppercase tracking-[0.14em] text-white/55"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-4 font-display text-xs font-black uppercase tracking-[0.14em] text-white/55"
               >
-                <TimerReset className="h-4 w-4" /> Reset
+                <TimerReset className="h-4 w-4" /> Restart
               </button>
             </div>
           )}
+        </div>
 
-          {!revealed ? (
-            <button
-              type="button"
-              onClick={() => {
-                setRevealed(true);
-                setTimerRunning(false);
-              }}
-              className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-md border border-scrub/40 bg-scrub/10 px-5 font-display text-xs font-black uppercase tracking-[0.16em] text-scrub transition hover:bg-scrub/15"
-            >
-              <Eye className="h-4 w-4" /> Reveal answer
-            </button>
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-7 grid gap-4">
-              <div className="rounded-md border border-scrub/30 bg-scrub/[0.07] p-5">
-                <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-scrub">Expected response</div>
-                <p className="mt-3 whitespace-pre-line text-base leading-7 text-white/85">{prompt.expectedResponse}</p>
+        {prompt.activity && activityState ? (
+          <div className="mt-5 flex-1">
+            <ActivityPromptLayout
+              prompt={prompt}
+              activityState={activityState}
+              showAnswer={revealed}
+              readOnly={revealed}
+              audioEnabled={false}
+              size="learner"
+              onMoveCard={moveActivityCard}
+              onCheck={checkActivity}
+            />
+            <p className="mt-4 text-lg leading-7 text-white/45">
+              {prompt.activity.mode === "select"
+                ? "Select the answers that belong, then use Check. You get two checks before revealing the full answer."
+                : "Drag each card into a column, then use Check. You get two checks before revealing the full answer."}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col justify-center py-4 md:py-8">
+            {prompt.title && (
+              <h1 className="font-display text-4xl font-black uppercase leading-tight text-white md:text-5xl xl:text-6xl">
+                {prompt.title}
+              </h1>
+            )}
+            <p className={`${prompt.title ? "mt-6" : ""} max-w-7xl text-3xl font-semibold leading-tight text-white/95 md:text-4xl md:leading-tight xl:text-5xl xl:leading-[1.12]`}>
+              {prompt.scenario}
+            </p>
+
+            {prompt.instructions.length > 0 && (
+              <div className="mt-8 rounded-md border border-white/10 bg-white/[0.035] p-5 md:p-6">
+                <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/40 md:text-sm">What to do</div>
+                <ul className="mt-4 grid gap-3 text-lg leading-8 text-white/70 md:text-xl">
+                  {prompt.instructions.map((instruction) => (
+                    <li key={instruction} className="flex gap-3">
+                      <span className="mt-3 h-2 w-2 flex-none rounded-full bg-monitor" />
+                      <span>{instruction}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
+            )}
 
-              {answerKey && !prompt.activity && (
-                <div className="rounded-md border border-monitor/25 bg-monitor/[0.06] p-5">
-                  <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-monitor">Answer key</div>
-                  <p className="mt-3 whitespace-pre-line text-sm leading-7 text-white/75">{answerKey}</p>
-                </div>
-              )}
-
-              {prompt.explanation && (
-                <div className="rounded-md border border-white/10 bg-white/[0.035] p-5">
-                  <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Why it matters</div>
-                  <p className="mt-3 text-sm leading-7 text-white/65">{prompt.explanation}</p>
-                </div>
-              )}
-
-              {prompt.criticalActions && prompt.criticalActions.length > 0 && (
-                <Checklist title="Critical actions" items={prompt.criticalActions} />
-              )}
-
-              {prompt.notifyProviderWhen && prompt.notifyProviderWhen.length > 0 && (
-                <Checklist title="Notify provider when" items={prompt.notifyProviderWhen} />
-              )}
-            </motion.div>
-          )}
-        </main>
-
-        <aside className="grid content-start gap-4">
-          <div className="rounded-md border border-white/10 bg-black/40 p-4">
-            <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Self grade</div>
-            <p className="mt-2 text-sm leading-6 text-white/55">Reveal the answer first, then score how close your response was.</p>
-            <div className="mt-4 grid gap-2">
-              <GradeButton
-                label="Correct"
-                icon={<Check className="h-4 w-4" />}
-                active={currentGrade === "correct"}
-                disabled={!revealed}
-                className={gradeStyles.correct}
-                onClick={() => grade("correct")}
-              />
-              <GradeButton
-                label="Partial"
-                icon={<Minus className="h-4 w-4" />}
-                active={currentGrade === "partial"}
-                disabled={!revealed}
-                className={gradeStyles.partial}
-                onClick={() => grade("partial")}
-              />
-              <GradeButton
-                label="Missed"
-                icon={<X className="h-4 w-4" />}
-                active={currentGrade === "incorrect"}
-                disabled={!revealed}
-                className={gradeStyles.incorrect}
-                onClick={() => grade("incorrect")}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-md border border-white/10 bg-black/40 p-4">
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <MiniStat label="Done" value={completed} />
-              <MiniStat label="Right" value={correct} tone="text-scrub" />
-              <MiniStat label="Part" value={partial} tone="text-amber" />
-              <MiniStat label="Miss" value={incorrect} tone="text-trauma" />
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="font-display text-[9px] font-bold uppercase tracking-[0.16em] text-white/35">Current score</div>
-                <div className="mt-1 font-display text-2xl font-black text-monitor">{score}%</div>
+            {prompt.choices && prompt.choices.length > 0 && (
+              <div className="mt-8 grid gap-3 md:grid-cols-2">
+                {prompt.choices.map((choice) => (
+                  <button
+                    key={choice}
+                    type="button"
+                    disabled={revealed}
+                    onClick={() => setSelectedChoice(choice)}
+                    className={`min-h-20 rounded-md border p-5 text-left text-xl font-semibold leading-8 transition md:min-h-24 md:p-6 md:text-2xl ${selectedChoice === choice ? "border-monitor/50 bg-monitor/10 text-white" : "border-white/10 bg-white/[0.03] text-white/70 hover:border-white/25"}`}
+                  >
+                    {choice}
+                  </button>
+                ))}
               </div>
-              {revealed && (
-                <button
-                  type="button"
-                  onClick={() => setRevealed(false)}
-                  className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 font-display text-[10px] font-bold uppercase tracking-[0.12em] text-white/45"
-                >
-                  <Eye className="h-3.5 w-3.5" /> Hide answer
-                </button>
-              )}
-            </div>
+            )}
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => goToPrompt(promptIndex - 1)}
-              disabled={promptIndex === 0}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 font-display text-[10px] font-black uppercase tracking-[0.12em] text-white/55 transition disabled:opacity-30"
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => atLastPrompt ? setShowSummary(true) : goToPrompt(promptIndex + 1)}
-              disabled={!currentGrade}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-3 font-display text-[10px] font-black uppercase tracking-[0.12em] text-monitor transition disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              {atLastPrompt ? "Finish" : "Next"} <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </aside>
+        {!revealed ? (
+          <button
+            type="button"
+            onClick={() => {
+              setRevealed(true);
+              setTimerRunning(false);
+            }}
+            className="mt-7 inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-md border border-scrub/40 bg-scrub/10 px-6 font-display text-base font-black uppercase tracking-[0.16em] text-scrub transition hover:bg-scrub/15 md:text-lg"
+          >
+            <Eye className="h-6 w-6" /> Reveal answer
+          </button>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-7 grid gap-4">
+            <div className="rounded-md border border-scrub/30 bg-scrub/[0.07] p-6 md:p-8">
+              <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-scrub md:text-sm">Expected response</div>
+              <p className="mt-4 whitespace-pre-line text-xl leading-8 text-white/90 md:text-2xl md:leading-9">{prompt.expectedResponse}</p>
+            </div>
+
+            {answerKey && !prompt.activity && (
+              <div className="rounded-md border border-monitor/25 bg-monitor/[0.06] p-6 md:p-8">
+                <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-monitor md:text-sm">Answer key</div>
+                <p className="mt-4 whitespace-pre-line text-lg leading-8 text-white/80 md:text-xl">{answerKey}</p>
+              </div>
+            )}
+
+            {prompt.explanation && (
+              <div className="rounded-md border border-white/10 bg-white/[0.035] p-6 md:p-8">
+                <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-white/40 md:text-sm">Why it matters</div>
+                <p className="mt-4 text-lg leading-8 text-white/70 md:text-xl">{prompt.explanation}</p>
+              </div>
+            )}
+
+            {prompt.criticalActions && prompt.criticalActions.length > 0 && (
+              <Checklist title="Critical actions" items={prompt.criticalActions} />
+            )}
+
+            {prompt.notifyProviderWhen && prompt.notifyProviderWhen.length > 0 && (
+              <Checklist title="Notify provider when" items={prompt.notifyProviderWhen} />
+            )}
+          </motion.div>
+        )}
+      </main>
+
+      <div className="mt-3 grid gap-3 rounded-md border border-white/10 bg-black/40 p-4 md:p-5">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          <Stat label="Score" value={`${score}%`} tone="text-monitor" />
+          <Stat label="Done" value={`${completed}/${station.prompts.length}`} />
+          <Stat label="Correct" value={correct} tone="text-scrub" />
+          <Stat label="Partial" value={partial} tone="text-amber" />
+          <Stat label="Missed" value={incorrect} tone="text-trauma" />
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <GradeButton
+            label="Correct"
+            icon={<Check className="h-6 w-6" />}
+            active={currentGrade === "correct"}
+            disabled={!revealed}
+            className={gradeStyles.correct}
+            onClick={() => grade("correct")}
+          />
+          <GradeButton
+            label="Partial"
+            icon={<Minus className="h-6 w-6" />}
+            active={currentGrade === "partial"}
+            disabled={!revealed}
+            className={gradeStyles.partial}
+            onClick={() => grade("partial")}
+          />
+          <GradeButton
+            label="Missed"
+            icon={<X className="h-6 w-6" />}
+            active={currentGrade === "incorrect"}
+            disabled={!revealed}
+            className={gradeStyles.incorrect}
+            onClick={() => grade("incorrect")}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => goToPrompt(promptIndex - 1)}
+            disabled={promptIndex === 0}
+            className="inline-flex min-h-16 items-center justify-center gap-3 rounded-md border border-white/10 bg-white/[0.035] px-5 font-display text-sm font-black uppercase tracking-[0.12em] text-white/60 transition hover:border-white/25 disabled:opacity-30 md:text-base"
+          >
+            <ChevronLeft className="h-6 w-6" /> Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => atLastPrompt ? setShowSummary(true) : goToPrompt(promptIndex + 1)}
+            disabled={!currentGrade}
+            className="inline-flex min-h-16 items-center justify-center gap-3 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.12em] text-monitor transition hover:bg-monitor/15 disabled:cursor-not-allowed disabled:opacity-30 md:text-base"
+          >
+            {atLastPrompt ? "Finish" : "Next"} <ChevronRight className="h-6 w-6" />
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -561,7 +548,7 @@ function GradeButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex min-h-12 items-center justify-between rounded-md border px-4 font-display text-xs font-black uppercase tracking-[0.14em] transition disabled:cursor-not-allowed disabled:opacity-25 ${active ? `${className} ring-1 ring-current` : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/25"}`}
+      className={`flex min-h-16 items-center justify-between rounded-md border px-5 font-display text-base font-black uppercase tracking-[0.14em] transition disabled:cursor-not-allowed disabled:opacity-25 ${active ? `${className} ring-1 ring-current` : "border-white/10 bg-white/[0.03] text-white/55 hover:border-white/25"}`}
     >
       <span>{label}</span>
       {icon}
@@ -571,12 +558,12 @@ function GradeButton({
 
 function Checklist({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-md border border-amber/20 bg-amber/[0.05] p-5">
-      <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-amber">{title}</div>
-      <ul className="mt-3 grid gap-2 text-sm leading-6 text-white/65">
+    <div className="rounded-md border border-amber/20 bg-amber/[0.05] p-6 md:p-8">
+      <div className="font-display text-xs font-black uppercase tracking-[0.18em] text-amber md:text-sm">{title}</div>
+      <ul className="mt-4 grid gap-3 text-lg leading-8 text-white/70 md:text-xl">
         {items.map((item) => (
-          <li key={item} className="flex gap-2">
-            <Check className="mt-1 h-4 w-4 flex-none text-amber" />
+          <li key={item} className="flex gap-3">
+            <Check className="mt-1.5 h-5 w-5 flex-none text-amber" />
             <span>{item}</span>
           </li>
         ))}
@@ -587,18 +574,9 @@ function Checklist({ title, items }: { title: string; items: string[] }) {
 
 function Stat({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-center">
-      <div className="font-display text-[9px] font-bold uppercase tracking-[0.12em] text-white/35">{label}</div>
-      <div className={`mt-1 font-display text-2xl font-black ${tone}`}>{value}</div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value, tone = "text-white" }: { label: string; value: number; tone?: string }) {
-  return (
-    <div className="rounded-md bg-white/[0.035] p-2">
-      <div className="font-display text-[8px] font-bold uppercase tracking-[0.1em] text-white/30">{label}</div>
-      <div className={`mt-1 font-display text-lg font-black ${tone}`}>{value}</div>
+    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-center md:p-4">
+      <div className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-white/35 md:text-xs">{label}</div>
+      <div className={`mt-1 font-display text-2xl font-black md:text-3xl ${tone}`}>{value}</div>
     </div>
   );
 }
