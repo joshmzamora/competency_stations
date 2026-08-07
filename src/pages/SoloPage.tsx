@@ -5,7 +5,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Eye,
   Home,
   Minus,
@@ -16,6 +15,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ActivityPromptLayout } from "../components/ActivityPromptLayout";
+import { CountdownTimer } from "../components/CountdownTimer";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 import type { ActivityState, CompetencyPrompt, EvaluationStatus } from "../types";
@@ -26,6 +26,11 @@ const gradeStyles: Record<EvaluationStatus, string> = {
   incorrect: "border-trauma/45 bg-trauma/10 text-trauma"
 };
 
+type SoloTimerWindow = {
+  startedAt: number | null;
+  endsAt: number | null;
+};
+
 function initialStationId() {
   return new URLSearchParams(window.location.search).get("station") ?? "";
 }
@@ -33,12 +38,6 @@ function initialStationId() {
 function answerKeyText(prompt: CompetencyPrompt) {
   if (!prompt.answerKey?.length) return null;
   return prompt.answerKey.map((column) => `${column.title}: ${column.items.join(", ")}`).join("\n");
-}
-
-function formatTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
 function createSoloActivityState(prompt: CompetencyPrompt): ActivityState | null {
@@ -79,6 +78,12 @@ function soloActivityCheckResults(prompt: CompetencyPrompt, state: ActivityState
   );
 }
 
+function timerWindow(seconds?: number): SoloTimerWindow {
+  if (!seconds) return { startedAt: null, endsAt: null };
+  const startedAt = Date.now();
+  return { startedAt, endsAt: startedAt + seconds * 1000 };
+}
+
 export function SoloPage() {
   const navigate = useNavigate();
   const [stationId, setStationId] = useState(initialStationId);
@@ -87,8 +92,7 @@ export function SoloPage() {
   const [grades, setGrades] = useState<Record<string, EvaluationStatus>>({});
   const [activityStates, setActivityStates] = useState<Record<string, ActivityState>>({});
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timer, setTimer] = useState<SoloTimerWindow>({ startedAt: null, endsAt: null });
   const [showSummary, setShowSummary] = useState(false);
 
   const station = useMemo(() => stations.find((item) => item.id === stationId) ?? null, [stationId]);
@@ -97,24 +101,8 @@ export function SoloPage() {
   useEffect(() => {
     setRevealed(false);
     setSelectedChoice(null);
-    const duration = prompt?.timerSeconds ?? null;
-    setTimeLeft(duration);
-    setTimerRunning(Boolean(duration));
+    setTimer(timerWindow(prompt?.timerSeconds));
   }, [prompt?.id, prompt?.timerSeconds]);
-
-  useEffect(() => {
-    if (!timerRunning || timeLeft === null || timeLeft <= 0) return;
-    const interval = window.setInterval(() => {
-      setTimeLeft((current) => {
-        if (current === null || current <= 1) {
-          setTimerRunning(false);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [timerRunning, timeLeft]);
 
   const completed = station ? station.prompts.filter((item) => grades[item.id]).length : 0;
   const correct = station ? station.prompts.filter((item) => grades[item.id] === "correct").length : 0;
@@ -138,6 +126,7 @@ export function SoloPage() {
     setPromptIndex(0);
     setGrades({});
     setActivityStates({});
+    setTimer({ startedAt: null, endsAt: null });
     setShowSummary(false);
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("station");
@@ -151,13 +140,16 @@ export function SoloPage() {
 
   function goToPrompt(index: number) {
     if (!station) return;
-    setPromptIndex(Math.min(Math.max(index, 0), station.prompts.length - 1));
+    const nextIndex = Math.min(Math.max(index, 0), station.prompts.length - 1);
+    const nextPrompt = station.prompts[nextIndex];
+    setPromptIndex(nextIndex);
+    setRevealed(false);
+    setSelectedChoice(null);
+    setTimer(timerWindow(nextPrompt?.timerSeconds));
   }
 
   function resetTimer() {
-    if (!prompt?.timerSeconds) return;
-    setTimeLeft(prompt.timerSeconds);
-    setTimerRunning(true);
+    setTimer(timerWindow(prompt?.timerSeconds));
   }
 
   function moveActivityCard(item: string, column: string | null) {
@@ -274,6 +266,9 @@ export function SoloPage() {
                 setPromptIndex(0);
                 setGrades({});
                 setActivityStates({});
+                setRevealed(false);
+                setSelectedChoice(null);
+                setTimer(timerWindow(station.prompts[0]?.timerSeconds));
                 setShowSummary(false);
               }}
               className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
@@ -298,7 +293,6 @@ export function SoloPage() {
   const answerKey = answerKeyText(prompt);
   const currentGrade = grades[prompt.id];
   const atLastPrompt = promptIndex === station.prompts.length - 1;
-  const timerExpired = timeLeft === 0;
   const activityState = prompt.activity
     ? activityStates[prompt.id] ?? createSoloActivityState(prompt) ?? undefined
     : undefined;
@@ -321,38 +315,28 @@ export function SoloPage() {
           <div className="font-display text-base font-black text-white/45 md:text-lg">
             {promptIndex + 1}/{station.prompts.length}
           </div>
-          {prompt.timerSeconds && (
-            <div className={`inline-flex min-h-12 items-center gap-2 rounded-md px-3 font-display text-xl font-black md:min-h-14 md:px-4 md:text-2xl ${timerExpired ? "bg-trauma/10 text-trauma" : "bg-amber/10 text-amber"}`}>
-              <Clock3 className="h-5 w-5 md:h-6 md:w-6" /> {timeLeft === null ? formatTime(prompt.timerSeconds) : formatTime(timeLeft)}
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="my-3 h-1.5 overflow-hidden rounded-full bg-white/10 md:my-4 md:h-2">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-monitor to-scrub transition-all duration-300"
-          style={{ width: `${((promptIndex + 1) / station.prompts.length) * 100}%` }}
-        />
-      </div>
+      {prompt.timerSeconds && (
+        <div className="my-3 md:my-4">
+          <CountdownTimer
+            endsAt={timer.endsAt}
+            startedAt={timer.startedAt}
+            audioEnabled={false}
+          />
+        </div>
+      )}
 
       <main className="flex flex-1 flex-col">
         {prompt.timerSeconds && (
-          <div className="mb-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setTimerRunning((running) => !running)}
-              disabled={timeLeft === 0}
-              className="px-3 py-2 font-display text-xs font-bold uppercase tracking-[0.12em] text-white/40 transition hover:text-amber disabled:opacity-30"
-            >
-              {timerRunning ? "Pause" : "Resume"}
-            </button>
+          <div className="mb-2 flex justify-end">
             <button
               type="button"
               onClick={resetTimer}
               className="inline-flex items-center gap-1.5 px-3 py-2 font-display text-xs font-bold uppercase tracking-[0.12em] text-white/40 transition hover:text-white"
             >
-              <TimerReset className="h-4 w-4" /> Restart
+              <TimerReset className="h-4 w-4" /> Restart timer
             </button>
           </div>
         )}
@@ -403,10 +387,7 @@ export function SoloPage() {
         {!revealed ? (
           <button
             type="button"
-            onClick={() => {
-              setRevealed(true);
-              setTimerRunning(false);
-            }}
+            onClick={() => setRevealed(true)}
             className="mt-6 inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-md border border-scrub/35 bg-scrub/10 px-6 font-display text-lg font-black uppercase tracking-[0.14em] text-scrub transition hover:bg-scrub/15 md:min-h-20 md:text-xl"
           >
             <Eye className="h-6 w-6" /> Reveal answer
