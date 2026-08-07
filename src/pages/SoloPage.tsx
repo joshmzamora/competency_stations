@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ActivityPromptLayout } from "../components/ActivityPromptLayout";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
-import type { CompetencyPrompt, EvaluationStatus } from "../types";
+import type { ActivityState, CompetencyPrompt, EvaluationStatus } from "../types";
 
 const gradeStyles: Record<EvaluationStatus, string> = {
   correct: "border-scrub/45 bg-scrub/10 text-scrub",
@@ -40,12 +41,51 @@ function formatTime(seconds: number) {
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
+function createSoloActivityState(prompt: CompetencyPrompt): ActivityState | null {
+  if (!prompt.activity) return null;
+  return {
+    promptId: prompt.id,
+    placements: Object.fromEntries(prompt.activity.itemBank.map((item) => [item, null])),
+    checkCount: 0
+  };
+}
+
+function soloActivityCheckResults(prompt: CompetencyPrompt, state: ActivityState) {
+  if (!prompt.activity) return {};
+
+  const answers = new Map<string, string>();
+  for (const column of prompt.answerKey ?? []) {
+    for (const item of column.items) answers.set(item, column.title);
+  }
+
+  if (prompt.activity.mode === "select") {
+    const selectedColumn = prompt.activity.columns[0]?.title ?? "Selected";
+    const correctItems = new Set(
+      Array.from(answers.entries())
+        .filter(([, column]) => column === selectedColumn)
+        .map(([item]) => item)
+    );
+
+    return Object.fromEntries(
+      prompt.activity.itemBank.map((item) => [
+        item,
+        correctItems.has(item) ? state.placements[item] === selectedColumn : state.placements[item] === null
+      ])
+    );
+  }
+
+  return Object.fromEntries(
+    prompt.activity.itemBank.map((item) => [item, state.placements[item] === answers.get(item)])
+  );
+}
+
 export function SoloPage() {
   const navigate = useNavigate();
   const [stationId, setStationId] = useState(initialStationId);
   const [promptIndex, setPromptIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [grades, setGrades] = useState<Record<string, EvaluationStatus>>({});
+  const [activityStates, setActivityStates] = useState<Record<string, ActivityState>>({});
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -85,6 +125,7 @@ export function SoloPage() {
     setStationId(id);
     setPromptIndex(0);
     setGrades({});
+    setActivityStates({});
     setShowSummary(false);
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set("station", id);
@@ -95,6 +136,7 @@ export function SoloPage() {
     setStationId("");
     setPromptIndex(0);
     setGrades({});
+    setActivityStates({});
     setShowSummary(false);
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("station");
@@ -115,6 +157,38 @@ export function SoloPage() {
     if (!prompt?.timerSeconds) return;
     setTimerRunning(false);
     setTimeLeft(prompt.timerSeconds);
+  }
+
+  function moveActivityCard(item: string, column: string | null) {
+    if (!prompt?.activity || revealed) return;
+    setActivityStates((current) => {
+      const base = current[prompt.id] ?? createSoloActivityState(prompt);
+      if (!base) return current;
+      return {
+        ...current,
+        [prompt.id]: {
+          ...base,
+          placements: { ...base.placements, [item]: column }
+        }
+      };
+    });
+  }
+
+  function checkActivity() {
+    if (!prompt?.activity) return;
+    setActivityStates((current) => {
+      const base = current[prompt.id] ?? createSoloActivityState(prompt);
+      if (!base || base.checkCount >= 2) return current;
+      return {
+        ...current,
+        [prompt.id]: {
+          ...base,
+          checkCount: base.checkCount + 1,
+          itemResults: soloActivityCheckResults(prompt, base),
+          lastCheckedAt: new Date().toISOString()
+        }
+      };
+    });
   }
 
   if (!station) {
@@ -199,6 +273,7 @@ export function SoloPage() {
               onClick={() => {
                 setPromptIndex(0);
                 setGrades({});
+                setActivityStates({});
                 setShowSummary(false);
               }}
               className="inline-flex min-h-12 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-4 font-display text-xs font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
@@ -224,6 +299,9 @@ export function SoloPage() {
   const currentGrade = grades[prompt.id];
   const atLastPrompt = promptIndex === station.prompts.length - 1;
   const timerExpired = timeLeft === 0;
+  const activityState = prompt.activity
+    ? activityStates[prompt.id] ?? createSoloActivityState(prompt) ?? undefined
+    : undefined;
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-6 md:py-8">
@@ -301,15 +379,22 @@ export function SoloPage() {
             </div>
           )}
 
-          {prompt.activity && (
-            <div className="mt-6 rounded-md border border-white/10 bg-white/[0.03] p-4">
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Activity cards</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {prompt.activity.itemBank.map((item) => (
-                  <span key={item} className="rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/70">{item}</span>
-                ))}
-              </div>
-              <p className="mt-4 text-sm leading-6 text-white/45">Work through the activity yourself, then reveal the answer key below.</p>
+          {prompt.activity && activityState && (
+            <div className="mt-6">
+              <ActivityPromptLayout
+                prompt={prompt}
+                activityState={activityState}
+                showAnswer={revealed}
+                readOnly={revealed}
+                audioEnabled={false}
+                onMoveCard={moveActivityCard}
+                onCheck={checkActivity}
+              />
+              <p className="mt-3 text-sm leading-6 text-white/45">
+                {prompt.activity.mode === "select"
+                  ? "Select the answers that belong, then use Check. You get two checks before revealing the full answer."
+                  : "Drag each card into a column, then use Check. You get two checks before revealing the full answer."}
+              </p>
             </div>
           )}
 
@@ -351,7 +436,7 @@ export function SoloPage() {
                 <p className="mt-3 whitespace-pre-line text-base leading-7 text-white/85">{prompt.expectedResponse}</p>
               </div>
 
-              {answerKey && (
+              {answerKey && !prompt.activity && (
                 <div className="rounded-md border border-monitor/25 bg-monitor/[0.06] p-5">
                   <div className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-monitor">Answer key</div>
                   <p className="mt-3 whitespace-pre-line text-sm leading-7 text-white/75">{answerKey}</p>
