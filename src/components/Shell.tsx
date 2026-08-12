@@ -18,13 +18,14 @@ function ShellFrame() {
 
       {!navHidden && (
         <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-charcoal/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-6">
-            <Link to="/" className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-md border border-trauma/35 bg-trauma/[0.07]">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2.5 sm:px-5 md:px-6 md:py-3">
+            <Link to="/" className="flex min-w-0 items-center gap-3">
+              <span className="grid h-9 w-9 flex-none place-items-center rounded-md border border-trauma/35 bg-trauma/[0.07]">
                 <Activity className="h-[18px] w-[18px] text-trauma" />
               </span>
-              <span className="font-display text-base font-bold tracking-[0.05em] text-white/95 md:text-lg">Competency Stations</span>
+              <span className="truncate font-display text-base font-bold tracking-[0.05em] text-white/95 md:text-lg">Competency Stations</span>
             </Link>
+
             <nav className="hidden items-center gap-5 md:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -47,6 +48,26 @@ function ShellFrame() {
               })}
             </nav>
           </div>
+
+          <nav className="grid grid-cols-4 border-t border-white/[0.06] px-2 md:hidden">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center justify-center gap-1.5 border-b-2 px-1 text-[12px] font-medium transition ${
+                      isActive ? "border-scrub text-white" : "border-transparent text-white/42"
+                    }`
+                  }
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </nav>
         </header>
       )}
 
