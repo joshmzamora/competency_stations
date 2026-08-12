@@ -8,8 +8,7 @@ import {
   playFileClickCue,
   playQuestionAdvanceCue,
   playStationTransitionCue,
-  playTimerTickCue,
-  playTimerUrgentCue
+  setComponentAudioOverride
 } from "../utils/sound";
 import { SoloPage } from "./SoloPage";
 
@@ -25,6 +24,7 @@ export function SoloRoute() {
 
   useEffect(() => {
     const snapshots: TimerSnapshot[] = [];
+    setComponentAudioOverride(true);
 
     for (const station of stations) {
       for (const prompt of station.prompts) {
@@ -79,31 +79,6 @@ export function SoloRoute() {
 
     const handleSoloDrop = () => playActivityDropCue();
 
-    let lastTimerValue: number | null = null;
-    const timerSoundInterval = window.setInterval(() => {
-      const timerLabel = Array.from(document.querySelectorAll("span")).find(
-        (element) => element.textContent?.trim().toLowerCase() === "timer"
-      );
-      const timerCard = timerLabel?.closest(".rounded-md");
-      const value = timerCard?.querySelector("strong")?.textContent?.trim();
-      const remaining = value ? Number.parseInt(value, 10) : Number.NaN;
-
-      if (!Number.isFinite(remaining)) {
-        lastTimerValue = null;
-        return;
-      }
-      if (lastTimerValue === null) {
-        lastTimerValue = remaining;
-        return;
-      }
-      if (remaining === lastTimerValue) return;
-
-      lastTimerValue = remaining;
-      if (remaining <= 0) return;
-      if (remaining <= 5) playTimerUrgentCue();
-      else playTimerTickCue();
-    }, 250);
-
     document.addEventListener("click", handleSoloClick, true);
     document.addEventListener("drop", handleSoloDrop, true);
     setReady(true);
@@ -111,7 +86,7 @@ export function SoloRoute() {
     return () => {
       document.removeEventListener("click", handleSoloClick, true);
       document.removeEventListener("drop", handleSoloDrop, true);
-      window.clearInterval(timerSoundInterval);
+      setComponentAudioOverride(false);
       for (const snapshot of snapshots) {
         snapshot.prompt.timerSeconds = snapshot.timerSeconds;
       }
