@@ -3,8 +3,10 @@ import {
   ArrowLeft,
   Brain,
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Eye,
   Home,
   Minus,
@@ -29,6 +31,17 @@ const gradeStyles: Record<EvaluationStatus, string> = {
 type SoloTimerWindow = {
   startedAt: number | null;
   endsAt: number | null;
+};
+
+type SoloStationResult = {
+  stationId: string;
+  grades: Record<string, EvaluationStatus>;
+  completed: number;
+  correct: number;
+  partial: number;
+  incorrect: number;
+  score: number;
+  promptCount: number;
 };
 
 function initialStationId() {
@@ -84,6 +97,25 @@ function timerWindow(seconds?: number): SoloTimerWindow {
   return { startedAt, endsAt: startedAt + seconds * 1000 };
 }
 
+function summarizeStation(station: (typeof stations)[number], grades: Record<string, EvaluationStatus>): SoloStationResult {
+  const completed = station.prompts.filter((item) => grades[item.id]).length;
+  const correct = station.prompts.filter((item) => grades[item.id] === "correct").length;
+  const partial = station.prompts.filter((item) => grades[item.id] === "partial").length;
+  const incorrect = station.prompts.filter((item) => grades[item.id] === "incorrect").length;
+  const score = completed ? Math.round(((correct + partial * 0.5) / completed) * 100) : 0;
+
+  return {
+    stationId: station.id,
+    grades: { ...grades },
+    completed,
+    correct,
+    partial,
+    incorrect,
+    score,
+    promptCount: station.prompts.length
+  };
+}
+
 export function SoloPage() {
   const navigate = useNavigate();
   const [stationId, setStationId] = useState(initialStationId);
@@ -94,6 +126,8 @@ export function SoloPage() {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [timer, setTimer] = useState<SoloTimerWindow>({ startedAt: null, endsAt: null });
   const [showSummary, setShowSummary] = useState(false);
+  const [showOverallSummary, setShowOverallSummary] = useState(false);
+  const [sessionResults, setSessionResults] = useState<Record<string, SoloStationResult>>({});
 
   const station = useMemo(() => stations.find((item) => item.id === stationId) ?? null, [stationId]);
   const prompt = station?.prompts[promptIndex] ?? null;
@@ -104,33 +138,60 @@ export function SoloPage() {
     setTimer(timerWindow(prompt?.timerSeconds));
   }, [prompt?.id, prompt?.timerSeconds]);
 
-  const completed = station ? station.prompts.filter((item) => grades[item.id]).length : 0;
-  const correct = station ? station.prompts.filter((item) => grades[item.id] === "correct").length : 0;
-  const partial = station ? station.prompts.filter((item) => grades[item.id] === "partial").length : 0;
-  const incorrect = station ? station.prompts.filter((item) => grades[item.id] === "incorrect").length : 0;
-  const score = completed ? Math.round(((correct + partial * 0.5) / completed) * 100) : 0;
+  const currentResult = station ? summarizeStation(station, grades) : null;
+  const sessionResultList = Object.values(sessionResults);
+  const completedStations = sessionResultList.length;
+  const totalCorrect = sessionResultList.reduce((sum, result) => sum + result.correct, 0);
+  const totalPartial = sessionResultList.reduce((sum, result) => sum + result.partial, 0);
+  const totalIncorrect = sessionResultList.reduce((sum, result) => sum + result.incorrect, 0);
+  const totalCompletedPrompts = sessionResultList.reduce((sum, result) => sum + result.completed, 0);
+  const overallScore = totalCompletedPrompts
+    ? Math.round(((totalCorrect + totalPartial * 0.5) / totalCompletedPrompts) * 100)
+    : 0;
+  const allStationsComplete = completedStations === stations.length;
+
+  function clearCurrentStation() {
+    setStationId("");
+    setPromptIndex(0);
+    setGrades({});
+    setActivityStates({});
+    setSelectedChoice(null);
+    setTimer({ startedAt: null, endsAt: null });
+    setShowSummary(false);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("station");
+    window.history.replaceState({}, "", nextUrl);
+  }
 
   function chooseStation(id: string) {
+    if (sessionResults[id]) return;
     setStationId(id);
     setPromptIndex(0);
     setGrades({});
     setActivityStates({});
+    setSelectedChoice(null);
     setShowSummary(false);
+    setShowOverallSummary(false);
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set("station", id);
     window.history.replaceState({}, "", nextUrl);
   }
 
   function leaveStation() {
-    setStationId("");
-    setPromptIndex(0);
-    setGrades({});
-    setActivityStates({});
-    setTimer({ startedAt: null, endsAt: null });
-    setShowSummary(false);
-    const nextUrl = new URL(window.location.href);
-    nextUrl.searchParams.delete("station");
-    window.history.replaceState({}, "", nextUrl);
+    clearCurrentStation();
+  }
+
+  function resetSession() {
+    setSessionResults({});
+    setShowOverallSummary(false);
+    clearCurrentStation();
+  }
+
+  function finishStation() {
+    if (!station) return;
+    const result = summarizeStation(station, grades);
+    setSessionResults((current) => ({ ...current, [station.id]: result }));
+    setShowSummary(true);
   }
 
   function grade(status: EvaluationStatus) {
@@ -184,6 +245,65 @@ export function SoloPage() {
     });
   }
 
+  if (showOverallSummary) {
+    return (
+      <section className="mx-auto min-h-[calc(100vh-5rem)] max-w-7xl px-4 py-8 md:px-6">
+        <div className="font-display text-sm font-bold uppercase tracking-[0.2em] text-scrub">Solo run complete</div>
+        <h1 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-7xl">Overall results</h1>
+        <p className="mt-4 max-w-3xl text-lg leading-8 text-white/60">
+          This score combines every graded prompt from every competency station in this run.
+        </p>
+
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
+          <Stat label="Overall score" value={`${overallScore}%`} tone="text-monitor" />
+          <Stat label="Stations" value={`${completedStations}/${stations.length}`} />
+          <Stat label="Correct" value={totalCorrect} tone="text-scrub" />
+          <Stat label="Partial" value={totalPartial} tone="text-amber" />
+          <Stat label="Missed" value={totalIncorrect} tone="text-trauma" />
+        </div>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {stations.map((item) => {
+            const result = sessionResults[item.id];
+            return (
+              <div key={item.id} className="rounded-md border border-white/10 bg-black/35 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-display text-xs font-bold uppercase tracking-[0.16em] text-white/35">Station</div>
+                    <h2 className="mt-2 font-display text-2xl font-black uppercase leading-tight text-white">{item.title}</h2>
+                  </div>
+                  <div className="font-display text-3xl font-black text-monitor">{result ? `${result.score}%` : "--"}</div>
+                </div>
+                <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                  <MiniStat label="Correct" value={result?.correct ?? 0} tone="text-scrub" />
+                  <MiniStat label="Partial" value={result?.partial ?? 0} tone="text-amber" />
+                  <MiniStat label="Missed" value={result?.incorrect ?? 0} tone="text-trauma" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={resetSession}
+            className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
+          >
+            <RotateCcw className="h-5 w-5" /> Reset run
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="inline-flex min-h-14 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-white/65 transition hover:border-white/25 hover:text-white"
+          >
+            <Home className="h-5 w-5" /> Home
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   if (!station) {
     return (
       <section className="mx-auto max-w-7xl px-4 py-10">
@@ -194,35 +314,94 @@ export function SoloPage() {
             </div>
             <h1 className="mt-5 font-display text-5xl font-black uppercase leading-none text-white md:text-6xl">One Player Mode</h1>
             <p className="mt-4 max-w-3xl text-lg leading-8 text-white/65">
-              Pick a station and practice it on one screen. Timed questions start automatically and answers stay hidden until you reveal them.
+              Complete each station once. Finished stations lock for this run, and your scores roll into one overall result at the end.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.045] px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/70 transition hover:border-white/25 hover:text-white"
-          >
-            <Home className="h-4 w-4" /> Home
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {completedStations > 0 ? (
+              <button
+                type="button"
+                onClick={resetSession}
+                className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.045] px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/65 transition hover:border-white/25 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" /> Reset run
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/10 bg-white/[0.045] px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/70 transition hover:border-white/25 hover:text-white"
+            >
+              <Home className="h-4 w-4" /> Home
+            </button>
+          </div>
         </div>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {stations.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.035 }}
+        <div className="mt-8 rounded-md border border-white/10 bg-black/35 p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div>
+              <div className="font-display text-xs font-bold uppercase tracking-[0.18em] text-white/35">Run progress</div>
+              <div className="mt-2 font-display text-3xl font-black uppercase text-white">
+                {completedStations}/{stations.length} stations complete
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <ClipboardCheck className="h-6 w-6 text-monitor" />
+              <div>
+                <div className="font-display text-xs font-bold uppercase tracking-[0.14em] text-white/35">Overall so far</div>
+                <div className="font-display text-3xl font-black text-monitor">{overallScore}%</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-trauma via-monitor to-scrub transition-all"
+              style={{ width: `${Math.round((completedStations / Math.max(1, stations.length)) * 100)}%` }}
+            />
+          </div>
+          <div className="mt-3 text-sm text-white/40">
+            Completed stations stay locked until you reset this run or refresh the page.
+          </div>
+          {allStationsComplete ? (
+            <button
+              type="button"
+              onClick={() => setShowOverallSummary(true)}
+              className="mt-5 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-md border border-scrub/35 bg-scrub/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-scrub transition hover:bg-scrub/15"
             >
-              <StationCard station={item} onSelect={(selected) => chooseStation(selected.id)} />
-            </motion.div>
-          ))}
+              <CheckCircle2 className="h-5 w-5" /> View final results
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {stations.map((item, index) => {
+            const result = sessionResults[item.id];
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.035 }}
+              >
+                <StationCard
+                  station={item}
+                  completed={result ? item.prompts.length : 0}
+                  disabled={Boolean(result)}
+                  statusLabel={result ? `Completed · ${result.score}%` : undefined}
+                  onSelect={(selected) => chooseStation(selected.id)}
+                />
+              </motion.div>
+            );
+          })}
         </div>
       </section>
     );
   }
 
-  if (showSummary) {
+  if (showSummary && currentResult) {
+    const savedResult = sessionResults[station.id] ?? currentResult;
+    const finishedAllStations = Object.keys(sessionResults).length === stations.length;
+
     return (
       <section className="mx-auto min-h-[calc(100vh-5rem)] max-w-6xl px-4 py-8 md:px-6">
         <div className="p-2 md:p-4">
@@ -230,57 +409,57 @@ export function SoloPage() {
           <h1 className="mt-3 font-display text-5xl font-black uppercase leading-none text-white md:text-7xl">{station.title}</h1>
 
           <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Stat label="Score" value={`${score}%`} tone="text-monitor" />
-            <Stat label="Completed" value={`${completed}/${station.prompts.length}`} />
-            <Stat label="Correct" value={correct} tone="text-scrub" />
-            <Stat label="Partial" value={partial} tone="text-amber" />
-            <Stat label="Missed" value={incorrect} tone="text-trauma" />
+            <Stat label="Score" value={`${savedResult.score}%`} tone="text-monitor" />
+            <Stat label="Completed" value={`${savedResult.completed}/${station.prompts.length}`} />
+            <Stat label="Correct" value={savedResult.correct} tone="text-scrub" />
+            <Stat label="Partial" value={savedResult.partial} tone="text-amber" />
+            <Stat label="Missed" value={savedResult.incorrect} tone="text-trauma" />
           </div>
 
           <div className="mt-8 grid gap-3">
-            {station.prompts.map((item, index) => {
-              const status = grades[item.id];
+            {station.prompts.map((item) => {
+              const status = savedResult.grades[item.id];
               return (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setShowSummary(false);
-                    goToPrompt(index);
-                  }}
-                  className="flex min-h-20 items-center justify-between gap-5 rounded-md border border-white/10 bg-white/[0.025] px-5 py-4 text-left transition hover:border-monitor/30"
+                  className="flex min-h-20 items-center justify-between gap-5 rounded-md border border-white/10 bg-white/[0.025] px-5 py-4 text-left"
                 >
                   <span className="line-clamp-2 text-xl font-semibold leading-8 text-white/85">{item.title || item.scenario}</span>
                   <span className={`flex-none font-display text-xs font-black uppercase tracking-[0.14em] ${status ? gradeStyles[status] : "text-white/35"}`}>
                     {status ?? "Not graded"}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
+            {finishedAllStations ? (
+              <button
+                type="button"
+                onClick={() => {
+                  clearCurrentStation();
+                  setShowOverallSummary(true);
+                }}
+                className="inline-flex min-h-14 items-center gap-2 rounded-md border border-scrub/35 bg-scrub/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-scrub transition hover:bg-scrub/15"
+              >
+                <CheckCircle2 className="h-5 w-5" /> View final results
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={clearCurrentStation}
+                className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
+              >
+                <ArrowLeft className="h-5 w-5" /> Choose next station
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => {
-                setPromptIndex(0);
-                setGrades({});
-                setActivityStates({});
-                setRevealed(false);
-                setSelectedChoice(null);
-                setTimer(timerWindow(station.prompts[0]?.timerSeconds));
-                setShowSummary(false);
-              }}
-              className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
+              onClick={resetSession}
+              className="inline-flex min-h-14 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-white/55 transition hover:border-white/25 hover:text-white"
             >
-              <RotateCcw className="h-5 w-5" /> Practice again
-            </button>
-            <button
-              type="button"
-              onClick={leaveStation}
-              className="inline-flex min-h-14 items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-white/65 transition hover:border-white/25 hover:text-white"
-            >
-              <ArrowLeft className="h-5 w-5" /> Choose another station
+              <RotateCcw className="h-5 w-5" /> Reset run
             </button>
           </div>
         </div>
@@ -465,7 +644,7 @@ export function SoloPage() {
           </button>
           <button
             type="button"
-            onClick={() => atLastPrompt ? setShowSummary(true) : goToPrompt(promptIndex + 1)}
+            onClick={() => atLastPrompt ? finishStation() : goToPrompt(promptIndex + 1)}
             disabled={!currentGrade}
             className="inline-flex min-h-14 items-center justify-center gap-3 rounded-md bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.12em] text-monitor transition hover:bg-monitor/15 disabled:cursor-not-allowed disabled:opacity-20 md:min-h-16 md:text-base"
           >
@@ -526,6 +705,15 @@ function Stat({ label, value, tone = "text-white" }: { label: string; value: str
     <div className="rounded-md border border-white/10 bg-white/[0.025] p-3 text-center md:p-4">
       <div className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-white/35 md:text-xs">{label}</div>
       <div className={`mt-1 font-display text-2xl font-black md:text-3xl ${tone}`}>{value}</div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className="rounded-md border border-white/[0.07] bg-white/[0.02] px-2 py-3">
+      <div className="font-display text-[9px] font-bold uppercase tracking-[0.1em] text-white/30">{label}</div>
+      <div className={`mt-1 font-display text-xl font-black ${tone}`}>{value}</div>
     </div>
   );
 }
