@@ -25,6 +25,11 @@ select {
   font: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid #6ef7ff;
+  outline-offset: 3px;
+}
+
 ::selection {
   background: rgba(36, 245, 199, 0.28);
   color: white;
