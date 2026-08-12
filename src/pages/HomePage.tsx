@@ -1,61 +1,101 @@
 import { motion } from "framer-motion";
-import { ClipboardCheck, MonitorPlay, Radio, UserRound } from "lucide-react";
+import { ArrowRight, MonitorPlay, Radio, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 
 const actions = [
-  { to: "/host", label: "Start Host Mode", icon: MonitorPlay, accent: "text-trauma" },
-  { to: "/player", label: "Start Player Mode", icon: Radio, accent: "text-scrub" },
-  { to: "/solo", label: "One Player Practice", icon: UserRound, accent: "text-monitor" }
+  {
+    to: "/host",
+    title: "Host a session",
+    description: "Run a synchronized competency checkoff and evaluate participants in real time.",
+    icon: MonitorPlay,
+    iconClass: "text-trauma"
+  },
+  {
+    to: "/player",
+    title: "Join as player",
+    description: "Connect to an active host session from a second screen on the same network.",
+    icon: Radio,
+    iconClass: "text-scrub"
+  },
+  {
+    to: "/solo",
+    title: "Practice solo",
+    description: "Work through every station independently with timers, feedback, and scoring.",
+    icon: UserRound,
+    iconClass: "text-monitor"
+  }
 ];
 
 export function HomePage() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10">
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <div className="inline-flex items-center gap-3 rounded-md border border-trauma/30 bg-trauma/10 px-3 py-2 font-display text-xs font-bold uppercase tracking-[0.2em] text-trauma">
-          <ClipboardCheck className="h-4 w-4" />
-          Simulation lab control
-        </div>
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
-          <div>
-            <h1 className="max-w-4xl font-display text-5xl font-black uppercase leading-[0.92] tracking-normal text-white md:text-7xl">
-              Competency Stations
-            </h1>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-white/70">
-              A simulation system for nursing competency checkoffs, guided scenarios, practical troubleshooting, host-led evaluation,
-              and one-player self-practice. Run a synchronized local-network session or practice a station on a single computer.
-            </p>
-          </div>
-          <div className="grid gap-2">
-            {actions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link
-                  key={action.to}
-                  to={action.to}
-                  className="group flex min-h-14 items-center justify-between rounded-md border border-white/10 bg-white/[0.045] px-4 transition hover:border-scrub/40 hover:bg-scrub/10"
-                >
-                  <span className="font-display text-sm font-bold uppercase tracking-[0.12em] text-white">{action.label}</span>
-                  <Icon className={`h-5 w-5 ${action.accent} transition group-hover:scale-110`} />
-                </Link>
-              );
-            })}
-          </div>
+    <section className="mx-auto max-w-7xl px-5 py-12 md:px-6 md:py-16">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-white/40">Nursing simulation training</p>
+        <div className="mt-4 max-w-4xl">
+          <h1 className="font-display text-5xl font-black leading-[0.96] text-white md:text-6xl lg:text-7xl">
+            Competency Stations
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-7 text-white/60 md:text-lg md:leading-8">
+            Clinical competency checkoffs, guided scenarios, and practical troubleshooting for instructor-led sessions or independent practice.
+          </p>
         </div>
       </motion.div>
 
-      <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-10 grid gap-3 lg:grid-cols-3">
+        {actions.map((action, index) => {
+          const Icon = action.icon;
+          return (
+            <motion.div
+              key={action.to}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 + index * 0.04, duration: 0.3 }}
+            >
+              <Link
+                to={action.to}
+                className="group flex h-full min-h-36 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.025] p-5 transition hover:border-white/20 hover:bg-white/[0.045]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="grid h-10 w-10 place-items-center rounded-md border border-white/10 bg-black/25">
+                    <Icon className={`h-5 w-5 ${action.iconClass}`} />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-white/55" />
+                </div>
+                <div className="mt-6">
+                  <h2 className="text-lg font-semibold text-white">{action.title}</h2>
+                  <p className="mt-1.5 text-sm leading-6 text-white/50">{action.description}</p>
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="mt-14 flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <h2 className="font-display text-3xl font-black text-white md:text-4xl">Stations</h2>
+          <p className="mt-1 text-sm text-white/45">Choose a module to open it in host mode.</p>
+        </div>
+        <div className="text-sm font-medium text-white/35">{stations.length} modules</div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {stations.map((station, index) => (
           <motion.div
             key={station.id}
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 + index * 0.04 }}
+            transition={{ delay: 0.12 + index * 0.025, duration: 0.28 }}
           >
             <StationCard
               station={station}
+              showProgress={false}
               onSelect={(selectedStation) => {
                 window.location.href = `/host?station=${selectedStation.id}`;
               }}
