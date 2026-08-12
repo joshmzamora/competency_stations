@@ -11,7 +11,7 @@ const actions = [
     description: "Run a synchronized competency checkoff and evaluate participants in real time.",
     icon: MonitorPlay,
     iconClass: "text-trauma",
-    borderClass: "border-l-trauma/55"
+    borderClass: "border-l-trauma/60"
   },
   {
     to: "/player",
@@ -19,7 +19,7 @@ const actions = [
     description: "Connect to an active host session from a second screen on the same network.",
     icon: Radio,
     iconClass: "text-scrub",
-    borderClass: "border-l-scrub/55"
+    borderClass: "border-l-scrub/60"
   },
   {
     to: "/solo",
@@ -27,51 +27,51 @@ const actions = [
     description: "Work through every station independently with timers, feedback, and scoring.",
     icon: UserRound,
     iconClass: "text-monitor",
-    borderClass: "border-l-monitor/55"
+    borderClass: "border-l-monitor/60"
   }
 ];
 
 export function HomePage() {
   return (
-    <section className="mx-auto max-w-7xl px-5 py-12 md:px-6 md:py-16">
+    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-5 md:px-6 md:py-10 lg:py-12">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.32 }}
       >
         <p className="text-sm font-medium text-white/40">Nursing simulation training</p>
-        <div className="mt-4 max-w-4xl">
-          <h1 className="font-display text-5xl font-black leading-[0.96] text-white md:text-6xl lg:text-7xl">
+        <div className="mt-3 max-w-4xl">
+          <h1 className="font-display text-4xl font-black leading-[0.98] text-white sm:text-5xl md:text-6xl lg:text-7xl">
             Competency Stations
           </h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 text-white/60 md:text-lg md:leading-8">
+          <p className="mt-4 max-w-3xl text-[15px] leading-7 text-white/58 sm:text-base md:text-lg md:leading-8">
             Clinical competency checkoffs, guided scenarios, and practical troubleshooting for instructor-led sessions or independent practice.
           </p>
         </div>
       </motion.div>
 
-      <div className="mt-10 grid gap-3 lg:grid-cols-3">
+      <div className="mt-7 grid gap-3 md:grid-cols-3">
         {actions.map((action, index) => {
           const Icon = action.icon;
           return (
             <motion.div
               key={action.to}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.04 + index * 0.04, duration: 0.3 }}
+              transition={{ delay: 0.035 + index * 0.035, duration: 0.28 }}
             >
               <Link
                 to={action.to}
-                className={`group flex h-full min-h-40 flex-col justify-between rounded-lg border border-l-2 border-white/10 bg-white/[0.025] p-5 transition hover:border-white/20 hover:bg-white/[0.045] ${action.borderClass}`}
+                className={`group flex h-full min-h-32 flex-col justify-between rounded-lg border border-l-2 border-white/10 bg-white/[0.025] p-4 transition hover:border-white/20 hover:bg-white/[0.045] sm:min-h-36 sm:p-5 ${action.borderClass}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid h-11 w-11 place-items-center rounded-md border border-white/10 bg-black/25">
-                    <Icon className={`h-[22px] w-[22px] ${action.iconClass}`} />
+                  <div className="grid h-11 w-11 place-items-center rounded-md border border-white/10 bg-black/25 sm:h-12 sm:w-12">
+                    <Icon className={`h-[22px] w-[22px] sm:h-6 sm:w-6 ${action.iconClass}`} />
                   </div>
                   <ArrowRight className="h-4 w-4 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-white/55" />
                 </div>
-                <div className="mt-7">
-                  <h2 className="text-xl font-semibold text-white">{action.title}</h2>
+                <div className="mt-5 sm:mt-6">
+                  <h2 className="text-lg font-semibold text-white sm:text-xl">{action.title}</h2>
                   <p className="mt-1.5 max-w-sm text-sm leading-6 text-white/50">{action.description}</p>
                 </div>
               </Link>
@@ -80,21 +80,22 @@ export function HomePage() {
         })}
       </div>
 
-      <div className="mt-14 flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+      <div className="mt-10 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3 sm:mt-12 sm:pb-4">
         <div>
           <h2 className="font-display text-3xl font-black text-white md:text-4xl">Stations</h2>
           <p className="mt-1 text-sm text-white/45">Choose a module to open it in host mode.</p>
         </div>
-        <div className="text-sm text-white/35">{stations.length} modules</div>
+        <div className="text-sm tabular-nums text-white/35">{stations.length} modules</div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {stations.map((station, index) => (
           <motion.div
             key={station.id}
-            initial={{ opacity: 0, y: 10 }}
+            className="h-full"
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 + index * 0.025, duration: 0.28 }}
+            transition={{ delay: 0.1 + index * 0.02, duration: 0.26 }}
           >
             <StationCard
               station={station}
@@ -107,7 +108,7 @@ export function HomePage() {
         ))}
       </div>
 
-      <footer className="mt-14 border-t border-white/[0.07] pt-5 text-sm text-white/28">
+      <footer className="mt-12 border-t border-white/[0.07] pt-5 text-sm text-white/28">
         Competency Stations · Nursing simulation training
       </footer>
     </section>
