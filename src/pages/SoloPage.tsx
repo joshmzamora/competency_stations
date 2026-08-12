@@ -21,6 +21,19 @@ import { CountdownTimer } from "../components/CountdownTimer";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 import type { ActivityState, CompetencyPrompt, EvaluationStatus } from "../types";
+import {
+  playEvaluationCue,
+  playFileClickCue,
+  playQuestionAdvanceCue,
+  playStationTransitionCue
+} from "../utils/sound";
+import {
+  getSoloTimerSeconds,
+  isSoloStationLocked,
+  summarizeSoloRun,
+  summarizeSoloStation,
+  type SoloSessionResults
+} from "../utils/soloSession";
 
 const gradeStyles: Record<EvaluationStatus, string> = {
   correct: "border-scrub/45 bg-scrub/10 text-scrub",
@@ -31,17 +44,6 @@ const gradeStyles: Record<EvaluationStatus, string> = {
 type SoloTimerWindow = {
   startedAt: number | null;
   endsAt: number | null;
-};
-
-type SoloStationResult = {
-  stationId: string;
-  grades: Record<string, EvaluationStatus>;
-  completed: number;
-  correct: number;
-  partial: number;
-  incorrect: number;
-  score: number;
-  promptCount: number;
 };
 
 function initialStationId() {
@@ -97,25 +99,6 @@ function timerWindow(seconds?: number): SoloTimerWindow {
   return { startedAt, endsAt: startedAt + seconds * 1000 };
 }
 
-function summarizeStation(station: (typeof stations)[number], grades: Record<string, EvaluationStatus>): SoloStationResult {
-  const completed = station.prompts.filter((item) => grades[item.id]).length;
-  const correct = station.prompts.filter((item) => grades[item.id] === "correct").length;
-  const partial = station.prompts.filter((item) => grades[item.id] === "partial").length;
-  const incorrect = station.prompts.filter((item) => grades[item.id] === "incorrect").length;
-  const score = completed ? Math.round(((correct + partial * 0.5) / completed) * 100) : 0;
-
-  return {
-    stationId: station.id,
-    grades: { ...grades },
-    completed,
-    correct,
-    partial,
-    incorrect,
-    score,
-    promptCount: station.prompts.length
-  };
-}
-
 export function SoloPage() {
   const navigate = useNavigate();
   const [stationId, setStationId] = useState(initialStationId);
@@ -127,27 +110,26 @@ export function SoloPage() {
   const [timer, setTimer] = useState<SoloTimerWindow>({ startedAt: null, endsAt: null });
   const [showSummary, setShowSummary] = useState(false);
   const [showOverallSummary, setShowOverallSummary] = useState(false);
-  const [sessionResults, setSessionResults] = useState<Record<string, SoloStationResult>>({});
+  const [sessionResults, setSessionResults] = useState<SoloSessionResults>({});
 
   const station = useMemo(() => stations.find((item) => item.id === stationId) ?? null, [stationId]);
   const prompt = station?.prompts[promptIndex] ?? null;
+  const soloTimerSeconds = getSoloTimerSeconds(station?.id ?? "", prompt);
 
   useEffect(() => {
     setRevealed(false);
     setSelectedChoice(null);
-    setTimer(timerWindow(prompt?.timerSeconds));
-  }, [prompt?.id, prompt?.timerSeconds]);
+    setTimer(timerWindow(soloTimerSeconds));
+  }, [prompt?.id, soloTimerSeconds]);
 
-  const currentResult = station ? summarizeStation(station, grades) : null;
-  const sessionResultList = Object.values(sessionResults);
-  const completedStations = sessionResultList.length;
-  const totalCorrect = sessionResultList.reduce((sum, result) => sum + result.correct, 0);
-  const totalPartial = sessionResultList.reduce((sum, result) => sum + result.partial, 0);
-  const totalIncorrect = sessionResultList.reduce((sum, result) => sum + result.incorrect, 0);
-  const totalCompletedPrompts = sessionResultList.reduce((sum, result) => sum + result.completed, 0);
-  const overallScore = totalCompletedPrompts
-    ? Math.round(((totalCorrect + totalPartial * 0.5) / totalCompletedPrompts) * 100)
-    : 0;
+  const currentResult = station ? summarizeSoloStation(station, grades) : null;
+  const {
+    completedStations,
+    totalCorrect,
+    totalPartial,
+    totalIncorrect,
+    overallScore
+  } = summarizeSoloRun(sessionResults);
   const allStationsComplete = completedStations === stations.length;
 
   function clearCurrentStation() {
@@ -164,7 +146,8 @@ export function SoloPage() {
   }
 
   function chooseStation(id: string) {
-    if (sessionResults[id]) return;
+    if (isSoloStationLocked(sessionResults, id)) return;
+    playStationTransitionCue();
     setStationId(id);
     setPromptIndex(0);
     setGrades({});
@@ -182,6 +165,7 @@ export function SoloPage() {
   }
 
   function resetSession() {
+    playFileClickCue();
     setSessionResults({});
     setShowOverallSummary(false);
     clearCurrentStation();
@@ -189,28 +173,47 @@ export function SoloPage() {
 
   function finishStation() {
     if (!station) return;
-    const result = summarizeStation(station, grades);
+    playQuestionAdvanceCue();
+    const result = summarizeSoloStation(station, grades);
     setSessionResults((current) => ({ ...current, [station.id]: result }));
     setShowSummary(true);
   }
 
   function grade(status: EvaluationStatus) {
     if (!prompt) return;
+    playEvaluationCue(status);
     setGrades((current) => ({ ...current, [prompt.id]: status }));
   }
 
   function goToPrompt(index: number) {
     if (!station) return;
+    playQuestionAdvanceCue();
     const nextIndex = Math.min(Math.max(index, 0), station.prompts.length - 1);
     const nextPrompt = station.prompts[nextIndex];
     setPromptIndex(nextIndex);
     setRevealed(false);
     setSelectedChoice(null);
-    setTimer(timerWindow(nextPrompt?.timerSeconds));
+    setTimer(timerWindow(getSoloTimerSeconds(station.id, nextPrompt)));
   }
 
   function resetTimer() {
-    setTimer(timerWindow(prompt?.timerSeconds));
+    playFileClickCue();
+    setTimer(timerWindow(soloTimerSeconds));
+  }
+
+  function revealAnswer() {
+    playFileClickCue();
+    setRevealed(true);
+  }
+
+  function showFinalResults() {
+    playStationTransitionCue();
+    setShowOverallSummary(true);
+  }
+
+  function chooseNextStation() {
+    playStationTransitionCue();
+    clearCurrentStation();
   }
 
   function moveActivityCard(item: string, column: string | null) {
@@ -365,7 +368,7 @@ export function SoloPage() {
           {allStationsComplete ? (
             <button
               type="button"
-              onClick={() => setShowOverallSummary(true)}
+              onClick={showFinalResults}
               className="mt-5 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-md border border-scrub/35 bg-scrub/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-scrub transition hover:bg-scrub/15"
             >
               <CheckCircle2 className="h-5 w-5" /> View final results
@@ -438,6 +441,7 @@ export function SoloPage() {
               <button
                 type="button"
                 onClick={() => {
+                  playStationTransitionCue();
                   clearCurrentStation();
                   setShowOverallSummary(true);
                 }}
@@ -448,7 +452,7 @@ export function SoloPage() {
             ) : (
               <button
                 type="button"
-                onClick={clearCurrentStation}
+                onClick={chooseNextStation}
                 className="inline-flex min-h-14 items-center gap-2 rounded-md border border-monitor/35 bg-monitor/10 px-5 font-display text-sm font-black uppercase tracking-[0.14em] text-monitor transition hover:bg-monitor/15"
               >
                 <ArrowLeft className="h-5 w-5" /> Choose next station
@@ -497,18 +501,18 @@ export function SoloPage() {
         </div>
       </div>
 
-      {prompt.timerSeconds && (
+      {soloTimerSeconds && (
         <div className="my-3 md:my-4">
           <CountdownTimer
             endsAt={timer.endsAt}
             startedAt={timer.startedAt}
-            audioEnabled={false}
+            audioEnabled
           />
         </div>
       )}
 
       <main className="flex flex-1 flex-col">
-        {prompt.timerSeconds && (
+        {soloTimerSeconds && (
           <div className="mb-2 flex justify-end">
             <button
               type="button"
@@ -527,7 +531,7 @@ export function SoloPage() {
               activityState={activityState}
               showAnswer={revealed}
               readOnly={revealed}
-              audioEnabled={false}
+              audioEnabled
               size="learner"
               onMoveCard={moveActivityCard}
               onCheck={checkActivity}
@@ -566,7 +570,7 @@ export function SoloPage() {
         {!revealed ? (
           <button
             type="button"
-            onClick={() => setRevealed(true)}
+            onClick={revealAnswer}
             className="mt-6 inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-md border border-scrub/35 bg-scrub/10 px-6 font-display text-lg font-black uppercase tracking-[0.14em] text-scrub transition hover:bg-scrub/15 md:min-h-20 md:text-xl"
           >
             <Eye className="h-6 w-6" /> Reveal answer
