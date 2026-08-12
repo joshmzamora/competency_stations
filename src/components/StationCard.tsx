@@ -21,6 +21,13 @@ const accentClasses = {
   amber: "border-amber/35 bg-amber/10 text-amber"
 };
 
+const accentEdgeClasses = {
+  trauma: "border-l-trauma/65",
+  scrub: "border-l-scrub/65",
+  monitor: "border-l-monitor/65",
+  amber: "border-l-amber/65"
+};
+
 const stationIcons: Record<string, typeof Activity> = {
   "code-blue": HeartPulse,
   hemodynamics: Gauge,
@@ -57,13 +64,13 @@ export function StationCard({
       whileTap={disabled ? undefined : { y: 0 }}
       disabled={disabled}
       onClick={() => onSelect(station)}
-      className={`group flex h-full min-h-[228px] w-full flex-col rounded-lg border p-4 text-left transition ${
+      className={`group grid h-full min-h-[220px] w-full grid-rows-[auto_auto_1fr_auto] rounded-lg border border-l-2 p-4 text-left transition ${accentEdgeClasses[station.accent]} ${
         disabled
           ? "cursor-not-allowed border-white/[0.07] bg-white/[0.015] opacity-50"
           : "border-white/10 bg-[#0b0f14]/80 hover:border-white/20 hover:bg-[#0d1218]"
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-h-9 items-start justify-between gap-4">
         <span className={`grid h-9 w-9 place-items-center rounded-md border ${accentClasses[station.accent]}`}>
           <StationIcon className="h-[18px] w-[18px]" />
         </span>
@@ -73,18 +80,21 @@ export function StationCard({
             <CheckCircle2 className="h-3.5 w-3.5" /> {statusLabel}
           </span>
         ) : showProgress ? (
-          <span className="text-xs font-medium text-white/35">{progress}% complete</span>
+          <span className="pt-1 text-xs font-medium tabular-nums text-white/35">{progress}% complete</span>
         ) : null}
       </div>
 
-      <div className="mt-4">
-        <h3 className="font-display text-[1.35rem] font-black leading-tight text-white">{station.title}</h3>
-        <p className="mt-2 line-clamp-3 text-sm leading-[1.45rem] text-white/52">{station.description}</p>
-      </div>
+      <h3 className="mt-4 min-h-[3.3rem] font-display text-[1.35rem] font-black leading-[1.1] text-white">
+        {station.title}
+      </h3>
 
-      <div className="mt-auto pt-5">
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] text-white/43">
-          <div className="flex items-center gap-2">
+      <p className="mt-1.5 line-clamp-3 min-h-[4.35rem] text-sm leading-[1.45rem] text-white/52">
+        {station.description}
+      </p>
+
+      <div className="pt-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 text-[13px] text-white/43">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <Clock className="h-3.5 w-3.5 text-white/30" />
             {station.estimatedMinutes} min
           </div>
