@@ -1,11 +1,12 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Activity, Home, MonitorPlay, Radio } from "lucide-react";
+import { Activity, Home, MonitorPlay, Radio, UserRound } from "lucide-react";
 import { ChromeProvider, useAppChrome } from "../context/ChromeContext";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home },
   { to: "/host", label: "Host", icon: MonitorPlay },
-  { to: "/player", label: "Player", icon: Radio }
+  { to: "/player", label: "Player", icon: Radio },
+  { to: "/solo", label: "Solo", icon: UserRound }
 ];
 
 function ShellFrame() {
@@ -22,9 +23,9 @@ function ShellFrame() {
               <span className="grid h-9 w-9 place-items-center rounded-md border border-trauma/35 bg-trauma/[0.07]">
                 <Activity className="h-[18px] w-[18px] text-trauma" />
               </span>
-              <span className="font-display text-base font-bold tracking-[0.08em] text-white/95 md:text-lg">Competency Stations</span>
+              <span className="font-display text-base font-bold tracking-[0.05em] text-white/95 md:text-lg">Competency Stations</span>
             </Link>
-            <nav className="hidden items-center gap-1 md:flex">
+            <nav className="hidden items-center gap-5 md:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -32,8 +33,10 @@ function ShellFrame() {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
-                        isActive ? "bg-white/[0.07] text-white" : "text-white/45 hover:bg-white/[0.04] hover:text-white/80"
+                      `inline-flex items-center gap-2 border-b-2 px-0.5 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? "border-scrub text-white"
+                          : "border-transparent text-white/42 hover:border-white/15 hover:text-white/75"
                       }`
                     }
                   >
