@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { TimerReset } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { playTimerTickCue, playTimerUrgentCue } from "../utils/sound";
+import { playTimerTickCue, playTimerUrgentCue, shouldPlayComponentAudio } from "../utils/sound";
 
 export function CountdownTimer({
   endsAt,
@@ -59,7 +59,7 @@ export function CountdownTimer({
     const currentRemaining = visibleRemaining(syncedNow);
     if (lastTickRef.current !== currentRemaining) {
       lastTickRef.current = currentRemaining;
-      if (!audioEnabled) return;
+      if (!shouldPlayComponentAudio(audioEnabled)) return;
       if (currentRemaining > 0 && currentRemaining <= 5) {
         playTimerUrgentCue();
       } else if (currentRemaining > 0) {
