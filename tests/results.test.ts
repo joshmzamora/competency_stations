@@ -4,9 +4,9 @@ import type { CompetencyPrompt, ResultRecord } from "../src/types";
 import { buildStationBreakdown, resultsToCsv } from "../src/utils/results";
 
 test("resultsToCsv escapes quotes and preserves scoring fields", () => {
-  const result = {
+  const result: ResultRecord = {
     id: "result-1",
-    mode: "host",
+    mode: "host-competency",
     roomCode: "ABCD",
     createdAt: "2026-08-12T04:00:00.000Z",
     endedAt: "2026-08-12T04:10:00.000Z",
@@ -19,8 +19,9 @@ test("resultsToCsv escapes quotes and preserves scoring fields", () => {
     participantStats: [],
     missedPromptIds: ['prompt-"quoted"'],
     flaggedPromptIds: [],
-    stationBreakdown: {}
-  } as ResultRecord;
+    stationBreakdown: {},
+    scoreHistory: []
+  };
 
   const csv = resultsToCsv([result]);
 
