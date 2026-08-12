@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, MonitorPlay, Radio, UserRound } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { StationCard } from "../components/StationCard";
 import { stations } from "../data/stations";
 
@@ -32,6 +32,8 @@ const actions = [
 ];
 
 export function HomePage() {
+  const navigate = useNavigate();
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 sm:px-5 md:px-6 md:py-10 lg:py-12">
       <motion.div
@@ -100,9 +102,7 @@ export function HomePage() {
             <StationCard
               station={station}
               showProgress={false}
-              onSelect={(selectedStation) => {
-                window.location.href = `/host?station=${selectedStation.id}`;
-              }}
+              onSelect={(selectedStation) => navigate(`/host?station=${selectedStation.id}`)}
             />
           </motion.div>
         ))}
