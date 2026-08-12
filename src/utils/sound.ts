@@ -15,11 +15,18 @@ const audioEnabledByRole: Record<AudioRole, Record<AudioChannel, boolean>> = {
   }
 };
 
+let audioMuted = false;
+
+export function setAudioMuted(muted: boolean) {
+  audioMuted = muted;
+}
+
 export function isAudioEnabledForRole(role: AudioRole, channel: AudioChannel = "effects") {
-  return audioEnabledByRole[role][channel];
+  return !audioMuted && audioEnabledByRole[role][channel];
 }
 
 function getAudioContext() {
+  if (audioMuted) return null;
   const AudioContextConstructor = window.AudioContext || (window as WebAudioWindow).webkitAudioContext;
   if (!AudioContextConstructor) return null;
   const context = new AudioContextConstructor();
