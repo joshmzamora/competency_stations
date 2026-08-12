@@ -19,9 +19,13 @@ Use **One Player Practice** for independent review on a single device.
 5. Timed prompts begin automatically.
 6. Reveal the expected answer when ready.
 7. Grade yourself as **Correct**, **Partial**, or **Missed**.
-8. Continue through the station and review your results at the end.
+8. Continue until the station is complete.
+9. Choose another station. Completed stations stay locked for the current run.
+10. Finish all stations to see one combined overall result.
 
-Solo mode is designed to keep the question large and easy to read, with minimal extra instructions on screen.
+Use **Reset run** at any time to clear the current solo run. Refreshing the page also starts a fresh run.
+
+Solo scoring uses Correct = 1 point, Partial = 0.5 point, and Missed = 0 points. The overall score is weighted across every graded prompt completed during the run.
 
 ## Host + Player Mode
 
@@ -48,6 +52,8 @@ The host and player can use separate browsers or devices. The hosted app handles
 ## Features
 
 - One-player self-practice
+- Full solo runs with combined scoring
+- Completed-station lockout and reset controls
 - Host-led competency sessions
 - Separate learner/player screen
 - Automatic timers for timed prompts
@@ -66,7 +72,7 @@ The host and player can use separate browsers or devices. The hosted app handles
 - Code BERT
 - Stroke
 - CAUTI / CLABSI Prevention
-- Pressure Injury
+- Glycemic Control
 
 Station content is defined in `src/data/stations.ts`.
 
@@ -87,6 +93,14 @@ npm run dev
 ```
 
 Then open the local URL shown in the terminal.
+
+### Project checks
+
+```bash
+npm run check
+```
+
+This runs the TypeScript checks, focused utility tests, and production build. GitHub Actions runs the same verification path for pull requests and pushes to `main`.
 
 ### Build
 
