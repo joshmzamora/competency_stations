@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Navigate, createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { HomePage } from "./pages/HomePage";
 import { CompletionPage } from "./pages/CompletionPage";
@@ -15,7 +15,8 @@ const router = createBrowserRouter([
       { path: "host", element: <HostPage /> },
       { path: "player", element: <PlayerPage /> },
       { path: "solo", element: <SoloRoute /> },
-      { path: "complete", element: <CompletionPage /> }
+      { path: "complete", element: <CompletionPage /> },
+      { path: "*", element: <Navigate to="/" replace /> }
     ]
   }
 ]);

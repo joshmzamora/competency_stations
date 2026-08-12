@@ -9,7 +9,10 @@
     "start": "node dist-server/server.js",
     "preview": "npm run build && npm run start",
     "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-windows-release.ps1",
-    "lint": "eslint ."
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@mintplex-labs/piper-tts-web": "^1.0.4",

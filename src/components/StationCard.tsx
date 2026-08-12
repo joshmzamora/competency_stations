@@ -8,9 +8,9 @@ import {
   Droplets,
   Gauge,
   HeartPulse,
-  Lungs,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Wind
 } from "lucide-react";
 import type { CompetencyStation } from "../types";
 
@@ -31,7 +31,7 @@ const accentEdgeClasses = {
 const stationIcons: Record<string, typeof Activity> = {
   "code-blue": HeartPulse,
   hemodynamics: Gauge,
-  "chest-tube": Lungs,
+  "chest-tube": Wind,
   "code-bert": ShieldAlert,
   stroke: Brain,
   "cauti-clabsi-prevention": ShieldCheck,
