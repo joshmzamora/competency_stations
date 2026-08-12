@@ -20,7 +20,7 @@ function ShellFrame() {
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-6">
             <Link to="/" className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-md border border-trauma/35 bg-trauma/[0.07]">
-                <Activity className="h-4.5 w-4.5 text-trauma" />
+                <Activity className="h-[18px] w-[18px] text-trauma" />
               </span>
               <span className="font-display text-base font-bold tracking-[0.08em] text-white/95 md:text-lg">Competency Stations</span>
             </Link>
