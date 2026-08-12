@@ -16,18 +16,9 @@ const audioEnabledByRole: Record<AudioRole, Record<AudioChannel, boolean>> = {
 };
 
 let audioMuted = false;
-let componentAudioOverride = false;
 
 export function setAudioMuted(muted: boolean) {
   audioMuted = muted;
-}
-
-export function setComponentAudioOverride(enabled: boolean) {
-  componentAudioOverride = enabled;
-}
-
-export function shouldPlayComponentAudio(enabled: boolean) {
-  return !audioMuted && (enabled || componentAudioOverride);
 }
 
 export function isAudioEnabledForRole(role: AudioRole, channel: AudioChannel = "effects") {
